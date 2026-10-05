@@ -17,11 +17,12 @@ Style.UI = {
 }
 
 -- Score categories, in the order they animate into the bar chart
-Style.ScoreOrder = { "finish", "trap", "clutch", "route" }
+Style.ScoreOrder = { "finish", "trap", "coin", "clutch", "route" }
 Style.ScoreColor = {
 	finish = Style.UI.Good,
 	trap = Style.UI.Bad,
-	clutch = Style.UI.Gold,
+	coin = Style.UI.Gold,
+	clutch = Color3.fromRGB(156, 112, 214),
 	route = Style.UI.Cool,
 }
 

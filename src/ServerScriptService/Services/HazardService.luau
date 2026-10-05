@@ -21,6 +21,9 @@ HazardService.onDeadly = function(_player: Player, _model: Model) end
 local touchedOwn = {} :: { [Player]: boolean }
 local crumbles = {} :: { Model }
 local lasers = {} :: { Model }
+local shooters = {} :: { Model }
+local coins = {} :: { Model }
+local paths = {} :: { [Model]: { path: { Vector3 }, len: number, at: number } }
 
 local function playerFromHit(hit: BasePart): Player?
 	if hit.Name ~= "HumanoidRootPart" then
@@ -100,6 +103,10 @@ function HazardService.watch(model: Model)
 	end
 	if def and def.id == "laser" then
 		table.insert(lasers, model)
+	elseif def and Objects.Shooters[def.id] then
+		table.insert(shooters, model)
+	elseif def and def.id == "coin" then
+		table.insert(coins, model)
 	end
 end
 
@@ -109,8 +116,74 @@ end
 
 -- Called ~10x a second during a run. Lasers are checked by geometry instead
 -- of Touched, because their on/off state comes from the clock.
+local function rootOf(player: Player): BasePart?
+	local char = player.Character
+	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+-- distance from point p to segment a-b
+local function segDist(p: Vector3, a: Vector3, b: Vector3): number
+	local ab = b - a
+	local len2 = ab:Dot(ab)
+	local t = if len2 > 0 then math.clamp((p - a):Dot(ab) / len2, 0, 1) else 0
+	return (p - (a + ab * t)).Magnitude
+end
+
 function HazardService.tick(running: { Player })
 	local now = workspace:GetServerTimeNow()
+
+	-- Projectiles: check the stretch each one covered since the last tick,
+	-- so fast darts can't skip past someone between checks.
+	for i = #shooters, 1, -1 do
+		local m = shooters[i]
+		if not m.Parent then
+			table.remove(shooters, i)
+			paths[m] = nil
+			continue
+		end
+		local id = m:GetAttribute("Id") :: string
+		local pivot = pivotOf(m)
+		local cache = paths[m]
+		if not cache or now - cache.at > 1 then
+			local path = Objects.shotPath(id, m, pivot)
+			cache = { path = path, len = Objects.pathLength(path), at = now }
+			paths[m] = cache
+		end
+		local c = cache :: { path: { Vector3 }, len: number, at: number }
+		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local step = Objects.Shooters[id].speed * 0.12
+		for _, shot in Objects.activeShots(id, age, c.len) do
+			local a = Objects.shotPosition(id, c.path, pivot, math.max(shot.dist - step, 0))
+			local b = Objects.shotPosition(id, c.path, pivot, shot.dist)
+			for _, player in running do
+				local root = rootOf(player)
+				if root and segDist(root.Position, a, b) < 1.4 then
+					HazardService.onDeadly(player, m)
+				end
+			end
+		end
+	end
+
+	-- Coins: first runner to touch one carries it
+	for i = #coins, 1, -1 do
+		local m = coins[i]
+		if not m.Parent then
+			table.remove(coins, i)
+			continue
+		end
+		if m:GetAttribute("TakenBy") then
+			continue
+		end
+		local pos = pivotOf(m).Position
+		for _, player in running do
+			local root = rootOf(player)
+			if root and (root.Position - pos).Magnitude < 2.4 then
+				m:SetAttribute("TakenBy", player.UserId)
+				break
+			end
+		end
+	end
+
 	for i = #lasers, 1, -1 do
 		local m = lasers[i]
 		if not m.Parent then
@@ -140,8 +213,33 @@ function HazardService.tick(running: { Player })
 end
 
 -- Called at the start of each run so the level is identical for everyone
+-- How many coins this player is carrying
+function HazardService.coinsOf(player: Player): number
+	local n = 0
+	for _, m in coins do
+		if m.Parent and m:GetAttribute("TakenBy") == player.UserId then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Taken out? Your coins drop back where they were.
+function HazardService.dropCoins(player: Player)
+	for _, m in coins do
+		if m.Parent and m:GetAttribute("TakenBy") == player.UserId then
+			m:SetAttribute("TakenBy", nil)
+		end
+	end
+end
+
 function HazardService.resetRound()
 	table.clear(touchedOwn)
+	for _, m in coins do
+		if m.Parent then
+			m:SetAttribute("TakenBy", nil)
+		end
+	end
 	for i = #crumbles, 1, -1 do
 		local m = crumbles[i]
 		if m.Parent then

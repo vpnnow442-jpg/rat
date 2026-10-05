@@ -1,7 +1,8 @@
 -- Side-on camera for a 2.5D game.
 --   menu     : the level drifts slowly by behind the menu
 --   overview : whole level in frame (intro, pick, results)
---   build    : zoomed in; push the cursor to a screen edge to pan, wheel/pinch to zoom
+--   build    : zoomed in and the map follows your cursor: cursor on the left of the
+--              screen shows the left of the level, right shows the right. Wheel/pinch zooms.
 --   follow   : you, with a little look-ahead in the direction you're moving
 --   spectate : once you're out, whoever is still running and furthest along
 -- Everything eases toward its goal, so mode changes read as one smooth move.
@@ -16,7 +17,7 @@ local Camera = {}
 
 -- Set by BuildController while you're placing
 Camera.building = false
-Camera.pan = Vector2.zero -- -1..1 per axis, from the cursor sitting at a screen edge
+Camera.pointer = Vector2.new(0.5, 0.5) -- cursor position on screen, 0..1
 Camera.menuOpen = false
 
 local FOV = 40
@@ -30,7 +31,6 @@ local lookAhead = 0
 local shakeAmp = 0
 local spectating: Player? = nil
 local failHoldUntil = 0
-local buildFocus: Vector3? = nil
 local buildDist = BUILD_DEFAULT
 
 function Camera.shake(amount: number)
@@ -112,16 +112,27 @@ local function update(dt: number)
 			goalFocus, goalDist = ovFocus, ovDist :: number
 		end
 	elseif phase == "Build" and Camera.building and ovFocus then
+		-- Map the cursor's spot on screen onto the whole level. Because this
+		-- depends on screen position (not the world point under the cursor),
+		-- holding the mouse still always settles: no runaway scrolling.
 		local bmin, bmax = bounds()
-		local bf = buildFocus or focus
-		bf += Vector3.new(Camera.pan.X, Camera.pan.Y, 0) * (40 + buildDist * 0.6) * dt
-		if bmin and bmax then
-			bf = Vector3.new(math.clamp(bf.X, bmin.X, bmax.X), math.clamp(bf.Y, bmin.Y + 8, bmax.Y - 8), 0)
-		end
-		buildFocus = bf
 		buildDist = math.clamp(buildDist, BUILD_MIN, ovDist :: number)
-		goalFocus, goalDist = bf, buildDist
-		sharp = 10
+		if bmin and bmax then
+			local vp = cam.ViewportSize
+			local halfH = buildDist * math.tan(math.rad(FOV / 2))
+			local halfW = halfH * vp.X / math.max(vp.Y, 1)
+			local function span(lo: number, hi: number, half: number, t: number): number
+				local a, b = lo + half * 0.4, hi - half * 0.4
+				if a > b then
+					return (lo + hi) / 2
+				end
+				return a + (b - a) * math.clamp(t, 0, 1)
+			end
+			local n = Camera.pointer
+			goalFocus = Vector3.new(span(bmin.X, bmax.X, halfW, n.X), span(bmin.Y, bmax.Y, halfH, 1 - n.Y), 0)
+		end
+		goalDist = buildDist
+		sharp = 5
 	elseif phase == "Winner" then
 		local level = workspace:FindFirstChild("Level")
 		local flag = level and level:GetAttribute("Flag") :: Vector3?
@@ -168,10 +179,6 @@ function Camera.init()
 	State.phaseChanged:Connect(function(phase)
 		if phase == "Build" then
 			buildDist = BUILD_DEFAULT
-			-- start building near the start line, where the action begins
-			local level = workspace:FindFirstChild("Level")
-			local spawn = level and level:GetAttribute("Spawn") :: Vector3?
-			buildFocus = if spawn then spawn + Vector3.new(30, 8, 0) else nil
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input, processed)

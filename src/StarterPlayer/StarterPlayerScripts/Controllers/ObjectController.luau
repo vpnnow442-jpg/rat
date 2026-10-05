@@ -8,6 +8,7 @@
 -- are applied here too, because your client owns your physics and these
 -- must feel instant. Deadly contact is still decided by the server.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -22,6 +23,7 @@ local Movement = require(script.Parent.MovementController)
 local Camera = require(script.Parent.CameraController)
 local Sound = require(script.Parent.SoundController)
 local Fx = require(script.Parent.FxController)
+local State = require(script.Parent.State)
 
 local C = Config.Objects
 local TAU = math.pi * 2
@@ -42,6 +44,11 @@ type Record = {
 	headPrevX: number?,
 	maxDist: number?,
 	consumed: { [number]: boolean }?,
+	path: { Vector3 }?,
+	pathLen: number?,
+	pathAt: number?,
+	used: boolean?,
+	lastExt: number?,
 }
 
 type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
@@ -105,6 +112,7 @@ local function register(model: Model)
 			model:ScaleTo(1)
 		end
 		rec.ready = true
+		Fx.puff(pivot.Position - Vector3.new(0, 1, 0), 4, 1)
 	end)
 	tween:Play()
 end
@@ -125,6 +133,66 @@ end
 --------------------------------------------------------------------------
 -- Cannonballs (deterministic from the clock, pooled parts)
 --------------------------------------------------------------------------
+
+local shotPools = {} :: { [string]: { BasePart } }
+local shotCount = {} :: { [string]: number }
+
+local function makeShot(id: string): BasePart
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Material = Enum.Material.SmoothPlastic
+	if id == "darts" then
+		p.Size = Vector3.new(1.6, 0.2, 0.2)
+		p.Color = Style.Forest.WoodDark
+		local tip = Instance.new("Part")
+		tip.Size = Vector3.new(0.4, 0.4, 0.06)
+		tip.Color = Style.UI.Bad
+		tip.Anchored = true
+		tip.CanCollide = false
+		tip.CanQuery = false
+		tip.CanTouch = false
+		tip.Name = "Fletch"
+		tip.Parent = p
+	elseif id == "puck" then
+		p.Shape = Enum.PartType.Cylinder
+		p.Size = Vector3.new(0.5, 1.4, 1.4)
+		p.Color = Style.Object.Rubber
+	else
+		p.Size = Vector3.new(1.6, 0.4, 0.1)
+		p.Color = Style.UI.Paper
+	end
+	p.Parent = ballFolder
+	return p
+end
+
+local function shot(id: string, pos: Vector3, dir: Vector3, spin: number)
+	local n = (shotCount[id] or 0) + 1
+	shotCount[id] = n
+	local pool = shotPools[id] or {}
+	shotPools[id] = pool
+	local p = pool[n]
+	if not p then
+		p = makeShot(id)
+		pool[n] = p
+	end
+	p.Transparency = 0
+	local cf: CFrame
+	if id == "puck" then
+		cf = CFrame.new(pos) * CFrame.Angles(0, math.pi / 2, 0) * CFrame.Angles(spin, 0, 0)
+	else
+		-- point along travel, in the camera's plane
+		local angle = math.atan2(dir.Y, dir.X)
+		cf = CFrame.new(pos) * CFrame.Angles(0, 0, angle)
+	end
+	p.CFrame = cf
+	local fletch = p:FindFirstChild("Fletch") :: BasePart?
+	if fletch then
+		fletch.CFrame = cf * CFrame.new(-0.7, 0, 0) * CFrame.Angles(0, 0, math.rad(45))
+	end
+end
 
 local function ball(i: number): BasePart
 	local b = balls[i]
@@ -183,6 +251,7 @@ end
 local function visuals(dt: number)
 	local t = now()
 	local ballIndex = 0
+	table.clear(shotCount)
 	local root = Movement.root()
 	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
 
@@ -228,6 +297,8 @@ local function visuals(dt: number)
 						local dir = if math.abs(vx) > 0.001 then math.sign(vx) else math.sign(root.Position.X - hx)
 						Movement.launch(Vector3.new(dir * C.HammerKnock.X, C.HammerKnock.Y, 0), 0.4)
 						Sound.play("bonk", 0.1)
+						Fx.burst(root.Position, Style.UI.Paper, 8)
+						Fx.streak(root.Position, Vector3.new(dir * C.HammerKnock.X, C.HammerKnock.Y, 0))
 						Camera.shake(1.2)
 					end
 				end
@@ -258,6 +329,7 @@ local function visuals(dt: number)
 							local knock = dir * C.CannonKnock.X + Vector3.new(0, C.CannonKnock.Y, 0)
 							Movement.launch(knock, 0.35)
 							Sound.play("bonk", 0.1)
+							Fx.burst(pos, Style.UI.Paper, 8)
 							Camera.shake(1)
 						end
 					end
@@ -287,6 +359,12 @@ local function visuals(dt: number)
 			end
 		elseif id == "trapdoor" then
 			local open = Objects.trapdoorOpen(age)
+			if open and not rec.used then
+				rec.used = true
+				Fx.puff(rec.pivot.Position - Vector3.new(0, 0.8, 0), 3, 0.7)
+			elseif not open then
+				rec.used = false
+			end
 			-- doors swing down on their outer hinges
 			local angle = if open then math.rad(85) else 0
 			-- (negative Z rotation drops the left door's inner edge, positive drops the right's)
@@ -309,6 +387,75 @@ local function visuals(dt: number)
 					a.part.Size = (a.part:GetAttribute("BaseSize") :: Vector3? or a.part.Size) * s
 				end
 			end
+		elseif id == "punch" then
+			local ext = Objects.punchExtend(age)
+			setGroup(rec, "glove", CFrame.new(ext * 3.6, 0, 0))
+			local prev = rec.lastExt or 0
+			rec.lastExt = ext
+			if ext > 0.95 and prev < 0.95 then
+				Sound.playAt("bonk", rec.model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.2)
+			end
+			if canAffect and root and ext > 0.3 and ext >= prev then
+				for _, a in rec.groups.glove or NONE do
+					if a.part.Name == "Glove" then
+						local rel = a.part.CFrame:PointToObjectSpace(root.Position)
+						if inBox(rel, 0.9 + 0.9, 0.9 + 1.2) and os.clock() > (rec.cooldown or 0) then
+							rec.cooldown = os.clock() + 0.6
+							local dir = rec.pivot.RightVector
+							Movement.launch(dir * C.PunchKnock.X + Vector3.new(0, C.PunchKnock.Y, 0), 0.4)
+							Sound.play("bonk", 0.1)
+							Fx.burst(a.part.Position, Style.UI.Paper)
+							Camera.shake(1.4)
+						end
+					end
+				end
+			end
+		elseif Objects.Shooters[id] then
+			if not rec.path or os.clock() - (rec.pathAt or 0) > 1 then
+				rec.path = Objects.shotPath(id, model, rec.pivot)
+				rec.pathLen = Objects.pathLength(rec.path :: { Vector3 })
+				rec.pathAt = os.clock()
+			end
+			local path = rec.path :: { Vector3 }
+			for _, s in Objects.activeShots(id, age, rec.pathLen :: number) do
+				local pos, dir = Objects.shotPosition(id, path, rec.pivot, s.dist)
+				shot(id, pos, dir, s.dist * 0.8)
+			end
+		elseif id == "jetpack" then
+			setGroup(rec, "float", CFrame.new(0, math.sin(age * 2.4) * 0.25, 0) * CFrame.Angles(0, math.sin(age * 1.3) * 0.4, 0))
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d:GetAttribute("Group") == "float" then
+					d.LocalTransparencyModifier = if rec.used then 0.7 else 0
+				end
+			end
+		elseif id == "portal" then
+			for _, gname in { "swirlA", "swirlB" } do
+				local x = if gname == "swirlA" then 0 else Objects.PORTAL_SPAN
+				for _, a in rec.groups[gname] or NONE do
+					a.part.CFrame = rec.pivot * CFrame.new(x, 0, 0.04) * CFrame.Angles(0, 0, age * (if gname == "swirlA" then 5 else -5)) * CFrame.new(0.6, 0, 0) * CFrame.Angles(0, math.pi / 2, 0)
+				end
+			end
+		elseif id == "coin" then
+			local takenBy = model:GetAttribute("TakenBy") :: number?
+			local anchor = rec.pivot
+			if takenBy then
+				-- carried: bob above the carrier's head so everyone can see who has it
+				local carrier = Players:GetPlayerByUserId(takenBy)
+				local head = carrier and carrier.Character and carrier.Character:FindFirstChild("Head") :: BasePart?
+				if head then
+					anchor = CFrame.new(head.Position + Vector3.new(0, 3, 0))
+				end
+				if not rec.used then
+					rec.used = true
+					Sound.play("points", 0.1)
+					Fx.ring(rec.pivot.Position, Style.UI.Gold, 4)
+				end
+			elseif rec.used then
+				rec.used = false
+			end
+			for _, a in rec.groups.coin or NONE do
+				a.part.CFrame = anchor * CFrame.new(0, math.sin(age * 3) * 0.2, 0) * CFrame.Angles(0, age * 3, 0) * a.rel
+			end
 		elseif id == "spring" then
 			local push = rec.padPush or 0
 			if push > 0 then
@@ -317,6 +464,13 @@ local function visuals(dt: number)
 			end
 		elseif id == "crumble" then
 			local fallen = model:GetAttribute("Fallen")
+			if fallen and not rec.used then
+				rec.used = true -- just collapsed: crumbs
+				Fx.burst(rec.pivot.Position, Style.Object.Crumble, 10)
+				Fx.puff(rec.pivot.Position, 4, 1)
+			elseif not fallen then
+				rec.used = false
+			end
 			local trig = model:GetAttribute("TriggeredAt") :: number?
 			for _, d in model:GetDescendants() do
 				if d:IsA("BasePart") then
@@ -329,6 +483,17 @@ local function visuals(dt: number)
 			elseif model:GetPivot() ~= rec.pivot then
 				model:PivotTo(rec.pivot)
 			end
+		end
+	end
+
+	for id, pool in shotPools do
+		for i = (shotCount[id] or 0) + 1, #pool do
+			pool[i].Transparency = 1
+			local f = pool[i]:FindFirstChild("Fletch") :: BasePart?
+			if f then
+				f.CFrame = CFrame.new(0, -500, 0)
+			end
+			pool[i].CFrame = CFrame.new(0, -500, 0)
 		end
 	end
 
@@ -426,6 +591,8 @@ local function physicsStep(dt: number)
 					Movement.launch(up * C.SpringPower, 0.35)
 				end
 				Sound.play("spring", 0.1)
+				Fx.ring(rec.pivot * Vector3.new(0, 0.8, 0), Style.Object.Spring, 5)
+				Fx.puff(rec.pivot * Vector3.new(0, 0.8, 0), 3, 0.8)
 			end
 		elseif rec.id == "bumper" then
 			local center = rec.pivot.Position
@@ -439,6 +606,31 @@ local function physicsStep(dt: number)
 				Sound.play("bumper", 0.15)
 				Fx.ring(center, Style.UI.Paper, 6)
 				Camera.shake(0.6)
+			end
+		elseif rec.id == "jetpack" then
+			if not rec.used and (r.Position - rec.pivot.Position).Magnitude < 2.6 then
+				rec.used = true
+				Movement.giveJetpack(C.JetpackTime)
+				Sound.play("grab")
+				Fx.ring(rec.pivot.Position, Style.UI.Cool, 4)
+			end
+		elseif rec.id == "portal" then
+			if os.clock() > (rec.cooldown or 0) then
+				local a = rec.pivot.Position
+				local b = (rec.pivot * CFrame.new(Objects.PORTAL_SPAN, 0, 0)).Position
+				local from: Vector3?, to: Vector3? = nil, nil
+				if (r.Position - a).Magnitude < 1.8 then
+					from, to = a, b
+				elseif (r.Position - b).Magnitude < 1.8 then
+					from, to = b, a
+				end
+				if from and to then
+					rec.cooldown = os.clock() + 0.8
+					Movement.teleport(to)
+					Fx.ring(from, Style.UI.Cool, 5)
+					Fx.ring(to, Style.UI.Accent, 5)
+					Sound.play("whoosh")
+				end
 			end
 		elseif rec.id == "fan" then
 			local rel = rec.pivot:PointToObjectSpace(r.Position)
@@ -534,6 +726,17 @@ function ObjectController.init()
 	end
 	task.spawn(function()
 		watch(workspace:WaitForChild("Objects"))
+	end)
+
+	-- every race starts fresh: jetpacks can be picked up again
+	State.phaseChanged:Connect(function(phase)
+		if phase == "Countdown" then
+			for _, rec in records do
+				if rec.id == "jetpack" then
+					rec.used = false
+				end
+			end
+		end
 	end)
 
 	RunService.RenderStepped:Connect(visuals)

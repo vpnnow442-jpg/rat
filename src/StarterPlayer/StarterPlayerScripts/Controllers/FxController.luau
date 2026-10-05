@@ -59,11 +59,11 @@ local function spawn(p: Part, cf: CFrame, vel: Vector3, gravity: number, life: n
 	})
 end
 
-function Fx.puff(pos: Vector3, count: number?, strength: number?)
+function Fx.puff(pos: Vector3, count: number?, strength: number?, color: Color3?)
 	local s = strength or 1
 	for i = 1, count or 3 do
 		local p = get(Enum.PartType.Ball)
-		p.Color = Style.UI.Paper
+		p.Color = color or Style.UI.Paper
 		local side = if i % 2 == 0 then 1 else -1
 		local vel = Vector3.new(side * (2 + math.random() * 3) * s, (1 + math.random() * 2) * s, 0)
 		spawn(p, CFrame.new(pos + Vector3.new(side * 0.4, 0.2, 0.6)), vel, 0, 0.35 + math.random() * 0.1, Vector3.one * 0.6, Vector3.one * (1.4 + math.random() * 0.6) * s, 0.25)
@@ -78,6 +78,36 @@ function Fx.confetti(pos: Vector3)
 		local size = Vector3.new(0.35, 0.35, 0.08)
 		local cf = CFrame.new(pos + Vector3.new(0, 1.5, 1)) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
 		spawn(p, cf, vel, 60, 1.4 + math.random() * 0.5, size, size, 0, (math.random() - 0.5) * 16)
+	end
+end
+
+-- A quick radial pop of small chips: impacts, hits, takedowns
+function Fx.burst(pos: Vector3, color: Color3, count: number?)
+	local n = count or 8
+	for i = 1, n do
+		local p = get(Enum.PartType.Block)
+		p.Color = color
+		local a = (i / n) * math.pi * 2 + math.random() * 0.4
+		local speed = 14 + math.random() * 10
+		local vel = Vector3.new(math.cos(a) * speed, math.sin(a) * speed + 6, 0)
+		local size = Vector3.new(0.35, 0.35, 0.1)
+		spawn(p, CFrame.new(pos + Vector3.new(0, 0, 1)), vel, 40, 0.45 + math.random() * 0.2, size, size * 0.4, 0, (math.random() - 0.5) * 20)
+	end
+end
+
+-- Thin lines trailing behind something moving fast (launches, punches)
+function Fx.streak(pos: Vector3, vel: Vector3)
+	if vel.Magnitude < 1 then
+		return
+	end
+	local dir = vel.Unit
+	local angle = math.atan2(dir.Y, dir.X)
+	for i = 1, 3 do
+		local p = get(Enum.PartType.Block)
+		p.Color = Style.UI.Paper
+		local offset = Vector3.new(-dir.Y, dir.X, 0) * ((i - 2) * 0.7)
+		local cf = CFrame.new(pos - dir * 1.5 + offset + Vector3.new(0, 0, 1.2)) * CFrame.Angles(0, 0, angle)
+		spawn(p, cf, -dir * 6, 0, 0.22, Vector3.new(1.8, 0.1, 0.05), Vector3.new(0.4, 0.06, 0.05), 0.2)
 	end
 end
 

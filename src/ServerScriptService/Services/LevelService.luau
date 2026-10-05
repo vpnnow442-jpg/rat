@@ -59,6 +59,7 @@ local BOTTOM = -26
 --------------------------------------------------------------------------
 
 local builders = {}
+local dress: (Levels.Piece, Random, number) -> ()
 
 builders.ground = function(p: Levels.Piece, rng: Random)
 	local w = p.x1 - p.x0
@@ -72,6 +73,42 @@ builders.ground = function(p: Levels.Piece, rng: Random)
 		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
 		blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(x, p.top + 0.2, -3.4), F.GrassDark)
 	end
+	dress(p, rng, 4)
+end
+
+-- Hand-placed-looking details. Rule: only behind the lane or below the
+-- walking surface, so nothing ever hides a character or a trap.
+local MUSHROOM_CAP = Color3.fromRGB(206, 92, 74)
+local MUSHROOM_STEM = Color3.fromRGB(238, 228, 210)
+local FLOWERS = { Color3.fromRGB(250, 246, 238), Color3.fromRGB(240, 184, 72), Color3.fromRGB(226, 140, 170) }
+
+function dress(p: Levels.Piece, rng: Random, front: number)
+	local w = p.x1 - p.x0
+	-- grass hanging over the front edge
+	for _ = 1, math.max(2, math.floor(w / 4)) do
+		local x = rng:NextNumber(p.x0 + 0.5, p.x1 - 0.5)
+		blob(level, "Overhang", Vector3.new(rng:NextNumber(0.8, 1.6), 0.7, 0.5), CFrame.new(x, p.top - 1.25, front + 0.15), F.Grass)
+	end
+	-- pebbles pressed into the dirt face (tall ground only; ledges are too thin)
+	if p.kind == "ground" then
+		for _ = 1, math.max(1, math.floor(w / 6)) do
+			local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+			local y = p.top - rng:NextNumber(4, 12)
+			blob(level, "Pebble", Vector3.new(rng:NextNumber(0.7, 1.3), rng:NextNumber(0.5, 0.8), 0.25), CFrame.new(x, y, front + 0.05), F.DirtDark)
+		end
+	end
+	-- a mushroom or a few flowers at the back, now and then
+	if w > 8 and rng:NextNumber() < 0.6 then
+		local x = rng:NextNumber(p.x0 + 1.5, p.x1 - 1.5)
+		part(level, "Stem", Vector3.new(0.35, 0.7, 0.35), CFrame.new(x, p.top + 0.35, -2.8), MUSHROOM_STEM)
+		blob(level, "Cap", Vector3.new(1.1, 0.55, 1.1), CFrame.new(x, p.top + 0.8, -2.8), MUSHROOM_CAP)
+	end
+	for _ = 1, rng:NextInteger(0, 3) do
+		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+		local h = rng:NextNumber(0.6, 1.1)
+		part(level, "FlowerStem", Vector3.new(0.12, h, 0.12), CFrame.new(x, p.top + h / 2, -3.1), F.GrassDark)
+		part(level, "Flower", Vector3.new(0.4, 0.4, 0.4), CFrame.new(x, p.top + h, -3.1), FLOWERS[rng:NextInteger(1, #FLOWERS)], Enum.PartType.Ball)
+	end
 end
 
 -- A floating grassy chunk: the "high route" piece
@@ -83,6 +120,7 @@ builders.ledge = function(p: Levels.Piece, rng: Random)
 	blob(level, "Underside", Vector3.new(w * 0.8, 3.4, 6), CFrame.new(cx, p.top - 3.6, 0), F.DirtDark)
 	blob(level, "Root", Vector3.new(0.6, 2.4, 0.6), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top - 5, 1.6), F.Bark)
 	blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top + 0.2, -3), F.GrassDark)
+	dress(p, rng, 3.5)
 end
 
 builders.stump = function(p: Levels.Piece)

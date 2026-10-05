@@ -30,8 +30,8 @@ Core loop: **PICK → BUILD → RUN → FAIL/LAUGH → SCORE → AGAIN**.
 | 3 | Pick + build phase | ✅ shared pick box, ghost preview, snap, rotate, cancel, zoom/pan build camera, live ghosts of other builders, server validation |
 | 4 | Round system | ✅ intro → (pick → build → countdown → run → results) until 600 points → winner |
 | 5 | Scoring | ✅ 100/75/50/25, traps, clutch, own-route, too easy / too hard; animated bar table with a finish line |
-| 6 | Objects & hazards | ✅ 20 objects: plank, long plank, pillar, crate, spring, conveyor, shuttle, ice, crumbly ledge, trick plank, trapdoor, honey, spikes, buzzsaw, swing hammer, fan, cannon, bumper, laser, bomb |
-| 7 | Characters & animation | 🟡 4 of 8 animals (fox, raccoon, penguin, frog), procedural anims. Missing: goat, cat, duck, possum; emotes; character picker |
+| 6 | Objects & hazards | ✅ 27 objects: plank, long plank, pillar, crate, spring, conveyor, shuttle, ice, crumbly ledge, trick plank, trapdoor, honey, spikes, buzzsaw, swing hammer, fan, cannon, bumper, laser, punch box, dart shooter, puck launcher (bounces off walls), plane launcher, jetpack, portal, coin, bomb |
+| 7 | Characters & animation | 🟡 4 of 8 animals, picker, emotes, procedural anims: blink, look-around, ear twitch, wall-slide pose, fall flail, hit tumble, ledge wobble, victory flips; VFX for dust, skids, impacts, takedowns. Missing: goat, cat, duck, possum |
 | 8 | UI | ✅ loading screen, main menu, party screen, HUD, pick box, score table. Missing: settings |
 | 9 | Lobbies / parties / matchmaking | 🟡 built: public play, private parties with 5-letter codes, invites, host start, host migration. **Only works once published** |
 | 10 | Cosmetic progression | ⬜ needs DataStores (published place) |
@@ -46,6 +46,12 @@ Open `ChaosCourse.rbxlx` in Studio, press **Play**, then **Play** in the menu (s
 For multiplayer: **Test → Clients and Servers → 2–4 players → Start**.
 
 New in this version:
+- [ ] **Double jump works with fast taps** (was broken: fast double-taps got ignored)
+- [ ] Pick box is full screen, pieces scattered, no descriptions
+- [ ] Score table is full screen
+- [ ] While placing, the map follows your cursor
+- [ ] New pieces: punch box, darts, puck (bounces), paper planes, jetpack (hold jump), portal, coin
+- [ ] Emotes on 1-4; animals blink, look around, wobble at ledges, slide down walls with dust
 - [ ] Loading screen shows, then fades into the menu
 - [ ] Animal picker changes your character
 - [ ] Pick box: crate drops in, pieces pop out, grabbing stamps your name on it

@@ -9,11 +9,11 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage.Shared
-local Characters = require(Shared.Characters)
 local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Animator = require(script.Parent.CharacterAnimator)
 local Fx = require(script.Parent.FxController)
 local ResultsUI = require(script.Parent.ResultsUI)
 local State = require(script.Parent.State)
@@ -54,6 +54,10 @@ local KIND = {
 local CAUSE = {
 	spikes = "got spiked by",
 	saw = "got sawed by",
+	laser = "got zapped by",
+	darts = "got darted by",
+	puck = "got pucked by",
+	plane = "got paper-planed by",
 	fall = "fell in the river",
 	time = "ran out of time",
 }
@@ -64,7 +68,6 @@ local roundLabel: TextLabel
 local phaseChip: Frame
 local phaseText: TextLabel
 local timerLabel: TextLabel
-local scoresFrame: Frame
 local feedFrame: Frame
 local centerLabel: TextLabel
 local subLabel: TextLabel
@@ -77,11 +80,6 @@ local toastLabel: TextLabel
 
 local bannerToken = 0
 local lastTick = -1
-
-local function speciesColor(species: string?): Color3
-	local s = species and Characters.ById[species]
-	return if s then s.body else U.Muted
-end
 
 local function nameOf(userId: number): string
 	local p = Players:GetPlayerByUserId(userId)
@@ -152,65 +150,14 @@ local function feed(text: string, color: Color3)
 			table.insert(rows, c)
 		end
 	end
-	if #rows > 4 then
+	if #rows > 3 then
 		rows[1]:Destroy()
 	end
-	task.delay(4.5, function()
+	task.delay(3.5, function()
 		if row.Parent then
 			row:Destroy()
 		end
 	end)
-end
-
---------------------------------------------------------------------------
--- Scores (top-left)
---------------------------------------------------------------------------
-
-local function renderScores()
-	for _, c in scoresFrame:GetChildren() do
-		if c:IsA("Frame") then
-			c:Destroy()
-		end
-	end
-	for i, row in State.standings do
-		local mine = row.userId == player.UserId
-		local f = UI.new("Frame", {
-			BackgroundColor3 = U.Paper,
-			BackgroundTransparency = 0.05,
-			Size = UDim2.fromOffset(196, 28),
-			LayoutOrder = i,
-			Parent = scoresFrame,
-		}, { UI.corner(8) })
-		if mine then
-			UI.new("UIStroke", { Color = U.Accent, Thickness = 2, Parent = f })
-		end
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(12, 12),
-			Position = UDim2.fromOffset(10, 8),
-			Parent = f,
-		}, { UI.corner(6) })
-		UI.label({
-			Text = row.name,
-			TextSize = 14,
-			FontFace = F.Bold,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(120, 28),
-			Position = UDim2.fromOffset(30, 0),
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			Parent = f,
-		})
-		UI.label({
-			Text = tostring(row.total),
-			TextSize = 15,
-			FontFace = F.Title,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(50, 28),
-			Position = UDim2.new(1, -60, 0, 0),
-			Parent = f,
-		})
-	end
 end
 
 --------------------------------------------------------------------------
@@ -235,7 +182,7 @@ local function makeCard(id: string, order: number): TextButton
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(156, 196),
+		Size = UDim2.fromOffset(156, 150),
 		LayoutOrder = order,
 		Selectable = true,
 	})
@@ -266,18 +213,6 @@ local function makeCard(id: string, order: number): TextButton
 		FontFace = F.Title,
 		TextSize = 19,
 		Position = UDim2.fromOffset(12, 114),
-		ZIndex = 2,
-		Parent = face,
-	})
-	UI.label({
-		Text = def.blurb,
-		TextSize = 13,
-		TextColor3 = U.InkSoft,
-		TextWrapped = true,
-		AutomaticSize = Enum.AutomaticSize.None,
-		Size = UDim2.new(1, -24, 0, 44),
-		Position = UDim2.fromOffset(12, 140),
-		TextYAlignment = Enum.TextYAlignment.Top,
 		ZIndex = 2,
 		Parent = face,
 	})
@@ -360,7 +295,7 @@ end
 
 local function showResults(results)
 	local verdict = results.verdict
-	ResultsUI.show(gui, results.rows, {
+	ResultsUI.show(results.rows, {
 		title = if verdict then "Round " .. State.round else "Round " .. State.round .. " results",
 		subtitle = if verdict == "TOO_EASY" then "Everyone made it, so nobody scores. Build meaner."
 			elseif verdict == "TOO_HARD" then "Nobody made it, so trap points don't count."
@@ -385,7 +320,7 @@ local function showWinner(extra)
 	local title = if #winners == 0 then "Nobody scored. Rematch?"
 		elseif #winners == 1 then winners[1].name .. " wins!"
 		else "It's a tie!"
-	ResultsUI.show(gui, rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
+	ResultsUI.show(rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
 	Sound.play("victory")
 	for _, w in winners do
 		local p = Players:GetPlayerByUserId(w.userId)
@@ -490,6 +425,34 @@ local function buildGui()
 	phaseText = UI.label({ Text = "", FontFace = F.Title, TextSize = 15, TextColor3 = U.Paper, Parent = phaseChip })
 	timerLabel = UI.label({ Text = "", FontFace = F.Title, TextSize = 20, LayoutOrder = 3, Parent = top })
 
+	-- Emotes: keys 1-4 on keyboard; small buttons on touch screens only
+	if UserInputService.TouchEnabled then
+		local row = UI.new("Frame", {
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 12, 1, -12),
+			Size = UDim2.fromOffset(280, 34),
+			Parent = gui,
+		}, { UI.list(Enum.FillDirection.Horizontal, 6) })
+		for i, id in Animator.EMOTES do
+			local b = UI.new("TextButton", {
+				Text = id:sub(1, 1):upper() .. id:sub(2),
+				FontFace = F.Bold,
+				TextSize = 13,
+				TextColor3 = U.Ink,
+				BackgroundColor3 = U.Paper,
+				BackgroundTransparency = 0.1,
+				AutoButtonColor = false,
+				Size = UDim2.fromOffset(60, 30),
+				LayoutOrder = i,
+				Parent = row,
+			}, { UI.corner(99) })
+			UI.pressable(b, function()
+				Animator.emote(id)
+			end)
+		end
+	end
+
 	local menuButton = UI.new("TextButton", {
 		Text = "Menu",
 		FontFace = F.Bold,
@@ -513,13 +476,6 @@ local function buildGui()
 	State.lobbyChanged:Connect(function()
 		menuButton.Visible = State.lobby.mode == "public"
 	end)
-
-	scoresFrame = UI.new("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(12, 10),
-		Size = UDim2.fromOffset(196, 300),
-		Parent = gui,
-	}, { UI.list(Enum.FillDirection.Vertical, 4) })
 
 	feedFrame = UI.new("Frame", {
 		BackgroundTransparency = 1,
@@ -557,7 +513,7 @@ local function buildGui()
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, 220),
-		Size = UDim2.fromOffset(156 * 3 + 14 * 2, 196),
+		Size = UDim2.fromOffset(156 * 3 + 14 * 2, 150),
 		Visible = false,
 		Parent = gui,
 	}, { UI.list(Enum.FillDirection.Horizontal, 14, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom) })
@@ -631,10 +587,12 @@ end
 
 function Hud.setVisible(visible: boolean)
 	gui.Enabled = visible
+	ResultsUI.setVisible(visible)
 end
 
 function Hud.init()
 	buildGui()
+	ResultsUI.init(player:WaitForChild("PlayerGui"))
 	pcall(function()
 		local StarterGui = game:GetService("StarterGui")
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
@@ -644,9 +602,6 @@ function Hud.init()
 	State.phaseChanged:Connect(onPhase)
 	RunService.Heartbeat:Connect(tick)
 
-	Net.event("Scores").OnClientEvent:Connect(function()
-		task.defer(renderScores) -- State updates first
-	end)
 	Net.event("RoundResults").OnClientEvent:Connect(showResults)
 	Net.event("Notify").OnClientEvent:Connect(function(text)
 		Hud.toast(text)

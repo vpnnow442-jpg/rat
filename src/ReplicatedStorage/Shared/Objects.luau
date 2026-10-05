@@ -49,6 +49,13 @@ Objects.List = {
 	{ id = "trapdoor", name = "Trapdoor", blurb = "Solid... until it drops open.", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
 	{ id = "bumper", name = "Bumper", blurb = "Bounces you away, pinball style.", kind = "trap", size = Vector2.new(3, 3), weight = 1 },
 	{ id = "laser", name = "Laser", blurb = "Blinks on and off. Deadly when on.", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "punch", name = "Punch Box", blurb = "", kind = "trap", size = Vector2.new(3, 3), weight = 2 },
+	{ id = "darts", name = "Dart Shooter", blurb = "", kind = "trap", size = Vector2.new(2, 2), weight = 2 },
+	{ id = "puck", name = "Puck Launcher", blurb = "", kind = "trap", size = Vector2.new(3, 2), weight = 1 },
+	{ id = "plane", name = "Plane Launcher", blurb = "", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "jetpack", name = "Jetpack", blurb = "", kind = "route", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "portal", name = "Portal", blurb = "", kind = "route", size = Vector2.new(3, 3), weight = 1 },
+	{ id = "coin", name = "Coin", blurb = "", kind = "tool", size = Vector2.new(2, 2), weight = 1 },
 	{ id = "bomb", name = "Bomb", blurb = "Clears objects nearby. Fix a ruined level.", kind = "tool", size = Vector2.new(1, 1), weight = 1 },
 } :: { Def }
 
@@ -101,6 +108,155 @@ end
 Objects.TRAPDOOR_PERIOD = 4
 function Objects.trapdoorOpen(age: number): boolean
 	return age % Objects.TRAPDOOR_PERIOD > 2.8
+end
+
+-- Punch Box: rests, then snaps out fast, holds, and pulls back. 0..1 extension.
+Objects.PUNCH_PERIOD = 2.6
+function Objects.punchExtend(age: number): number
+	local t = age % Objects.PUNCH_PERIOD
+	if t < 1.9 then
+		return 0
+	elseif t < 1.98 then
+		return (t - 1.9) / 0.08
+	elseif t < 2.3 then
+		return 1
+	end
+	return 1 - (t - 2.3) / 0.3
+end
+
+Objects.PORTAL_SPAN = 14 -- distance from the entry ring to the exit ring
+
+--------------------------------------------------------------------------
+-- Shooters: darts fly straight, pucks bounce off walls, planes glide in a
+-- wave through everything. Positions come purely from the clock + level
+-- geometry, so the server (deaths) and every client (visuals) agree.
+--------------------------------------------------------------------------
+
+export type Shooter = { interval: number, speed: number, delay: number, muzzle: Vector3, mode: string, range: number, wave: number? }
+
+Objects.Shooters = {
+	darts = { interval = 2.0, speed = 34, delay = 0.8, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
+	puck = { interval = 3.0, speed = 24, delay = 1.2, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
+	plane = { interval = 3.2, speed = 13, delay = 1.0, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
+} :: { [string]: Shooter }
+
+-- Raycast against solid level/object geometry only. Skips anything that
+-- moves or vanishes on clients (shuttles, trapdoors, crumbly ledges) so the
+-- server and clients always compute the same path.
+function Objects.castSolid(origin: Vector3, dir: Vector3, maxLen: number, ignore: Model?): (number, Vector3?)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	local list = {}
+	for _, name in { "Level", "Objects" } do
+		local f = workspace:FindFirstChild(name)
+		if f then
+			table.insert(list, f)
+		end
+	end
+	params.FilterDescendantsInstances = list
+	local traveled = 0
+	local o = origin
+	for _ = 1, 12 do
+		if traveled >= maxLen then
+			break
+		end
+		local hit = workspace:Raycast(o, dir * (maxLen - traveled), params)
+		if not hit then
+			break
+		end
+		local inst = hit.Instance
+		local g = inst:GetAttribute("Group")
+		local skip = not inst:GetAttribute("Solid")
+			or (ignore ~= nil and inst:IsDescendantOf(ignore))
+			or g == "mover" or g == "doorL" or g == "doorR"
+			or inst:GetAttribute("Crumble") ~= nil
+		local step = (hit.Position - o).Magnitude
+		if not skip then
+			return traveled + step, hit.Normal
+		end
+		traveled += step + 0.05
+		o = hit.Position + dir * 0.05
+	end
+	return maxLen, nil
+end
+
+-- Polyline a projectile follows, from the muzzle
+function Objects.shotPath(id: string, model: Model, pivot: CFrame): { Vector3 }
+	local s = Objects.Shooters[id]
+	local origin = pivot * s.muzzle
+	local dir = pivot.RightVector
+	if s.mode == "fixed" then
+		return { origin, origin + dir * s.range }
+	elseif s.mode == "ray" then
+		local d = Objects.castSolid(origin, dir, s.range, model)
+		return { origin, origin + dir * d }
+	end
+	local points = { origin }
+	local left = s.range
+	for _ = 1, 6 do
+		local d, normal = Objects.castSolid(origin, dir, left, model)
+		local stop = math.max(d - 0.7, 0) -- bounce off the surface, not inside it
+		origin += dir * stop
+		table.insert(points, origin)
+		left -= stop
+		if not normal or left <= 1 then
+			break
+		end
+		local n = Vector3.new(normal.X, normal.Y, 0).Unit
+		dir = (dir - 2 * dir:Dot(n) * n).Unit
+	end
+	return points
+end
+
+function Objects.pathLength(path: { Vector3 }): number
+	local total = 0
+	for i = 2, #path do
+		total += (path[i] - path[i - 1]).Magnitude
+	end
+	return total
+end
+
+-- Position + travel direction at a distance along the path
+function Objects.pathPoint(path: { Vector3 }, dist: number): (Vector3, Vector3)
+	for i = 2, #path do
+		local seg = path[i] - path[i - 1]
+		local len = seg.Magnitude
+		if dist <= len or i == #path then
+			local dir = if len > 0 then seg / len else Vector3.xAxis
+			return path[i - 1] + dir * math.min(dist, len), dir
+		end
+		dist -= len
+	end
+	return path[1], Vector3.xAxis
+end
+
+-- Every projectile currently in flight: { k = shot number, dist = distance travelled }
+function Objects.activeShots(id: string, age: number, pathLen: number): { { k: number, dist: number } }
+	local s = Objects.Shooters[id]
+	local since = age - s.delay
+	local out = {}
+	if since < 0 then
+		return out
+	end
+	local life = pathLen / s.speed
+	local newest = math.floor(since / s.interval)
+	local oldest = math.max(0, math.floor((since - life) / s.interval))
+	for k = oldest, newest do
+		local d = (since - k * s.interval) * s.speed
+		if d >= 0 and d <= pathLen then
+			table.insert(out, { k = k, dist = d })
+		end
+	end
+	return out
+end
+
+function Objects.shotPosition(id: string, path: { Vector3 }, pivot: CFrame, dist: number): (Vector3, Vector3)
+	local pos, dir = Objects.pathPoint(path, dist)
+	local s = Objects.Shooters[id]
+	if s.wave then
+		pos += pivot.UpVector * math.sin(dist / s.speed * math.pi * 2 / 1.6) * s.wave
+	end
+	return pos, dir
 end
 
 -- How far a laser reaches before something solid stops it
@@ -157,14 +313,32 @@ function Objects.check(def: Def, x: number, y: number, rot: number): (boolean, s
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = if objects then { level, objects } else { level }
-	local hits = workspace:GetPartBoundsInBox(CFrame.new(x, y, 0), Vector3.new(fp.X - 0.15, fp.Y - 0.15, 3), params)
-	if #hits > 0 then
+	local function clear(center: Vector3, size: Vector2): (boolean, string?)
+		local hits = workspace:GetPartBoundsInBox(CFrame.new(center), Vector3.new(size.X - 0.15, size.Y - 0.15, 3), params)
 		for _, hit in hits do
 			if hit.Name == "SafeZone" then
 				return false, "Too close to the start or flag"
 			end
 		end
-		return false, "Something's in the way"
+		if #hits > 0 then
+			return false, "Something's in the way"
+		end
+		return true, nil
+	end
+	local ok, why = clear(Vector3.new(x, y, 0), fp)
+	if not ok then
+		return false, why
+	end
+	if def.id == "portal" then
+		-- the exit ring has to fit too
+		local exit = Objects.cframe(x, y, rot) * Vector3.new(Objects.PORTAL_SPAN, 0, 0)
+		if bmin and bmax and (exit.X < bmin.X or exit.X > bmax.X or exit.Y < bmin.Y or exit.Y > bmax.Y) then
+			return false, "Exit is out of bounds"
+		end
+		local eok = clear(exit, fp)
+		if not eok then
+			return false, "The exit is blocked"
+		end
 	end
 	return true, nil
 end
@@ -287,6 +461,74 @@ builders.laser = function(m)
 	beam:SetAttribute("Group", "beam")
 	beam.CastShadow = false
 	beam.Transparency = 0.15
+end
+
+builders.punch = function(m)
+	solid(add(m, "Housing", Vector3.new(3, 3, 3), CFrame.identity, O.Metal))
+	add(m, "Face", Vector3.new(0.1, 2.2, 2.2), CFrame.new(1.52, 0, 0), O.MetalLight)
+	add(m, "Warn", Vector3.new(2.4, 0.3, 0.05), CFrame.new(0, 1.05, 1.52), O.Stripe)
+	local rod = add(m, "Rod", Vector3.new(3.4, 0.45, 0.45), CFrame.new(0, 0, 0), O.MetalLight)
+	rod:SetAttribute("Group", "glove")
+	local glove = ellipsoid(m, "Glove", Vector3.new(1.7, 1.8, 1.8), CFrame.new(1.7, 0, 0), O.Danger)
+	glove:SetAttribute("Group", "glove")
+	local cuff = add(m, "Cuff", Vector3.new(0.4, 1.4, 1.4), CFrame.new(1.0, 0, 0) * FACE_CAMERA * CFrame.Angles(0, math.pi / 2, 0), Style.UI.Paper, Enum.PartType.Cylinder)
+	cuff:SetAttribute("Group", "glove")
+end
+
+builders.darts = function(m)
+	solid(add(m, "Body", Vector3.new(2, 2, 2.6), CFrame.identity, F.WoodDark))
+	add(m, "Band", Vector3.new(0.3, 2.04, 2.64), CFrame.new(0.5, 0, 0), O.Metal)
+	add(m, "Muzzle", Vector3.new(0.2, 0.7, 0.7), CFrame.new(1.05, 0, 0), O.Rubber, Enum.PartType.Cylinder)
+	add(m, "Feather", Vector3.new(0.5, 0.5, 0.05), CFrame.new(-0.4, 0.4, 1.32) * CFrame.Angles(0, 0, math.rad(45)), O.Danger)
+end
+
+builders.puck = function(m)
+	solid(add(m, "Base", Vector3.new(3, 1.4, 3), CFrame.new(0, -0.3, 0), O.Metal))
+	add(m, "Slot", Vector3.new(0.15, 0.5, 2), CFrame.new(1.52, -0.3, 0), O.Rubber)
+	add(m, "Stripe", Vector3.new(3.02, 0.25, 0.05), CFrame.new(0, 0.1, 1.52), Style.UI.Cool)
+	add(m, "Stack", Vector3.new(0.6, 1.2, 1.2), CFrame.new(-0.6, 0.7, 0) * CFrame.Angles(0, 0, math.pi / 2), O.Rubber, Enum.PartType.Cylinder)
+end
+
+builders.plane = function(m)
+	solid(add(m, "Base", Vector3.new(2, 0.8, 2.4), CFrame.new(0, -0.6, 0), F.Wood))
+	for _, z in { -0.8, 0.8 } do
+		add(m, "Post", Vector3.new(0.2, 1.4, 0.2), CFrame.new(0.6, 0.1, z), F.WoodDark)
+	end
+	add(m, "Band", Vector3.new(0.12, 0.12, 1.8), CFrame.new(0.6, 0.6, 0), O.Spring)
+	add(m, "Paper", Vector3.new(1.4, 0.08, 0.9), CFrame.new(-0.1, 0.25, 0) * CFrame.Angles(0, 0, math.rad(8)), Style.UI.Paper)
+	add(m, "Fold", Vector3.new(1.4, 0.35, 0.06), CFrame.new(-0.1, 0.12, 0), Style.UI.PaperShade)
+end
+
+builders.jetpack = function(m)
+	solid(add(m, "Stand", Vector3.new(2, 0.4, 2), CFrame.new(0, -0.8, 0), O.Metal))
+	for _, x in { -0.4, 0.4 } do
+		local tank = add(m, "Tank", Vector3.new(1.3, 0.75, 0.75), CFrame.new(x, 0.15, 0) * CFrame.Angles(0, 0, math.pi / 2), Style.UI.Cool, Enum.PartType.Cylinder)
+		tank:SetAttribute("Group", "float")
+		local cap = add(m, "Cap", Vector3.new(0.5, 0.5, 0.5), CFrame.new(x, 0.8, 0), O.MetalLight, Enum.PartType.Ball)
+		cap:SetAttribute("Group", "float")
+		local nozzle = add(m, "Nozzle", Vector3.new(0.3, 0.45, 0.45), CFrame.new(x, -0.5, 0) * CFrame.Angles(0, 0, math.pi / 2), O.Rubber, Enum.PartType.Cylinder)
+		nozzle:SetAttribute("Group", "float")
+	end
+	local strap = add(m, "Strap", Vector3.new(1.2, 0.25, 0.9), CFrame.new(0, 0.35, 0), O.Rubber)
+	strap:SetAttribute("Group", "float")
+end
+
+builders.portal = function(m)
+	local span = Objects.PORTAL_SPAN
+	for i, x in { 0, span } do
+		local color = if i == 1 then Style.UI.Cool else Style.UI.Accent
+		add(m, "Ring", Vector3.new(0.3, 3, 3), CFrame.new(x, 0, 0) * FACE_CAMERA, color, Enum.PartType.Cylinder)
+		add(m, "Hole", Vector3.new(0.32, 2.2, 2.2), CFrame.new(x, 0, 0.02) * FACE_CAMERA, Style.UI.Ink, Enum.PartType.Cylinder)
+		local swirl = add(m, "Swirl", Vector3.new(0.34, 0.6, 0.6), CFrame.new(x + 0.6, 0, 0.04) * FACE_CAMERA, color, Enum.PartType.Cylinder)
+		swirl:SetAttribute("Group", if i == 1 then "swirlA" else "swirlB")
+	end
+end
+
+builders.coin = function(m)
+	local coin = add(m, "Coin", Vector3.new(0.3, 1.8, 1.8), FACE_CAMERA, Style.UI.Gold, Enum.PartType.Cylinder)
+	coin:SetAttribute("Group", "coin")
+	local inner = add(m, "Inner", Vector3.new(0.34, 1.2, 1.2), FACE_CAMERA, Color3.fromRGB(220, 160, 56), Enum.PartType.Cylinder)
+	inner:SetAttribute("Group", "coin")
 end
 
 builders.crate = function(m)

@@ -116,6 +116,7 @@ local function fail(player: Player, cause: string, killerId: number?)
 		return
 	end
 	status[player] = "dead"
+	HazardService.dropCoins(player)
 	if killerId and killerId ~= player.UserId then
 		kills[killerId] = (kills[killerId] or 0) + 1
 	end

@@ -19,6 +19,7 @@ local RELIABLE = {
 	"Explode", -- S->C  bomb went off (visual only)
 	"Notify", -- S->C  small toast
 	"LobbyState", -- S->C  menu/party info: mode, code, host, members, queued
+	"Emote", -- C->S  play an emote (server stamps it on your character)
 }
 
 local FUNCTIONS = {

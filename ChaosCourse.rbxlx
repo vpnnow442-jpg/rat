@@ -1,13 +1,13 @@
 <roblox version="4">
-  <Item class="Workspace" referent="RBXF449D43236234D18A5D185945B06ECE1">
+  <Item class="Workspace" referent="RBXE481A75831A8420AA7B9E61FD1339BD3">
     <Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties>
   </Item>
-  <Item class="Lighting" referent="RBX560E1A9E98834AC190F8C8AA80C8AEB0">
+  <Item class="Lighting" referent="RBX2158B7EBE981476F9C12A881E527DA5C">
     <Properties><string name="Name">Lighting</string></Properties>
   </Item>
-  <Item class="ReplicatedFirst" referent="RBX9B44347AFE6B447994A71CEFCA01B0F3">
+  <Item class="ReplicatedFirst" referent="RBX9951DA0932B64F67BF7996E22A9CF3EB">
     <Properties><string name="Name">ReplicatedFirst</string></Properties>
-    <Item class="LocalScript" referent="RBX91C916E373964F3D9C7987341C9F6D58">
+    <Item class="LocalScript" referent="RBX0DFC00A6D62147C6AFE8BBD77808711E">
       <Properties><string name="Name">Loading</string><ProtectedString name="Source"><![CDATA[-- Loading screen. Runs before anything else, so it can't use the shared
 -- modules yet: colours and fonts are repeated here on purpose.
 -- Tips teach the core rule while you wait.
@@ -201,11 +201,11 @@ gui:Destroy()
 ]]></ProtectedString></Properties>
     </Item>
   </Item>
-  <Item class="ReplicatedStorage" referent="RBX5407D391B7FD4954B3B53F3678A2CF38">
+  <Item class="ReplicatedStorage" referent="RBX07D6260AA881400DBAFE1BDA83CF85A0">
     <Properties><string name="Name">ReplicatedStorage</string></Properties>
-    <Item class="Folder" referent="RBXE9459ED54BEE4EA2BCB13B852B650703">
+    <Item class="Folder" referent="RBX3C82CD4C5C614301BB08C7C971C5785D">
       <Properties><string name="Name">Shared</string></Properties>
-      <Item class="ModuleScript" referent="RBXA5152E41D7DE41FB97AD07DDBC428723">
+      <Item class="ModuleScript" referent="RBX5C3B0B389AA04FA6AA4F1137C2704C95">
         <Properties><string name="Name">Characters</string><ProtectedString name="Source"><![CDATA[--!strict
 -- The cast. Every animal shares the exact same hitbox (HumanoidRootPart);
 -- everything you see is massless decoration animated by the client.
@@ -416,7 +416,7 @@ end
 return Characters
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX59BBD278F2CB4374BA0B54414A2B7E05">
+      <Item class="ModuleScript" referent="RBX0B5A7C38D7E84640A7CBD4D769694077">
         <Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Every tuning number lives here so playtesting changes are one-line edits.
 
@@ -434,7 +434,9 @@ Config.Match = {
 	RunTime = 60,
 	ResultsTime = 8,
 	WinnerTime = 10,
-	BoxExtra = 2, -- the pick box holds players + this many pieces
+	BoxMin = 4, -- the pick box holds 4-7 pieces...
+	BoxMax = 7,
+	BoxSpare = 1, -- ...but always at least players + this many
 }
 
 Config.Scoring = {
@@ -444,6 +446,7 @@ Config.Scoring = {
 	Clutch = 15, -- finish with under ClutchWindow seconds left
 	ClutchWindow = 5,
 	OwnRoute = 15, -- finish after touching a route piece you placed
+	Coin = 40, -- grab a coin AND reach the flag with it
 }
 
 Config.Movement = {
@@ -474,6 +477,9 @@ Config.Objects = {
 	CrumbleRespawn = 3.5,
 	BombRadius = 5,
 	BumperKnock = 70,
+	PunchKnock = Vector3.new(82, 26, 0),
+	JetpackTime = 3,
+	JetpackLift = 30,
 }
 
 -- 2.5D: everything lives on the Z = 0 plane, the camera looks down -Z.
@@ -486,14 +492,15 @@ Config.World = {
 return Config
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXF8E2947736CF439E9C1947F7D37E0C57">
+      <Item class="ModuleScript" referent="RBX76B4956A9B0F4F4895FE1EA003B55F62">
         <Properties><string name="Name">Levels</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Hand-authored layouts, stored as plain data.
 -- The same shape will be what community levels save to DataStores later.
 --
 -- Design rules every layout follows:
 --   * start and flag are on solid ground with clear space around them
---   * the bare layout is beatable with double jumps, but never comfortably
+--   * the bare layout has a few gaps you can't clear without building:
+--     the course only works once players add to it (that's the game)
 --   * at least two routes somewhere (a high one and a low one), so one
 --     player's trap never blocks the only way through
 --   * big open air between pieces, because that's where players build
@@ -532,16 +539,16 @@ Levels.Forest = {
 		seed = 11,
 		pieces = {
 			{ kind = "ground", x0 = -12, x1 = 12, top = 10 },
-			{ kind = "ground", x0 = 26, x1 = 40, top = 6 },
+			{ kind = "ground", x0 = 30, x1 = 42, top = 6 },
 			{ kind = "stump", x0 = 52, x1 = 57, top = 16 },
 			{ kind = "ledge", x0 = 66, x1 = 80, top = 24 },
 			{ kind = "ground", x0 = 72, x1 = 96, top = 4 },
-			{ kind = "rock", x0 = 108, x1 = 114, top = 12 },
+			{ kind = "rock", x0 = 112, x1 = 117, top = 12 },
 			{ kind = "ground", x0 = 124, x1 = 152, top = 8 },
 			{ kind = "stump", x0 = 140, x1 = 145, top = 18 },
 			{ kind = "ledge", x0 = 158, x1 = 172, top = 28 },
 			{ kind = "ground", x0 = 168, x1 = 186, top = 10 },
-			{ kind = "ground", x0 = 200, x1 = 232, top = 16 },
+			{ kind = "ground", x0 = 204, x1 = 232, top = 16 },
 		},
 	},
 	{
@@ -556,13 +563,13 @@ Levels.Forest = {
 		pieces = {
 			{ kind = "ground", x0 = -12, x1 = 10, top = 12 },
 			{ kind = "log", x0 = 22, x1 = 60, top = 6 },
-			{ kind = "rock", x0 = 70, x1 = 76, top = 2 },
+			{ kind = "rock", x0 = 74, x1 = 79, top = 2 },
 			{ kind = "ground", x0 = 88, x1 = 110, top = 10 },
 			{ kind = "ledge", x0 = 100, x1 = 116, top = 28 },
 			{ kind = "log", x0 = 124, x1 = 160, top = 14 },
 			{ kind = "rock", x0 = 172, x1 = 177, top = 6 },
 			{ kind = "ledge", x0 = 168, x1 = 182, top = 30 },
-			{ kind = "ground", x0 = 192, x1 = 232, top = 12 },
+			{ kind = "ground", x0 = 196, x1 = 232, top = 12 },
 		},
 	},
 	{
@@ -580,12 +587,12 @@ Levels.Forest = {
 			{ kind = "tree", x0 = 38, x1 = 44, top = 24 },
 			{ kind = "tree", x0 = 56, x1 = 64, top = 12 },
 			{ kind = "tree", x0 = 76, x1 = 82, top = 22 },
-			{ kind = "tree", x0 = 94, x1 = 102, top = 30 },
+			{ kind = "tree", x0 = 97, x1 = 102, top = 30 },
 			{ kind = "tree", x0 = 116, x1 = 124, top = 16 },
 			{ kind = "tree", x0 = 136, x1 = 142, top = 26 },
 			{ kind = "tree", x0 = 154, x1 = 162, top = 14 },
 			{ kind = "tree", x0 = 174, x1 = 180, top = 24 },
-			{ kind = "ground", x0 = 194, x1 = 232, top = 18 },
+			{ kind = "ground", x0 = 198, x1 = 232, top = 18 },
 		},
 	},
 } :: { Layout }
@@ -593,7 +600,7 @@ Levels.Forest = {
 return Levels
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXD874BB7FDF3948978CBC4C2F384A1A47">
+      <Item class="ModuleScript" referent="RBXFAF8CA1B24784653AC059046A039759B">
         <Properties><string name="Name">Net</string><ProtectedString name="Source"><![CDATA[--!strict
 -- All remotes in one place. Server creates them, clients wait for them.
 -- Rule: clients only ever *ask*. The server decides everything that matters.
@@ -615,6 +622,7 @@ local RELIABLE = {
 	"Explode", -- S->C  bomb went off (visual only)
 	"Notify", -- S->C  small toast
 	"LobbyState", -- S->C  menu/party info: mode, code, host, members, queued
+	"Emote", -- C->S  play an emote (server stamps it on your character)
 }
 
 local FUNCTIONS = {
@@ -666,7 +674,7 @@ end
 return Net
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX796CD50CD3E34685AAD76C373DC8769F">
+      <Item class="ModuleScript" referent="RBX1E0833C890374B20B35313A06A4FE9E0">
         <Properties><string name="Name">Objects</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Placeable object definitions + their models.
 -- The server builds the real thing; the client builds the same model for
@@ -718,6 +726,13 @@ Objects.List = {
 	{ id = "trapdoor", name = "Trapdoor", blurb = "Solid... until it drops open.", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
 	{ id = "bumper", name = "Bumper", blurb = "Bounces you away, pinball style.", kind = "trap", size = Vector2.new(3, 3), weight = 1 },
 	{ id = "laser", name = "Laser", blurb = "Blinks on and off. Deadly when on.", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "punch", name = "Punch Box", blurb = "", kind = "trap", size = Vector2.new(3, 3), weight = 2 },
+	{ id = "darts", name = "Dart Shooter", blurb = "", kind = "trap", size = Vector2.new(2, 2), weight = 2 },
+	{ id = "puck", name = "Puck Launcher", blurb = "", kind = "trap", size = Vector2.new(3, 2), weight = 1 },
+	{ id = "plane", name = "Plane Launcher", blurb = "", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "jetpack", name = "Jetpack", blurb = "", kind = "route", size = Vector2.new(2, 2), weight = 1 },
+	{ id = "portal", name = "Portal", blurb = "", kind = "route", size = Vector2.new(3, 3), weight = 1 },
+	{ id = "coin", name = "Coin", blurb = "", kind = "tool", size = Vector2.new(2, 2), weight = 1 },
 	{ id = "bomb", name = "Bomb", blurb = "Clears objects nearby. Fix a ruined level.", kind = "tool", size = Vector2.new(1, 1), weight = 1 },
 } :: { Def }
 
@@ -770,6 +785,155 @@ end
 Objects.TRAPDOOR_PERIOD = 4
 function Objects.trapdoorOpen(age: number): boolean
 	return age % Objects.TRAPDOOR_PERIOD > 2.8
+end
+
+-- Punch Box: rests, then snaps out fast, holds, and pulls back. 0..1 extension.
+Objects.PUNCH_PERIOD = 2.6
+function Objects.punchExtend(age: number): number
+	local t = age % Objects.PUNCH_PERIOD
+	if t < 1.9 then
+		return 0
+	elseif t < 1.98 then
+		return (t - 1.9) / 0.08
+	elseif t < 2.3 then
+		return 1
+	end
+	return 1 - (t - 2.3) / 0.3
+end
+
+Objects.PORTAL_SPAN = 14 -- distance from the entry ring to the exit ring
+
+--------------------------------------------------------------------------
+-- Shooters: darts fly straight, pucks bounce off walls, planes glide in a
+-- wave through everything. Positions come purely from the clock + level
+-- geometry, so the server (deaths) and every client (visuals) agree.
+--------------------------------------------------------------------------
+
+export type Shooter = { interval: number, speed: number, delay: number, muzzle: Vector3, mode: string, range: number, wave: number? }
+
+Objects.Shooters = {
+	darts = { interval = 2.0, speed = 34, delay = 0.8, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
+	puck = { interval = 3.0, speed = 24, delay = 1.2, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
+	plane = { interval = 3.2, speed = 13, delay = 1.0, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
+} :: { [string]: Shooter }
+
+-- Raycast against solid level/object geometry only. Skips anything that
+-- moves or vanishes on clients (shuttles, trapdoors, crumbly ledges) so the
+-- server and clients always compute the same path.
+function Objects.castSolid(origin: Vector3, dir: Vector3, maxLen: number, ignore: Model?): (number, Vector3?)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	local list = {}
+	for _, name in { "Level", "Objects" } do
+		local f = workspace:FindFirstChild(name)
+		if f then
+			table.insert(list, f)
+		end
+	end
+	params.FilterDescendantsInstances = list
+	local traveled = 0
+	local o = origin
+	for _ = 1, 12 do
+		if traveled >= maxLen then
+			break
+		end
+		local hit = workspace:Raycast(o, dir * (maxLen - traveled), params)
+		if not hit then
+			break
+		end
+		local inst = hit.Instance
+		local g = inst:GetAttribute("Group")
+		local skip = not inst:GetAttribute("Solid")
+			or (ignore ~= nil and inst:IsDescendantOf(ignore))
+			or g == "mover" or g == "doorL" or g == "doorR"
+			or inst:GetAttribute("Crumble") ~= nil
+		local step = (hit.Position - o).Magnitude
+		if not skip then
+			return traveled + step, hit.Normal
+		end
+		traveled += step + 0.05
+		o = hit.Position + dir * 0.05
+	end
+	return maxLen, nil
+end
+
+-- Polyline a projectile follows, from the muzzle
+function Objects.shotPath(id: string, model: Model, pivot: CFrame): { Vector3 }
+	local s = Objects.Shooters[id]
+	local origin = pivot * s.muzzle
+	local dir = pivot.RightVector
+	if s.mode == "fixed" then
+		return { origin, origin + dir * s.range }
+	elseif s.mode == "ray" then
+		local d = Objects.castSolid(origin, dir, s.range, model)
+		return { origin, origin + dir * d }
+	end
+	local points = { origin }
+	local left = s.range
+	for _ = 1, 6 do
+		local d, normal = Objects.castSolid(origin, dir, left, model)
+		local stop = math.max(d - 0.7, 0) -- bounce off the surface, not inside it
+		origin += dir * stop
+		table.insert(points, origin)
+		left -= stop
+		if not normal or left <= 1 then
+			break
+		end
+		local n = Vector3.new(normal.X, normal.Y, 0).Unit
+		dir = (dir - 2 * dir:Dot(n) * n).Unit
+	end
+	return points
+end
+
+function Objects.pathLength(path: { Vector3 }): number
+	local total = 0
+	for i = 2, #path do
+		total += (path[i] - path[i - 1]).Magnitude
+	end
+	return total
+end
+
+-- Position + travel direction at a distance along the path
+function Objects.pathPoint(path: { Vector3 }, dist: number): (Vector3, Vector3)
+	for i = 2, #path do
+		local seg = path[i] - path[i - 1]
+		local len = seg.Magnitude
+		if dist <= len or i == #path then
+			local dir = if len > 0 then seg / len else Vector3.xAxis
+			return path[i - 1] + dir * math.min(dist, len), dir
+		end
+		dist -= len
+	end
+	return path[1], Vector3.xAxis
+end
+
+-- Every projectile currently in flight: { k = shot number, dist = distance travelled }
+function Objects.activeShots(id: string, age: number, pathLen: number): { { k: number, dist: number } }
+	local s = Objects.Shooters[id]
+	local since = age - s.delay
+	local out = {}
+	if since < 0 then
+		return out
+	end
+	local life = pathLen / s.speed
+	local newest = math.floor(since / s.interval)
+	local oldest = math.max(0, math.floor((since - life) / s.interval))
+	for k = oldest, newest do
+		local d = (since - k * s.interval) * s.speed
+		if d >= 0 and d <= pathLen then
+			table.insert(out, { k = k, dist = d })
+		end
+	end
+	return out
+end
+
+function Objects.shotPosition(id: string, path: { Vector3 }, pivot: CFrame, dist: number): (Vector3, Vector3)
+	local pos, dir = Objects.pathPoint(path, dist)
+	local s = Objects.Shooters[id]
+	if s.wave then
+		pos += pivot.UpVector * math.sin(dist / s.speed * math.pi * 2 / 1.6) * s.wave
+	end
+	return pos, dir
 end
 
 -- How far a laser reaches before something solid stops it
@@ -826,14 +990,32 @@ function Objects.check(def: Def, x: number, y: number, rot: number): (boolean, s
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = if objects then { level, objects } else { level }
-	local hits = workspace:GetPartBoundsInBox(CFrame.new(x, y, 0), Vector3.new(fp.X - 0.15, fp.Y - 0.15, 3), params)
-	if #hits > 0 then
+	local function clear(center: Vector3, size: Vector2): (boolean, string?)
+		local hits = workspace:GetPartBoundsInBox(CFrame.new(center), Vector3.new(size.X - 0.15, size.Y - 0.15, 3), params)
 		for _, hit in hits do
 			if hit.Name == "SafeZone" then
 				return false, "Too close to the start or flag"
 			end
 		end
-		return false, "Something's in the way"
+		if #hits > 0 then
+			return false, "Something's in the way"
+		end
+		return true, nil
+	end
+	local ok, why = clear(Vector3.new(x, y, 0), fp)
+	if not ok then
+		return false, why
+	end
+	if def.id == "portal" then
+		-- the exit ring has to fit too
+		local exit = Objects.cframe(x, y, rot) * Vector3.new(Objects.PORTAL_SPAN, 0, 0)
+		if bmin and bmax and (exit.X < bmin.X or exit.X > bmax.X or exit.Y < bmin.Y or exit.Y > bmax.Y) then
+			return false, "Exit is out of bounds"
+		end
+		local eok = clear(exit, fp)
+		if not eok then
+			return false, "The exit is blocked"
+		end
 	end
 	return true, nil
 end
@@ -956,6 +1138,74 @@ builders.laser = function(m)
 	beam:SetAttribute("Group", "beam")
 	beam.CastShadow = false
 	beam.Transparency = 0.15
+end
+
+builders.punch = function(m)
+	solid(add(m, "Housing", Vector3.new(3, 3, 3), CFrame.identity, O.Metal))
+	add(m, "Face", Vector3.new(0.1, 2.2, 2.2), CFrame.new(1.52, 0, 0), O.MetalLight)
+	add(m, "Warn", Vector3.new(2.4, 0.3, 0.05), CFrame.new(0, 1.05, 1.52), O.Stripe)
+	local rod = add(m, "Rod", Vector3.new(3.4, 0.45, 0.45), CFrame.new(0, 0, 0), O.MetalLight)
+	rod:SetAttribute("Group", "glove")
+	local glove = ellipsoid(m, "Glove", Vector3.new(1.7, 1.8, 1.8), CFrame.new(1.7, 0, 0), O.Danger)
+	glove:SetAttribute("Group", "glove")
+	local cuff = add(m, "Cuff", Vector3.new(0.4, 1.4, 1.4), CFrame.new(1.0, 0, 0) * FACE_CAMERA * CFrame.Angles(0, math.pi / 2, 0), Style.UI.Paper, Enum.PartType.Cylinder)
+	cuff:SetAttribute("Group", "glove")
+end
+
+builders.darts = function(m)
+	solid(add(m, "Body", Vector3.new(2, 2, 2.6), CFrame.identity, F.WoodDark))
+	add(m, "Band", Vector3.new(0.3, 2.04, 2.64), CFrame.new(0.5, 0, 0), O.Metal)
+	add(m, "Muzzle", Vector3.new(0.2, 0.7, 0.7), CFrame.new(1.05, 0, 0), O.Rubber, Enum.PartType.Cylinder)
+	add(m, "Feather", Vector3.new(0.5, 0.5, 0.05), CFrame.new(-0.4, 0.4, 1.32) * CFrame.Angles(0, 0, math.rad(45)), O.Danger)
+end
+
+builders.puck = function(m)
+	solid(add(m, "Base", Vector3.new(3, 1.4, 3), CFrame.new(0, -0.3, 0), O.Metal))
+	add(m, "Slot", Vector3.new(0.15, 0.5, 2), CFrame.new(1.52, -0.3, 0), O.Rubber)
+	add(m, "Stripe", Vector3.new(3.02, 0.25, 0.05), CFrame.new(0, 0.1, 1.52), Style.UI.Cool)
+	add(m, "Stack", Vector3.new(0.6, 1.2, 1.2), CFrame.new(-0.6, 0.7, 0) * CFrame.Angles(0, 0, math.pi / 2), O.Rubber, Enum.PartType.Cylinder)
+end
+
+builders.plane = function(m)
+	solid(add(m, "Base", Vector3.new(2, 0.8, 2.4), CFrame.new(0, -0.6, 0), F.Wood))
+	for _, z in { -0.8, 0.8 } do
+		add(m, "Post", Vector3.new(0.2, 1.4, 0.2), CFrame.new(0.6, 0.1, z), F.WoodDark)
+	end
+	add(m, "Band", Vector3.new(0.12, 0.12, 1.8), CFrame.new(0.6, 0.6, 0), O.Spring)
+	add(m, "Paper", Vector3.new(1.4, 0.08, 0.9), CFrame.new(-0.1, 0.25, 0) * CFrame.Angles(0, 0, math.rad(8)), Style.UI.Paper)
+	add(m, "Fold", Vector3.new(1.4, 0.35, 0.06), CFrame.new(-0.1, 0.12, 0), Style.UI.PaperShade)
+end
+
+builders.jetpack = function(m)
+	solid(add(m, "Stand", Vector3.new(2, 0.4, 2), CFrame.new(0, -0.8, 0), O.Metal))
+	for _, x in { -0.4, 0.4 } do
+		local tank = add(m, "Tank", Vector3.new(1.3, 0.75, 0.75), CFrame.new(x, 0.15, 0) * CFrame.Angles(0, 0, math.pi / 2), Style.UI.Cool, Enum.PartType.Cylinder)
+		tank:SetAttribute("Group", "float")
+		local cap = add(m, "Cap", Vector3.new(0.5, 0.5, 0.5), CFrame.new(x, 0.8, 0), O.MetalLight, Enum.PartType.Ball)
+		cap:SetAttribute("Group", "float")
+		local nozzle = add(m, "Nozzle", Vector3.new(0.3, 0.45, 0.45), CFrame.new(x, -0.5, 0) * CFrame.Angles(0, 0, math.pi / 2), O.Rubber, Enum.PartType.Cylinder)
+		nozzle:SetAttribute("Group", "float")
+	end
+	local strap = add(m, "Strap", Vector3.new(1.2, 0.25, 0.9), CFrame.new(0, 0.35, 0), O.Rubber)
+	strap:SetAttribute("Group", "float")
+end
+
+builders.portal = function(m)
+	local span = Objects.PORTAL_SPAN
+	for i, x in { 0, span } do
+		local color = if i == 1 then Style.UI.Cool else Style.UI.Accent
+		add(m, "Ring", Vector3.new(0.3, 3, 3), CFrame.new(x, 0, 0) * FACE_CAMERA, color, Enum.PartType.Cylinder)
+		add(m, "Hole", Vector3.new(0.32, 2.2, 2.2), CFrame.new(x, 0, 0.02) * FACE_CAMERA, Style.UI.Ink, Enum.PartType.Cylinder)
+		local swirl = add(m, "Swirl", Vector3.new(0.34, 0.6, 0.6), CFrame.new(x + 0.6, 0, 0.04) * FACE_CAMERA, color, Enum.PartType.Cylinder)
+		swirl:SetAttribute("Group", if i == 1 then "swirlA" else "swirlB")
+	end
+end
+
+builders.coin = function(m)
+	local coin = add(m, "Coin", Vector3.new(0.3, 1.8, 1.8), FACE_CAMERA, Style.UI.Gold, Enum.PartType.Cylinder)
+	coin:SetAttribute("Group", "coin")
+	local inner = add(m, "Inner", Vector3.new(0.34, 1.2, 1.2), FACE_CAMERA, Color3.fromRGB(220, 160, 56), Enum.PartType.Cylinder)
+	inner:SetAttribute("Group", "coin")
 end
 
 builders.crate = function(m)
@@ -1110,7 +1360,7 @@ end
 return Objects
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX3C095C0EF9CB412B81D1B092C1D9C0D8">
+      <Item class="ModuleScript" referent="RBX624EA5E5B2F046D3AFEA7C88DA4CC461">
         <Properties><string name="Name">Style</string><ProtectedString name="Source"><![CDATA[--!strict
 -- One palette for UI and world. Flat colors, no gradients, no neon.
 
@@ -1130,11 +1380,12 @@ Style.UI = {
 }
 
 -- Score categories, in the order they animate into the bar chart
-Style.ScoreOrder = { "finish", "trap", "clutch", "route" }
+Style.ScoreOrder = { "finish", "trap", "coin", "clutch", "route" }
 Style.ScoreColor = {
 	finish = Style.UI.Good,
 	trap = Style.UI.Bad,
-	clutch = Style.UI.Gold,
+	coin = Style.UI.Gold,
+	clutch = Color3.fromRGB(156, 112, 214),
 	route = Style.UI.Cool,
 }
 
@@ -1178,9 +1429,9 @@ return Style
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX334AB81ECC3A4AA58E51FDA75F5B4644">
+  <Item class="ServerScriptService" referent="RBX0A4912A7DA4E4987894F79E94E4D244D">
     <Properties><string name="Name">ServerScriptService</string></Properties>
-    <Item class="Script" referent="RBX30688872F43E47A08484F12ABFFDFFBF">
+    <Item class="Script" referent="RBXCA777153CEE74DD5812FC13622496790">
       <Properties><string name="Name">Main</string><ProtectedString name="Source"><![CDATA[-- Server entry point. Services are plain modules; order matters only here.
 
 local Services = script.Parent.Services
@@ -1200,9 +1451,9 @@ LobbyService.init()
 MatchService.start()
 ]]></ProtectedString></Properties>
     </Item>
-    <Item class="Folder" referent="RBXAF76D896A74E41249B32E989DB27FD58">
+    <Item class="Folder" referent="RBXE779E3C81F4B49DA96F9D8C2D3F6F286">
       <Properties><string name="Name">Services</string></Properties>
-      <Item class="ModuleScript" referent="RBXB2B58120A8264D58A31C2E745A01BC5F">
+      <Item class="ModuleScript" referent="RBXFE4713B453C6421CA32987DF667B698A">
         <Properties><string name="Name">BuildService</string><ProtectedString name="Source"><![CDATA[-- The pick box and the build phase.
 --
 -- Pick: a crate opens with (players + 2) pieces. First click wins a piece;
@@ -1241,6 +1492,7 @@ local hands = {} :: { [Player]: { string } }
 local placed = {} :: { [Player]: boolean }
 local lastCursor = {} :: { [Player]: number }
 local pickOpen = false
+local boxSeed = 0
 local buildOpen = false
 
 local function weightedPick(pool: { Objects.Def }): Objects.Def
@@ -1313,7 +1565,8 @@ local function sendBox()
 	for _, p in pickers do
 		table.insert(ids, p.UserId)
 	end
-	BoxEvent:FireAllClients(payload, ids)
+	-- the seed lets every client scatter the pieces in the same spots
+	BoxEvent:FireAllClients(payload, ids, boxSeed)
 end
 
 --------------------------------------------------------------------------
@@ -1340,7 +1593,10 @@ function BuildService.openPick(players: { Player }, round: number)
 	table.clear(box)
 	table.clear(picked)
 	pickers = table.clone(players)
-	for _, id in roll(#players + Config.Match.BoxExtra, round) do
+	local M = Config.Match
+	local count = math.max(#players + M.BoxSpare, math.random(M.BoxMin, M.BoxMax))
+	boxSeed = math.random(1, 2 ^ 30)
+	for _, id in roll(count, round) do
 		table.insert(box, { id = id, takenBy = 0 })
 	end
 	pickOpen = true
@@ -1533,7 +1789,7 @@ end
 return BuildService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX905475ACBC22425A9F008807C0280AFE">
+      <Item class="ModuleScript" referent="RBXCD312B0B81E948A7869DC97726D99BA5">
         <Properties><string name="Name">HazardService</string><ProtectedString name="Source"><![CDATA[-- Server-side object behaviour that has to be authoritative:
 -- deadly contact, crumbling ledges, and "you used your own route" tracking.
 -- Knockback/launch effects run on the client (it owns its character's physics),
@@ -1557,6 +1813,9 @@ HazardService.onDeadly = function(_player: Player, _model: Model) end
 local touchedOwn = {} :: { [Player]: boolean }
 local crumbles = {} :: { Model }
 local lasers = {} :: { Model }
+local shooters = {} :: { Model }
+local coins = {} :: { Model }
+local paths = {} :: { [Model]: { path: { Vector3 }, len: number, at: number } }
 
 local function playerFromHit(hit: BasePart): Player?
 	if hit.Name ~= "HumanoidRootPart" then
@@ -1636,6 +1895,10 @@ function HazardService.watch(model: Model)
 	end
 	if def and def.id == "laser" then
 		table.insert(lasers, model)
+	elseif def and Objects.Shooters[def.id] then
+		table.insert(shooters, model)
+	elseif def and def.id == "coin" then
+		table.insert(coins, model)
 	end
 end
 
@@ -1645,8 +1908,74 @@ end
 
 -- Called ~10x a second during a run. Lasers are checked by geometry instead
 -- of Touched, because their on/off state comes from the clock.
+local function rootOf(player: Player): BasePart?
+	local char = player.Character
+	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+-- distance from point p to segment a-b
+local function segDist(p: Vector3, a: Vector3, b: Vector3): number
+	local ab = b - a
+	local len2 = ab:Dot(ab)
+	local t = if len2 > 0 then math.clamp((p - a):Dot(ab) / len2, 0, 1) else 0
+	return (p - (a + ab * t)).Magnitude
+end
+
 function HazardService.tick(running: { Player })
 	local now = workspace:GetServerTimeNow()
+
+	-- Projectiles: check the stretch each one covered since the last tick,
+	-- so fast darts can't skip past someone between checks.
+	for i = #shooters, 1, -1 do
+		local m = shooters[i]
+		if not m.Parent then
+			table.remove(shooters, i)
+			paths[m] = nil
+			continue
+		end
+		local id = m:GetAttribute("Id") :: string
+		local pivot = pivotOf(m)
+		local cache = paths[m]
+		if not cache or now - cache.at > 1 then
+			local path = Objects.shotPath(id, m, pivot)
+			cache = { path = path, len = Objects.pathLength(path), at = now }
+			paths[m] = cache
+		end
+		local c = cache :: { path: { Vector3 }, len: number, at: number }
+		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local step = Objects.Shooters[id].speed * 0.12
+		for _, shot in Objects.activeShots(id, age, c.len) do
+			local a = Objects.shotPosition(id, c.path, pivot, math.max(shot.dist - step, 0))
+			local b = Objects.shotPosition(id, c.path, pivot, shot.dist)
+			for _, player in running do
+				local root = rootOf(player)
+				if root and segDist(root.Position, a, b) < 1.4 then
+					HazardService.onDeadly(player, m)
+				end
+			end
+		end
+	end
+
+	-- Coins: first runner to touch one carries it
+	for i = #coins, 1, -1 do
+		local m = coins[i]
+		if not m.Parent then
+			table.remove(coins, i)
+			continue
+		end
+		if m:GetAttribute("TakenBy") then
+			continue
+		end
+		local pos = pivotOf(m).Position
+		for _, player in running do
+			local root = rootOf(player)
+			if root and (root.Position - pos).Magnitude < 2.4 then
+				m:SetAttribute("TakenBy", player.UserId)
+				break
+			end
+		end
+	end
+
 	for i = #lasers, 1, -1 do
 		local m = lasers[i]
 		if not m.Parent then
@@ -1676,8 +2005,33 @@ function HazardService.tick(running: { Player })
 end
 
 -- Called at the start of each run so the level is identical for everyone
+-- How many coins this player is carrying
+function HazardService.coinsOf(player: Player): number
+	local n = 0
+	for _, m in coins do
+		if m.Parent and m:GetAttribute("TakenBy") == player.UserId then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Taken out? Your coins drop back where they were.
+function HazardService.dropCoins(player: Player)
+	for _, m in coins do
+		if m.Parent and m:GetAttribute("TakenBy") == player.UserId then
+			m:SetAttribute("TakenBy", nil)
+		end
+	end
+end
+
 function HazardService.resetRound()
 	table.clear(touchedOwn)
+	for _, m in coins do
+		if m.Parent then
+			m:SetAttribute("TakenBy", nil)
+		end
+	end
 	for i = #crumbles, 1, -1 do
 		local m = crumbles[i]
 		if m.Parent then
@@ -1695,7 +2049,7 @@ end
 return HazardService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX656EEB4B15C345EEBA2FFB82D10EF501">
+      <Item class="ModuleScript" referent="RBX3772CA8F0C5A429CB84DB4AE2AE30C79">
         <Properties><string name="Name">LevelService</string><ProtectedString name="Source"><![CDATA[-- Builds a layout into the world: playable pieces, start, flag, safe zones,
 -- and a background with just enough life in it (trees, hills, a river, clouds).
 
@@ -1757,6 +2111,7 @@ local BOTTOM = -26
 --------------------------------------------------------------------------
 
 local builders = {}
+local dress: (Levels.Piece, Random, number) -> ()
 
 builders.ground = function(p: Levels.Piece, rng: Random)
 	local w = p.x1 - p.x0
@@ -1770,6 +2125,42 @@ builders.ground = function(p: Levels.Piece, rng: Random)
 		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
 		blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(x, p.top + 0.2, -3.4), F.GrassDark)
 	end
+	dress(p, rng, 4)
+end
+
+-- Hand-placed-looking details. Rule: only behind the lane or below the
+-- walking surface, so nothing ever hides a character or a trap.
+local MUSHROOM_CAP = Color3.fromRGB(206, 92, 74)
+local MUSHROOM_STEM = Color3.fromRGB(238, 228, 210)
+local FLOWERS = { Color3.fromRGB(250, 246, 238), Color3.fromRGB(240, 184, 72), Color3.fromRGB(226, 140, 170) }
+
+function dress(p: Levels.Piece, rng: Random, front: number)
+	local w = p.x1 - p.x0
+	-- grass hanging over the front edge
+	for _ = 1, math.max(2, math.floor(w / 4)) do
+		local x = rng:NextNumber(p.x0 + 0.5, p.x1 - 0.5)
+		blob(level, "Overhang", Vector3.new(rng:NextNumber(0.8, 1.6), 0.7, 0.5), CFrame.new(x, p.top - 1.25, front + 0.15), F.Grass)
+	end
+	-- pebbles pressed into the dirt face (tall ground only; ledges are too thin)
+	if p.kind == "ground" then
+		for _ = 1, math.max(1, math.floor(w / 6)) do
+			local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+			local y = p.top - rng:NextNumber(4, 12)
+			blob(level, "Pebble", Vector3.new(rng:NextNumber(0.7, 1.3), rng:NextNumber(0.5, 0.8), 0.25), CFrame.new(x, y, front + 0.05), F.DirtDark)
+		end
+	end
+	-- a mushroom or a few flowers at the back, now and then
+	if w > 8 and rng:NextNumber() < 0.6 then
+		local x = rng:NextNumber(p.x0 + 1.5, p.x1 - 1.5)
+		part(level, "Stem", Vector3.new(0.35, 0.7, 0.35), CFrame.new(x, p.top + 0.35, -2.8), MUSHROOM_STEM)
+		blob(level, "Cap", Vector3.new(1.1, 0.55, 1.1), CFrame.new(x, p.top + 0.8, -2.8), MUSHROOM_CAP)
+	end
+	for _ = 1, rng:NextInteger(0, 3) do
+		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+		local h = rng:NextNumber(0.6, 1.1)
+		part(level, "FlowerStem", Vector3.new(0.12, h, 0.12), CFrame.new(x, p.top + h / 2, -3.1), F.GrassDark)
+		part(level, "Flower", Vector3.new(0.4, 0.4, 0.4), CFrame.new(x, p.top + h, -3.1), FLOWERS[rng:NextInteger(1, #FLOWERS)], Enum.PartType.Ball)
+	end
 end
 
 -- A floating grassy chunk: the "high route" piece
@@ -1781,6 +2172,7 @@ builders.ledge = function(p: Levels.Piece, rng: Random)
 	blob(level, "Underside", Vector3.new(w * 0.8, 3.4, 6), CFrame.new(cx, p.top - 3.6, 0), F.DirtDark)
 	blob(level, "Root", Vector3.new(0.6, 2.4, 0.6), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top - 5, 1.6), F.Bark)
 	blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top + 0.2, -3), F.GrassDark)
+	dress(p, rng, 3.5)
 end
 
 builders.stump = function(p: Levels.Piece)
@@ -2018,7 +2410,7 @@ end
 return LevelService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXF8163373C32545428BC11BC516C6C174">
+      <Item class="ModuleScript" referent="RBX4508F80F368A49628D269E7C6A19576B">
         <Properties><string name="Name">LobbyService</string><ProtectedString name="Source"><![CDATA[-- Menus, parties and who's actually playing.
 --
 -- Public server : you open the menu, press PLAY, and join the next round.
@@ -2339,7 +2731,7 @@ end
 return LobbyService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX80935D30492B4FDA8CA5BEAAA667D53F">
+      <Item class="ModuleScript" referent="RBX5BFB0F8A4FC44FD0A25E9C181BFD89B2">
         <Properties><string name="Name">MatchService</string><ProtectedString name="Source"><![CDATA[-- The whole match: pick a level, play rounds until someone crosses
 -- PointsToWin (or MaxRounds runs out, last round double), crown a winner.
 -- With bigger maps a round is ~1.5-2 minutes, so a match lands around 10-15.
@@ -2472,7 +2864,7 @@ end
 return MatchService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX1FB61B8F3F3B453DA37C3EF00848CEE2">
+      <Item class="ModuleScript" referent="RBX29681716B87D48B08FC0B72B22DEAF5A">
         <Properties><string name="Name">PlayerService</string><ProtectedString name="Source"><![CDATA[-- Owns characters: which animal you are, where your body is, whether you can move.
 -- Nobody ever "dies" in the Roblox sense; we park and release characters instead,
 -- which means no respawn delays and no default death screen.
@@ -2484,6 +2876,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Characters = require(Shared.Characters)
 local Config = require(Shared.Config)
+local Net = require(Shared.Net)
 local Style = require(Shared.Style)
 
 local PlayerService = {}
@@ -2646,12 +3039,28 @@ function PlayerService.init()
 	Players.PlayerRemoving:Connect(function(player)
 		PlayerService.species[player] = nil
 	end)
+
+	-- Emotes: stamp the name + time on the character; every client animates it
+	local EMOTES = { wave = true, dance = true, laugh = true, sit = true }
+	local lastEmote = {} :: { [Player]: number }
+	Net.event("Emote").OnServerEvent:Connect(function(player, id)
+		if typeof(id) ~= "string" or not EMOTES[id] or not player.Character then
+			return
+		end
+		local now = os.clock()
+		if now - (lastEmote[player] or 0) < 0.5 then
+			return
+		end
+		lastEmote[player] = now
+		player.Character:SetAttribute("Emote", id)
+		player.Character:SetAttribute("EmoteAt", workspace:GetServerTimeNow())
+	end)
 end
 
 return PlayerService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXCB7F143C82454970A401FD964DACDE02">
+      <Item class="ModuleScript" referent="RBX3DAA0B2192574691BDF93BD3A220B5C5">
         <Properties><string name="Name">RoundService</string><ProtectedString name="Source"><![CDATA[-- One round = pick from the box -> build -> run. Also owns the phase
 -- broadcast, since every phase change goes through here.
 
@@ -2770,6 +3179,7 @@ local function fail(player: Player, cause: string, killerId: number?)
 		return
 	end
 	status[player] = "dead"
+	HazardService.dropCoins(player)
 	if killerId and killerId ~= player.UserId then
 		kills[killerId] = (kills[killerId] or 0) + 1
 	end
@@ -2906,14 +3316,14 @@ end
 return RoundService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXB17279C295964FC8BFB1291D26CEBE8B">
+      <Item class="ModuleScript" referent="RBXCF913DBA0FB04C9B8F76F7B30A9C8A5F">
         <Properties><string name="Name">ScoringService</string><ProtectedString name="Source"><![CDATA[-- Turns what happened in a run into points.
 --
 -- The rules, in one breath:
 --   first to Config.Match.PointsToWin wins the match
 --   finish 1st/2nd/3rd/4th+ -> 100/75/50/25
 --   take someone out with your object -> +25 each (max 75 a round)
---   small bonuses: clutch finish, finishing via a route you built
+--   small bonuses: carry a coin to the flag, clutch finish, finishing via a route you built
 --   BUT if everyone finishes, it was TOO EASY: nobody scores
 --   and if nobody finishes, it was TOO HARD: trap points don't count
 -- So the best level is one that's deadly but beatable. That's the game.
@@ -3011,6 +3421,10 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 					if HazardService.usedOwnRoute(player) then
 						add("route", "Own route", S.OwnRoute)
 					end
+					local coins = HazardService.coinsOf(player)
+					if coins > 0 then
+						add("coin", if coins == 1 then "Coin" else ("Coin x" .. coins), S.Coin * coins)
+					end
 				end
 			end
 		end
@@ -3055,20 +3469,20 @@ return ScoringService
       </Item>
     </Item>
   </Item>
-  <Item class="ServerStorage" referent="RBXB816D1BD2DDF40E980B23E21259D0D2E">
+  <Item class="ServerStorage" referent="RBXCB08EB38FC9246ACA52759F63C083EC4">
     <Properties><string name="Name">ServerStorage</string></Properties>
   </Item>
-  <Item class="StarterGui" referent="RBX8D820480C5E54EEB9E4F3032CB6AC035">
+  <Item class="StarterGui" referent="RBX8554F9A3F2864AD684B5D74940F2EB40">
     <Properties><string name="Name">StarterGui</string></Properties>
   </Item>
-  <Item class="StarterPack" referent="RBXF620764B46E54B22A51DFD7CD84FADB9">
+  <Item class="StarterPack" referent="RBXE2C5126E6AD84F2ABD051CABE6E88A67">
     <Properties><string name="Name">StarterPack</string></Properties>
   </Item>
-  <Item class="StarterPlayer" referent="RBX5959112854B549C7825DB7EF203E581E">
+  <Item class="StarterPlayer" referent="RBX1552C9CD94C24102A1B2015EF59B66B9">
     <Properties><string name="Name">StarterPlayer</string></Properties>
-    <Item class="StarterPlayerScripts" referent="RBX29BF89A3CC014383A7453B7501237C23">
+    <Item class="StarterPlayerScripts" referent="RBX63E0F937F12A4B20BF2A9C52A67FB149">
       <Properties><string name="Name">StarterPlayerScripts</string></Properties>
-      <Item class="LocalScript" referent="RBX4D0D54FA9E224A94A4CD04671D6A605C">
+      <Item class="LocalScript" referent="RBX3765C3BB0FF94FB1AE7AD1F429AFD3C3">
         <Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Client entry point. Controllers are plain modules; order matters only here.
 
 if not game:IsLoaded() then
@@ -3102,9 +3516,9 @@ Animator.init()
 task.spawn(Menu.init) -- waits for the loading screen to finish
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="Folder" referent="RBX410A4393B25644F59656B1B51CA00CE8">
+      <Item class="Folder" referent="RBXDF283C4695214EBA9BBCFE06219648ED">
         <Properties><string name="Name">Controllers</string></Properties>
-        <Item class="ModuleScript" referent="RBX962CC1EFBADE46169A02F683230348CA">
+        <Item class="ModuleScript" referent="RBX5DFC448D7FA249608A87ABF61E5ABD16">
           <Properties><string name="Name">BuildController</string><ProtectedString name="Source"><![CDATA[-- Building should take seconds:
 --   pick a card -> a ghost follows your pointer, snapped to the grid,
 --   green if it fits / red if not -> click to drop it. R rotates, right-click goes back.
@@ -3174,7 +3588,6 @@ local function clearGhost()
 	ghost = nil
 	highlight = nil
 	Camera.building = false
-	Camera.pan = Vector2.zero
 end
 
 local function sendCursor(id: string)
@@ -3291,18 +3704,9 @@ local function update(dt: number)
 		return
 	end
 
-	-- Cursor resting near a screen edge pans the build camera that way
+	-- The build camera follows the cursor across the level
 	local vp = workspace.CurrentCamera.ViewportSize
-	local EDGE = 0.1
-	local function edge(n: number): number
-		if n < EDGE then
-			return -(EDGE - n) / EDGE
-		elseif n > 1 - EDGE then
-			return (n - (1 - EDGE)) / EDGE
-		end
-		return 0
-	end
-	Camera.pan = Vector2.new(edge(pointer.X / vp.X), -edge(pointer.Y / vp.Y))
+	Camera.pointer = Vector2.new(pointer.X / math.max(vp.X, 1), pointer.Y / math.max(vp.Y, 1))
 
 	local world = worldPoint(pointer)
 	if not world then
@@ -3473,11 +3877,12 @@ end
 return Build
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXC68E2F79C7364DAC8D63F21430A78925">
+        <Item class="ModuleScript" referent="RBX730950E71FC04B758A5AE8C017DEBA0B">
           <Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- Side-on camera for a 2.5D game.
 --   menu     : the level drifts slowly by behind the menu
 --   overview : whole level in frame (intro, pick, results)
---   build    : zoomed in; push the cursor to a screen edge to pan, wheel/pinch to zoom
+--   build    : zoomed in and the map follows your cursor: cursor on the left of the
+--              screen shows the left of the level, right shows the right. Wheel/pinch zooms.
 --   follow   : you, with a little look-ahead in the direction you're moving
 --   spectate : once you're out, whoever is still running and furthest along
 -- Everything eases toward its goal, so mode changes read as one smooth move.
@@ -3492,7 +3897,7 @@ local Camera = {}
 
 -- Set by BuildController while you're placing
 Camera.building = false
-Camera.pan = Vector2.zero -- -1..1 per axis, from the cursor sitting at a screen edge
+Camera.pointer = Vector2.new(0.5, 0.5) -- cursor position on screen, 0..1
 Camera.menuOpen = false
 
 local FOV = 40
@@ -3506,7 +3911,6 @@ local lookAhead = 0
 local shakeAmp = 0
 local spectating: Player? = nil
 local failHoldUntil = 0
-local buildFocus: Vector3? = nil
 local buildDist = BUILD_DEFAULT
 
 function Camera.shake(amount: number)
@@ -3588,16 +3992,27 @@ local function update(dt: number)
 			goalFocus, goalDist = ovFocus, ovDist :: number
 		end
 	elseif phase == "Build" and Camera.building and ovFocus then
+		-- Map the cursor's spot on screen onto the whole level. Because this
+		-- depends on screen position (not the world point under the cursor),
+		-- holding the mouse still always settles: no runaway scrolling.
 		local bmin, bmax = bounds()
-		local bf = buildFocus or focus
-		bf += Vector3.new(Camera.pan.X, Camera.pan.Y, 0) * (40 + buildDist * 0.6) * dt
-		if bmin and bmax then
-			bf = Vector3.new(math.clamp(bf.X, bmin.X, bmax.X), math.clamp(bf.Y, bmin.Y + 8, bmax.Y - 8), 0)
-		end
-		buildFocus = bf
 		buildDist = math.clamp(buildDist, BUILD_MIN, ovDist :: number)
-		goalFocus, goalDist = bf, buildDist
-		sharp = 10
+		if bmin and bmax then
+			local vp = cam.ViewportSize
+			local halfH = buildDist * math.tan(math.rad(FOV / 2))
+			local halfW = halfH * vp.X / math.max(vp.Y, 1)
+			local function span(lo: number, hi: number, half: number, t: number): number
+				local a, b = lo + half * 0.4, hi - half * 0.4
+				if a > b then
+					return (lo + hi) / 2
+				end
+				return a + (b - a) * math.clamp(t, 0, 1)
+			end
+			local n = Camera.pointer
+			goalFocus = Vector3.new(span(bmin.X, bmax.X, halfW, n.X), span(bmin.Y, bmax.Y, halfH, 1 - n.Y), 0)
+		end
+		goalDist = buildDist
+		sharp = 5
 	elseif phase == "Winner" then
 		local level = workspace:FindFirstChild("Level")
 		local flag = level and level:GetAttribute("Flag") :: Vector3?
@@ -3644,10 +4059,6 @@ function Camera.init()
 	State.phaseChanged:Connect(function(phase)
 		if phase == "Build" then
 			buildDist = BUILD_DEFAULT
-			-- start building near the start line, where the action begins
-			local level = workspace:FindFirstChild("Level")
-			local spawn = level and level:GetAttribute("Spawn") :: Vector3?
-			buildFocus = if spawn then spawn + Vector3.new(30, 8, 0) else nil
 		end
 	end)
 	UserInputService.InputChanged:Connect(function(input, processed)
@@ -3668,28 +4079,45 @@ end
 return Camera
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX0AAF95383F3C44908E8C0B5AA9CBB242">
+        <Item class="ModuleScript" referent="RBXE54424B2A68743F1A373C5AB015B9F19">
           <Properties><string name="Name">CharacterAnimator</string><ProtectedString name="Source"><![CDATA[-- Procedural animation for every character on screen, run locally on each
 -- client from replicated velocity. No animation assets, no network cost.
 --
---   idle     : gentle breathing, slow tail wag
---   walk/run : waddle bob, forward lean, feet swing, fast tail
+--   always   : breathing, blinking, ear twitches
+--   idle     : looks around, now and then glances at the camera
+--   walk/run : waddle bob, forward lean, feet swing, fast tail, kicked-up dust
+--   turn     : skid puff when you reverse direction at speed
 --   jump     : stretch on take-off, squash on landing (spring-driven, so it wobbles)
 --   flap     : quick front flip on the air jump
---   fail     : big squash + head shake (the tumble itself is real physics)
---   victory  : happy hops
+--   wall     : lean off the wall, feet braced, dust scraping down it
+--   falling  : legs flail when you're dropping fast
+--   hit      : sudden knockback -> backflip tumble with speed lines
+--   ledge    : standing at an edge -> nervous wobble
+--   fail     : a burst in your colour, squash, head shake (the tumble is real physics)
+--   victory  : happy hops with the odd flip
+--   emotes   : wave, dance, laugh, sit (keys 1-4 or the HUD buttons)
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Net = require(Shared.Net)
 
 local Fx = require(script.Parent.FxController)
 local Sound = require(script.Parent.SoundController)
 
 local Animator = {}
 
+Animator.EMOTES = { "wave", "dance", "laugh", "sit" }
+
+type Eye = { part: BasePart, size: Vector3 }
 type Rig = {
 	model: Model,
 	root: BasePart,
+	color: Color3,
 	bodyJoint: Motor6D?,
 	neck: Motor6D?,
 	hipL: Motor6D?,
@@ -3698,13 +4126,23 @@ type Rig = {
 	flipL: Motor6D?,
 	flipR: Motor6D?,
 	mesh: SpecialMesh?,
+	eyes: { Eye },
+	ears: { { weld: Weld, c0: CFrame } },
 	-- state
 	squash: number,
 	squashVel: number,
 	walkPhase: number,
 	grounded: boolean,
-	lastVY: number,
+	lastV: Vector3,
 	flip: number,
+	tumble: number,
+	idleTime: number,
+	nextBlink: number,
+	nextTwitch: number,
+	twitchUntil: number,
+	nextDust: number,
+	lastFail: number?,
+	hopCount: number,
 	isLocal: boolean,
 }
 
@@ -3727,9 +4165,21 @@ local function track(model: Model, isLocal: boolean)
 		return
 	end
 	local body = model:FindFirstChild("Body")
+	local species = Characters.ById[model:GetAttribute("Species") :: string? or ""]
+	local eyes = {}
+	local ears = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d.Name == "Eye" then
+			table.insert(eyes, { part = d, size = d.Size })
+		elseif d:IsA("Weld") and d.Part1 and d.Part1.Name == "Ear" then
+			table.insert(ears, { weld = d, c0 = d.C0 })
+		end
+	end
+	local now = os.clock()
 	rigs[model] = {
 		model = model,
 		root = root,
+		color = if species then species.body else Color3.new(1, 1, 1),
 		bodyJoint = find(model, "BodyJoint"),
 		neck = find(model, "Neck"),
 		hipL = find(model, "HipL"),
@@ -3738,12 +4188,22 @@ local function track(model: Model, isLocal: boolean)
 		flipL = find(model, "FlipL"),
 		flipR = find(model, "FlipR"),
 		mesh = body and body:FindFirstChildOfClass("SpecialMesh"),
+		eyes = eyes,
+		ears = ears,
 		squash = 0,
 		squashVel = 0,
 		walkPhase = 0,
 		grounded = true,
-		lastVY = 0,
+		lastV = Vector3.zero,
 		flip = 0,
+		tumble = 0,
+		idleTime = 0,
+		nextBlink = now + math.random() * 3,
+		nextTwitch = now + 2 + math.random() * 4,
+		twitchUntil = 0,
+		nextDust = 0,
+		lastFail = nil,
+		hopCount = 0,
 		isLocal = isLocal,
 	}
 	model.Destroying:Connect(function()
@@ -3753,79 +4213,235 @@ end
 
 local function step(dt: number)
 	local t = os.clock()
+	local serverNow = workspace:GetServerTimeNow()
 	for model, r in rigs do
 		if not model.Parent then
 			rigs[model] = nil
 			continue
 		end
-		local v = r.root.AssemblyLinearVelocity
+		local root = r.root
+		local v = root.AssemblyLinearVelocity
 		local speed = math.abs(v.X)
-		local anchored = r.root.Anchored
+		local anchored = root.Anchored
+		local pos = root.Position
+		local facing = if root.CFrame.LookVector.X >= 0 then 1 else -1
+		local feet = pos - Vector3.new(0, 2.2, 0)
 
 		-- grounded: short ray down (works for remote characters too)
-		local hit = if anchored then nil else workspace:Raycast(r.root.Position, Vector3.new(0, -2.6, 0), rayParams)
+		local hit = if anchored then nil else workspace:Raycast(pos, Vector3.new(0, -2.6, 0), rayParams)
 		local grounded = anchored or (hit ~= nil and v.Y < 8)
 
-		-- events
-		local feet = r.root.Position - Vector3.new(0, 2.2, 0)
-		if r.grounded and not grounded and v.Y > 10 then
+		-- ---------- events ----------
+		local dv = v - r.lastV
+		if not anchored and math.abs(dv.X) > 45 and not grounded then
+			-- sudden sideways shove: we got hit by something
+			r.tumble = 1
+			r.squashVel -= 6
+			Fx.streak(pos, v)
+		elseif r.grounded and not grounded and v.Y > 10 then
 			r.squashVel += 9 -- take-off stretch
 			Fx.puff(feet, 2, 0.7)
-		elseif not r.grounded and grounded and r.lastVY < -20 then
-			r.squashVel -= math.clamp(-r.lastVY / 8, 4, 12) -- landing squash
-			if r.lastVY < -45 then
-				Fx.puff(feet, 4, math.clamp(-r.lastVY / 60, 0.8, 1.6))
+		elseif not r.grounded and grounded and r.lastV.Y < -20 then
+			r.squashVel -= math.clamp(-r.lastV.Y / 8, 4, 12) -- landing squash
+			if r.lastV.Y < -45 then
+				Fx.puff(feet, 4, math.clamp(-r.lastV.Y / 60, 0.8, 1.6))
 			end
 			if not r.isLocal then
-				Sound.playAt("land", r.root, 0.2)
+				Sound.playAt("land", root, 0.2)
 			end
-		elseif not grounded and v.Y - r.lastVY > 30 and r.lastVY < 20 then
+		elseif not grounded and dv.Y > 30 and r.lastV.Y < 20 then
 			r.flip = 1 -- air jump: front flip
 			r.squashVel += 6
+			Fx.puff(feet, 2, 0.6)
 			if not r.isLocal then
-				Sound.playAt("airJump", r.root, 0.1)
+				Sound.playAt("airJump", root, 0.1)
 			end
 		end
+		-- skid when reversing at speed
+		if grounded and not anchored and math.sign(v.X) ~= math.sign(r.lastV.X) and math.abs(r.lastV.X) > 14 then
+			Fx.puff(feet, 3, 0.8)
+		end
 		r.grounded = grounded
-		r.lastVY = v.Y
+		r.lastV = v
 
 		-- squash spring (wobbles back to 0)
 		r.squashVel += (-220 * r.squash - 16 * r.squashVel) * dt
 		r.squash = math.clamp(r.squash + r.squashVel * dt, -0.6, 0.6)
 
-		local failAt = model:GetAttribute("FailAt")
-		local winAt = model:GetAttribute("VictoryAt")
-		local breathe = math.sin(t * 2.2) * 0.025
+		local failAt = model:GetAttribute("FailAt") :: number?
+		local winAt = model:GetAttribute("VictoryAt") :: number?
+		if failAt and failAt ~= r.lastFail then
+			r.lastFail = failAt
+			r.squashVel -= 10
+			Fx.burst(pos, r.color, 10)
+			Fx.puff(pos, 5, 1.4)
+		end
+
+		-- emotes (cancelled by moving)
+		local emote: string? = nil
+		local emoteAt = model:GetAttribute("EmoteAt") :: number?
+		if emoteAt and serverNow - emoteAt < 2.6 and speed < 2 and grounded then
+			emote = model:GetAttribute("Emote") :: string?
+		end
 
 		local s = r.squash
+		local breathe = math.sin(t * 2.2) * 0.025
 		if r.mesh then
 			r.mesh.Scale = Vector3.new(1 - s * 0.35 - breathe * 0.5, 1 + s * 0.45 + breathe, 1 - s * 0.35 - breathe * 0.5)
 		end
 
-		-- walk cycle
+		-- ---------- blink & ear twitch ----------
+		local squint = if failAt then 0.3 else 1
+		-- eyes close for 0.12s at each blink time, then the next blink is scheduled
+		local eyeY = squint
+		if t >= r.nextBlink then
+			if t <= r.nextBlink + 0.12 then
+				eyeY = 0.12
+			else
+				r.nextBlink = t + 2 + math.random() * 3.5
+			end
+		end
+		for _, e in r.eyes do
+			e.part.Size = Vector3.new(e.size.X, e.size.Y * eyeY, e.size.Z)
+		end
+		if t > r.nextTwitch then
+			r.nextTwitch = t + 3 + math.random() * 4
+			r.twitchUntil = t + 0.18
+		end
+		local twitch = if t < r.twitchUntil then math.sin((r.twitchUntil - t) * 50) * 0.35 else 0
+		for i, ear in r.ears do
+			local side = if i % 2 == 0 then 1 else -1
+			ear.weld.C0 = ear.c0 * CFrame.Angles(0, 0, twitch * side)
+		end
+
+		-- ---------- locomotion ----------
 		local moving = grounded and speed > 1.5 and not anchored
 		if moving then
 			r.walkPhase += dt * (6 + speed * 0.45)
+			r.idleTime = 0
+			if speed > 16 and t > r.nextDust then
+				r.nextDust = t + 0.22
+				Fx.puff(feet - Vector3.new(facing * 0.8, 0, 0), 1, 0.5)
+			end
+		elseif grounded then
+			r.idleTime += dt
+		else
+			r.idleTime = 0
 		end
 		local sw = if moving then math.sin(r.walkPhase) else 0
 		local bob = if moving then math.abs(math.sin(r.walkPhase)) * 0.22 * math.min(1, speed / 12) else 0
 		local lean = if moving then -math.rad(10) * math.min(1, speed / 22) else 0
+		local airLean = if not grounded then math.clamp(v.Y / 60, -1, 1) * math.rad(-8) else 0
+		local headPitch = math.clamp(v.Y / 70, -1, 1) * math.rad(12) - bob * 0.3
+		local headYaw = 0
+		local footL, footR = Vector3.zero, Vector3.zero -- (up, forward) offsets
+		local flapAmp = 0
+		local hop, spin, sink = 0, 0, 0
+		local tailRate = if moving then 14 else 3
+		local tailAmp = if moving then 0.45 else 0.22
 
-		-- flip on air jump
-		local flipAngle = 0
-		if r.flip > 0 then
-			r.flip = math.max(0, r.flip - dt * 3.2)
-			flipAngle = -(1 - r.flip) * math.pi * 2
-			if r.flip == 0 then
-				flipAngle = 0
+		if moving then
+			footL = Vector3.new(0, math.max(0, sw) * 0.3, -sw * 0.4)
+			footR = Vector3.new(0, math.max(0, -sw) * 0.3, sw * 0.4)
+			flapAmp = sw * 0.3
+		end
+
+		-- wall slide: falling slowly with a wall in front
+		if not grounded and not anchored and v.Y < -3 and v.Y > -16 then
+			local wall = workspace:Raycast(pos, Vector3.new(facing * 1.6, 0, 0), rayParams)
+			if wall and wall.Instance.CanCollide then
+				lean = math.rad(14) -- lean back off the wall
+				footL = Vector3.new(0.2, 0, -0.35) -- braced against it
+				footR = Vector3.new(0.4, 0, -0.35)
+				headPitch = math.rad(-10)
+				if t > r.nextDust then
+					r.nextDust = t + 0.08
+					Fx.puff(wall.Position + Vector3.new(-facing * 0.2, -0.6, 0.4), 1, 0.45)
+				end
 			end
 		end
 
-		local hop = 0
-		local spin = 0
+		-- falling fast: flail
+		if not grounded and v.Y < -50 then
+			footL = Vector3.new(0.2 + math.sin(t * 32) * 0.2, 0, math.sin(t * 32) * 0.35)
+			footR = Vector3.new(0.2 - math.sin(t * 32) * 0.2, 0, -math.sin(t * 32) * 0.35)
+			flapAmp = math.sin(t * 30) * 0.8
+			headPitch = math.rad(-18)
+		elseif not grounded then
+			footL = footL + Vector3.new(0.25, 0, -0.25) -- tucked
+			footR = footR + Vector3.new(0.25, 0, -0.25)
+			flapAmp = math.sin(t * 24) * 0.5
+		end
+
+		-- idle: look around, sometimes glance at the camera; teeter at edges
+		if grounded and not moving and not emote and not winAt and not failAt then
+			if r.idleTime > 2.5 then
+				local cycle = (r.idleTime % 7)
+				if cycle < 2 then
+					headYaw = math.sin(cycle * math.pi) * -0.6 * facing -- toward the camera
+				else
+					headYaw = math.sin(r.idleTime * 0.9) * 0.45
+				end
+			end
+			if not anchored then
+				local ahead = workspace:Raycast(pos + Vector3.new(facing * 1.2, 0, 0), Vector3.new(0, -3, 0), rayParams)
+				if not ahead then
+					lean = math.sin(t * 9) * math.rad(12) - math.rad(6)
+					flapAmp = math.sin(t * 18) * 0.9
+					headPitch = math.rad(-15)
+				end
+			end
+		end
+
+		-- emotes
+		if emote == "wave" then
+			spin = math.sin(t * 8) * 0.35
+			headYaw = -0.5 * facing
+			flapAmp = math.sin(t * 16) * 1
+			footL = Vector3.new(math.max(0, math.sin(t * 8)) * 0.3, 0, 0)
+		elseif emote == "dance" then
+			bob = math.abs(math.sin(t * 9)) * 0.35
+			spin = math.sin(t * 4.5) * 0.9
+			footL = Vector3.new(math.max(0, math.sin(t * 9)) * 0.35, 0, 0)
+			footR = Vector3.new(math.max(0, -math.sin(t * 9)) * 0.35, 0, 0)
+			flapAmp = math.sin(t * 9) * 0.8
+			tailRate, tailAmp = 18, 0.6
+		elseif emote == "laugh" then
+			bob = math.abs(math.sin(t * 22)) * 0.1
+			headPitch = math.rad(22) + math.sin(t * 22) * 0.08
+			lean = math.rad(8)
+		elseif emote == "sit" then
+			sink = -0.75
+			footL = Vector3.new(0.75, 0, -0.45)
+			footR = Vector3.new(0.75, 0, -0.45)
+			tailRate, tailAmp = 6, 0.4
+		end
+
+		-- air-jump flip
+		local flipAngle = 0
+		if r.flip > 0 then
+			r.flip = math.max(0, r.flip - dt * 3.2)
+			flipAngle = if r.flip > 0 then -(1 - r.flip) * math.pi * 2 else 0
+		end
+		-- hit tumble (backflip, faster)
+		if r.tumble > 0 then
+			r.tumble = math.max(0, r.tumble - dt * 2.4)
+			flipAngle += if r.tumble > 0 then (1 - r.tumble) * math.pi * 2 else 0
+		end
+
+		-- victory: hops, every third one a flip
 		if winAt then
-			hop = math.abs(math.sin(t * 7)) * 1.1
-			spin = math.sin(t * 3.5) * 0.4
+			local phase = (t * 1.6) % 1
+			hop = math.sin(phase * math.pi) * 1.3
+			if phase < 0.05 and r.hopCount ~= math.floor(t * 1.6) then
+				r.hopCount = math.floor(t * 1.6)
+				if r.hopCount % 3 == 0 then
+					r.flip = 1
+				end
+			end
+			spin = math.sin(t * 3.5) * 0.3
+			flapAmp = math.sin(t * 20) * 1
+			tailRate, tailAmp = 16, 0.6
 		end
 
 		local headShake = 0
@@ -3834,32 +4450,38 @@ local function step(dt: number)
 			lean = math.rad(15)
 		end
 
-		local airLean = if not grounded then math.clamp(v.Y / 60, -1, 1) * math.rad(-8) else 0
-
+		-- ---------- apply ----------
 		if r.bodyJoint then
 			-- the mesh scales around its centre, so shift it to keep the feet planted
-			r.bodyJoint.Transform = CFrame.new(0, s * 0.5 + bob + hop, 0) * CFrame.Angles(lean + airLean + flipAngle, spin, 0)
+			r.bodyJoint.Transform = CFrame.new(0, s * 0.5 + bob + hop + sink, 0) * CFrame.Angles(lean + airLean + flipAngle, spin, 0)
 		end
 		if r.neck then
-			r.neck.Transform = CFrame.Angles(math.clamp(v.Y / 70, -1, 1) * math.rad(12) - bob * 0.3, headShake, 0)
+			r.neck.Transform = CFrame.Angles(headPitch, headYaw + headShake, 0)
 		end
 		if r.hipL and r.hipR then
-			local tuck = if grounded then 0 else 0.25
-			local plant = -(s * 0.5 + bob) -- undo the body's bob so feet stay on the ground
-			r.hipL.Transform = CFrame.new(0, plant + math.max(0, sw) * 0.3 + tuck, -sw * 0.4 - tuck)
-			r.hipR.Transform = CFrame.new(0, plant + math.max(0, -sw) * 0.3 + tuck, sw * 0.4 - tuck)
+			local plant = -(s * 0.5 + bob + sink) -- undo the body's bob so feet stay on the ground
+			r.hipL.Transform = CFrame.new(0, plant + footL.X, footL.Z)
+			r.hipR.Transform = CFrame.new(0, plant + footR.X, footR.Z)
 		end
 		if r.tail then
-			local rate = if moving then 14 else 3
-			local amp = if moving then 0.45 else 0.22
-			r.tail.Transform = CFrame.Angles(if grounded then 0 else 0.4, math.sin(t * rate) * amp, 0)
+			r.tail.Transform = CFrame.Angles(if grounded then 0 else 0.4, math.sin(t * tailRate) * tailAmp, 0)
 		end
 		if r.flipL and r.flipR then
-			local flap = if not grounded or winAt then math.sin(t * 28) * 0.6 else sw * 0.3
-			r.flipL.Transform = CFrame.Angles(0, 0, -flap)
-			r.flipR.Transform = CFrame.Angles(0, 0, flap)
+			r.flipL.Transform = CFrame.Angles(0, 0, -flapAmp)
+			r.flipR.Transform = CFrame.Angles(0, 0, flapAmp)
 		end
 	end
+end
+
+local EmoteEvent: RemoteEvent? = nil
+local lastEmote = 0
+
+function Animator.emote(id: string)
+	if not EmoteEvent or os.clock() - lastEmote < 0.6 then
+		return
+	end
+	lastEmote = os.clock()
+	EmoteEvent:FireServer(id)
 end
 
 function Animator.init()
@@ -3877,12 +4499,24 @@ function Animator.init()
 	end
 	Players.PlayerAdded:Connect(hook)
 	RunService.RenderStepped:Connect(step)
+
+	EmoteEvent = Net.event("Emote")
+	local keys = { Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four }
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		local i = table.find(keys, input.KeyCode)
+		if i then
+			Animator.emote(Animator.EMOTES[i])
+		end
+	end)
 end
 
 return Animator
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX56EAF1B5461649A181B4D48D36CADE2E">
+        <Item class="ModuleScript" referent="RBXB32937B9D4D1416FA6E3EF577B50E028">
           <Properties><string name="Name">FxController</string><ProtectedString name="Source"><![CDATA[-- Small, short-lived effects. Pooled parts, one update loop, nothing glows.
 --   puff     : dust when you jump or land hard
 --   confetti : someone reached the flag
@@ -3944,11 +4578,11 @@ local function spawn(p: Part, cf: CFrame, vel: Vector3, gravity: number, life: n
 	})
 end
 
-function Fx.puff(pos: Vector3, count: number?, strength: number?)
+function Fx.puff(pos: Vector3, count: number?, strength: number?, color: Color3?)
 	local s = strength or 1
 	for i = 1, count or 3 do
 		local p = get(Enum.PartType.Ball)
-		p.Color = Style.UI.Paper
+		p.Color = color or Style.UI.Paper
 		local side = if i % 2 == 0 then 1 else -1
 		local vel = Vector3.new(side * (2 + math.random() * 3) * s, (1 + math.random() * 2) * s, 0)
 		spawn(p, CFrame.new(pos + Vector3.new(side * 0.4, 0.2, 0.6)), vel, 0, 0.35 + math.random() * 0.1, Vector3.one * 0.6, Vector3.one * (1.4 + math.random() * 0.6) * s, 0.25)
@@ -3963,6 +4597,36 @@ function Fx.confetti(pos: Vector3)
 		local size = Vector3.new(0.35, 0.35, 0.08)
 		local cf = CFrame.new(pos + Vector3.new(0, 1.5, 1)) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
 		spawn(p, cf, vel, 60, 1.4 + math.random() * 0.5, size, size, 0, (math.random() - 0.5) * 16)
+	end
+end
+
+-- A quick radial pop of small chips: impacts, hits, takedowns
+function Fx.burst(pos: Vector3, color: Color3, count: number?)
+	local n = count or 8
+	for i = 1, n do
+		local p = get(Enum.PartType.Block)
+		p.Color = color
+		local a = (i / n) * math.pi * 2 + math.random() * 0.4
+		local speed = 14 + math.random() * 10
+		local vel = Vector3.new(math.cos(a) * speed, math.sin(a) * speed + 6, 0)
+		local size = Vector3.new(0.35, 0.35, 0.1)
+		spawn(p, CFrame.new(pos + Vector3.new(0, 0, 1)), vel, 40, 0.45 + math.random() * 0.2, size, size * 0.4, 0, (math.random() - 0.5) * 20)
+	end
+end
+
+-- Thin lines trailing behind something moving fast (launches, punches)
+function Fx.streak(pos: Vector3, vel: Vector3)
+	if vel.Magnitude < 1 then
+		return
+	end
+	local dir = vel.Unit
+	local angle = math.atan2(dir.Y, dir.X)
+	for i = 1, 3 do
+		local p = get(Enum.PartType.Block)
+		p.Color = Style.UI.Paper
+		local offset = Vector3.new(-dir.Y, dir.X, 0) * ((i - 2) * 0.7)
+		local cf = CFrame.new(pos - dir * 1.5 + offset + Vector3.new(0, 0, 1.2)) * CFrame.Angles(0, 0, angle)
+		spawn(p, cf, -dir * 6, 0, 0.22, Vector3.new(1.8, 0.1, 0.05), Vector3.new(0.4, 0.06, 0.05), 0.2)
 	end
 end
 
@@ -4002,7 +4666,7 @@ end
 return Fx
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXB86F4B8E2AF74E94BDA89F78CDE7D0F9">
+        <Item class="ModuleScript" referent="RBXB0E05A5B9D994008993E8AD332AE2BB6">
           <Properties><string name="Name">HudController</string><ProtectedString name="Source"><![CDATA[-- Everything on screen. Rule of thumb: during a run, only the timer and a
 -- small score list are visible. Big moments get a short centred banner,
 -- then get out of the way.
@@ -4014,11 +4678,11 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage.Shared
-local Characters = require(Shared.Characters)
 local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Animator = require(script.Parent.CharacterAnimator)
 local Fx = require(script.Parent.FxController)
 local ResultsUI = require(script.Parent.ResultsUI)
 local State = require(script.Parent.State)
@@ -4059,6 +4723,10 @@ local KIND = {
 local CAUSE = {
 	spikes = "got spiked by",
 	saw = "got sawed by",
+	laser = "got zapped by",
+	darts = "got darted by",
+	puck = "got pucked by",
+	plane = "got paper-planed by",
 	fall = "fell in the river",
 	time = "ran out of time",
 }
@@ -4069,7 +4737,6 @@ local roundLabel: TextLabel
 local phaseChip: Frame
 local phaseText: TextLabel
 local timerLabel: TextLabel
-local scoresFrame: Frame
 local feedFrame: Frame
 local centerLabel: TextLabel
 local subLabel: TextLabel
@@ -4082,11 +4749,6 @@ local toastLabel: TextLabel
 
 local bannerToken = 0
 local lastTick = -1
-
-local function speciesColor(species: string?): Color3
-	local s = species and Characters.ById[species]
-	return if s then s.body else U.Muted
-end
 
 local function nameOf(userId: number): string
 	local p = Players:GetPlayerByUserId(userId)
@@ -4157,65 +4819,14 @@ local function feed(text: string, color: Color3)
 			table.insert(rows, c)
 		end
 	end
-	if #rows > 4 then
+	if #rows > 3 then
 		rows[1]:Destroy()
 	end
-	task.delay(4.5, function()
+	task.delay(3.5, function()
 		if row.Parent then
 			row:Destroy()
 		end
 	end)
-end
-
---------------------------------------------------------------------------
--- Scores (top-left)
---------------------------------------------------------------------------
-
-local function renderScores()
-	for _, c in scoresFrame:GetChildren() do
-		if c:IsA("Frame") then
-			c:Destroy()
-		end
-	end
-	for i, row in State.standings do
-		local mine = row.userId == player.UserId
-		local f = UI.new("Frame", {
-			BackgroundColor3 = U.Paper,
-			BackgroundTransparency = 0.05,
-			Size = UDim2.fromOffset(196, 28),
-			LayoutOrder = i,
-			Parent = scoresFrame,
-		}, { UI.corner(8) })
-		if mine then
-			UI.new("UIStroke", { Color = U.Accent, Thickness = 2, Parent = f })
-		end
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(12, 12),
-			Position = UDim2.fromOffset(10, 8),
-			Parent = f,
-		}, { UI.corner(6) })
-		UI.label({
-			Text = row.name,
-			TextSize = 14,
-			FontFace = F.Bold,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(120, 28),
-			Position = UDim2.fromOffset(30, 0),
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			Parent = f,
-		})
-		UI.label({
-			Text = tostring(row.total),
-			TextSize = 15,
-			FontFace = F.Title,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(50, 28),
-			Position = UDim2.new(1, -60, 0, 0),
-			Parent = f,
-		})
-	end
 end
 
 --------------------------------------------------------------------------
@@ -4240,7 +4851,7 @@ local function makeCard(id: string, order: number): TextButton
 		Text = "",
 		AutoButtonColor = false,
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(156, 196),
+		Size = UDim2.fromOffset(156, 150),
 		LayoutOrder = order,
 		Selectable = true,
 	})
@@ -4271,18 +4882,6 @@ local function makeCard(id: string, order: number): TextButton
 		FontFace = F.Title,
 		TextSize = 19,
 		Position = UDim2.fromOffset(12, 114),
-		ZIndex = 2,
-		Parent = face,
-	})
-	UI.label({
-		Text = def.blurb,
-		TextSize = 13,
-		TextColor3 = U.InkSoft,
-		TextWrapped = true,
-		AutomaticSize = Enum.AutomaticSize.None,
-		Size = UDim2.new(1, -24, 0, 44),
-		Position = UDim2.fromOffset(12, 140),
-		TextYAlignment = Enum.TextYAlignment.Top,
 		ZIndex = 2,
 		Parent = face,
 	})
@@ -4365,7 +4964,7 @@ end
 
 local function showResults(results)
 	local verdict = results.verdict
-	ResultsUI.show(gui, results.rows, {
+	ResultsUI.show(results.rows, {
 		title = if verdict then "Round " .. State.round else "Round " .. State.round .. " results",
 		subtitle = if verdict == "TOO_EASY" then "Everyone made it, so nobody scores. Build meaner."
 			elseif verdict == "TOO_HARD" then "Nobody made it, so trap points don't count."
@@ -4390,7 +4989,7 @@ local function showWinner(extra)
 	local title = if #winners == 0 then "Nobody scored. Rematch?"
 		elseif #winners == 1 then winners[1].name .. " wins!"
 		else "It's a tie!"
-	ResultsUI.show(gui, rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
+	ResultsUI.show(rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
 	Sound.play("victory")
 	for _, w in winners do
 		local p = Players:GetPlayerByUserId(w.userId)
@@ -4495,6 +5094,34 @@ local function buildGui()
 	phaseText = UI.label({ Text = "", FontFace = F.Title, TextSize = 15, TextColor3 = U.Paper, Parent = phaseChip })
 	timerLabel = UI.label({ Text = "", FontFace = F.Title, TextSize = 20, LayoutOrder = 3, Parent = top })
 
+	-- Emotes: keys 1-4 on keyboard; small buttons on touch screens only
+	if UserInputService.TouchEnabled then
+		local row = UI.new("Frame", {
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 12, 1, -12),
+			Size = UDim2.fromOffset(280, 34),
+			Parent = gui,
+		}, { UI.list(Enum.FillDirection.Horizontal, 6) })
+		for i, id in Animator.EMOTES do
+			local b = UI.new("TextButton", {
+				Text = id:sub(1, 1):upper() .. id:sub(2),
+				FontFace = F.Bold,
+				TextSize = 13,
+				TextColor3 = U.Ink,
+				BackgroundColor3 = U.Paper,
+				BackgroundTransparency = 0.1,
+				AutoButtonColor = false,
+				Size = UDim2.fromOffset(60, 30),
+				LayoutOrder = i,
+				Parent = row,
+			}, { UI.corner(99) })
+			UI.pressable(b, function()
+				Animator.emote(id)
+			end)
+		end
+	end
+
 	local menuButton = UI.new("TextButton", {
 		Text = "Menu",
 		FontFace = F.Bold,
@@ -4518,13 +5145,6 @@ local function buildGui()
 	State.lobbyChanged:Connect(function()
 		menuButton.Visible = State.lobby.mode == "public"
 	end)
-
-	scoresFrame = UI.new("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(12, 10),
-		Size = UDim2.fromOffset(196, 300),
-		Parent = gui,
-	}, { UI.list(Enum.FillDirection.Vertical, 4) })
 
 	feedFrame = UI.new("Frame", {
 		BackgroundTransparency = 1,
@@ -4562,7 +5182,7 @@ local function buildGui()
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, 220),
-		Size = UDim2.fromOffset(156 * 3 + 14 * 2, 196),
+		Size = UDim2.fromOffset(156 * 3 + 14 * 2, 150),
 		Visible = false,
 		Parent = gui,
 	}, { UI.list(Enum.FillDirection.Horizontal, 14, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom) })
@@ -4636,10 +5256,12 @@ end
 
 function Hud.setVisible(visible: boolean)
 	gui.Enabled = visible
+	ResultsUI.setVisible(visible)
 end
 
 function Hud.init()
 	buildGui()
+	ResultsUI.init(player:WaitForChild("PlayerGui"))
 	pcall(function()
 		local StarterGui = game:GetService("StarterGui")
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
@@ -4649,9 +5271,6 @@ function Hud.init()
 	State.phaseChanged:Connect(onPhase)
 	RunService.Heartbeat:Connect(tick)
 
-	Net.event("Scores").OnClientEvent:Connect(function()
-		task.defer(renderScores) -- State updates first
-	end)
 	Net.event("RoundResults").OnClientEvent:Connect(showResults)
 	Net.event("Notify").OnClientEvent:Connect(function(text)
 		Hud.toast(text)
@@ -4702,7 +5321,7 @@ end
 return Hud
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX21F777849FDD4929B5F87CCD8D19B392">
+        <Item class="ModuleScript" referent="RBX0E2B264FF0CD485EB1EF002C42F5FA6D">
           <Properties><string name="Name">MenuController</string><ProtectedString name="Source"><![CDATA[-- Main menu + party screen. Shown over the live level drifting by behind it.
 --
 -- Public server: PLAY joins the next round. CREATE PARTY makes a private room
@@ -5174,7 +5793,7 @@ end
 return Menu
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX037DEF5081FB40AF9AFA0D6639F10039">
+        <Item class="ModuleScript" referent="RBX942F129463854C7DABCED902C2919AAF">
           <Properties><string name="Name">MovementController</string><ProtectedString name="Source"><![CDATA[-- The feel of the game lives here.
 --
 -- We keep Roblox's own ControlModule (so keyboard, gamepad and the mobile
@@ -5194,6 +5813,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Fx = require(script.Parent.FxController)
 local State = require(script.Parent.State)
 local Sound = require(script.Parent.SoundController)
 
@@ -5215,7 +5835,7 @@ local inputX = 0
 local grounded = false
 local lastGrounded = 0
 local jumpedSinceGround = false
-local lastJumpReq = 0
+local jumpWasHeld = false
 local bufferedAt = -1
 local airJumps = M.AirJumps
 local launchUntil = 0
@@ -5226,6 +5846,8 @@ local surface: string? = nil
 local lastSurface: string? = nil
 local iceVX = 0
 local peakFall = 0
+local jetUntil = 0
+local lastFlame = 0
 
 local rayParams = RaycastParams.new()
 rayParams.CollisionGroup = "Players" -- skips every character's hitbox
@@ -5248,6 +5870,25 @@ end
 
 function Movement.root(): BasePart?
 	return root
+end
+
+-- Jetpack pickup: hold jump to fly for a few seconds
+function Movement.giveJetpack(seconds: number)
+	jetUntil = os.clock() + seconds
+end
+
+function Movement.jetpackActive(): boolean
+	return os.clock() < jetUntil
+end
+
+-- Portals: pop out the other side, keeping your speed
+function Movement.teleport(pos: Vector3)
+	if not root then
+		return
+	end
+	local v = root.AssemblyLinearVelocity
+	root.CFrame = CFrame.new(pos) * root.CFrame.Rotation
+	root.AssemblyLinearVelocity = v
 end
 
 local function setCharacter(c: Model)
@@ -5282,6 +5923,31 @@ local function onLand(now: number)
 	peakFall = 0
 end
 
+-- Is the jump button held right now? Read from Roblox's ControlModule so
+-- keyboard, gamepad and the mobile jump button all behave the same.
+local function jumpHeld(): boolean
+	local ok, held = pcall(function()
+		local c = controls
+		local h = false
+		if c.activeController and c.activeController.GetIsJumping then
+			h = c.activeController:GetIsJumping()
+		end
+		if c.touchJumpController and c.touchJumpController.GetIsJumping then
+			h = h or c.touchJumpController:GetIsJumping()
+		end
+		return h
+	end)
+	if ok then
+		return held == true
+	end
+	return UserInputService:IsKeyDown(Enum.KeyCode.Space)
+		or UserInputService:IsGamepadButtonDown(Enum.UserInputType.Gamepad1, Enum.KeyCode.ButtonA)
+end
+
+Movement.jumpHeld = jumpHeld
+
+local onJumpPress: () -> ()
+
 -- Runs right after the ControlModule, so our Move() call wins.
 local function control(dt: number)
 	if not hum or not root then
@@ -5298,6 +5964,14 @@ local function control(dt: number)
 		x = math.sign(x) * (ax - 0.2) / 0.4
 	end
 	inputX = x
+
+	-- A new press is the moment the button goes from up to down. (The old
+	-- approach timed gaps between JumpRequest events and ate fast double-taps.)
+	local held = jumpHeld()
+	if held and not jumpWasHeld then
+		onJumpPress()
+	end
+	jumpWasHeld = held
 
 	if not canMove() then
 		hum:Move(Vector3.zero)
@@ -5329,7 +6003,7 @@ local function control(dt: number)
 	end
 end
 
-local function physics()
+local function physics(dt: number)
 	if not root or not hum then
 		return
 	end
@@ -5382,14 +6056,29 @@ local function physics()
 			end
 		end
 	end
+
+	-- Jetpack: holding jump pushes you up toward a steady climb
+	if now < jetUntil and jumpHeld() then
+		local cur = root.AssemblyLinearVelocity
+		local lift = Config.Objects.JetpackLift
+		root.AssemblyLinearVelocity = Vector3.new(cur.X, cur.Y + (lift - cur.Y) * math.min(1, dt * 7), 0)
+		if now - lastFlame > 0.05 then
+			lastFlame = now
+			Fx.puff(p - Vector3.new(0, 2.2, 0), 1, 0.5, Color3.fromRGB(255, 176, 80))
+		end
+	end
 end
 
-local function onJumpRequest()
+function onJumpPress()
 	local now = os.clock()
-	local fresh = now - lastJumpReq > 0.08 -- JumpRequest repeats while held; only new presses count
-	lastJumpReq = now
-	if not fresh or not canMove() or grounded or not root then
+	if not canMove() or not root or not hum then
 		return
+	end
+	-- FloorMaterial lags a frame or two after take-off; trust the humanoid state too
+	local st = hum:GetState()
+	local airborne = not grounded or st == Enum.HumanoidStateType.Jumping or st == Enum.HumanoidStateType.Freefall
+	if not airborne then
+		return -- on the ground: the humanoid does the normal jump itself
 	end
 	local v = root.AssemblyLinearVelocity
 	if now < wallUntil and lastWallDir ~= 0 then
@@ -5428,6 +6117,7 @@ local function refreshEnabled()
 	Movement.enabled = State.me == "running" and State.phase == "Run"
 	if Movement.enabled and not was then
 		launchUntil = 0
+		jetUntil = 0
 		airJumps = M.AirJumps
 		bufferedAt = -1
 		peakFall = 0
@@ -5448,7 +6138,6 @@ function Movement.init()
 
 	RunService:BindToRenderStep("SprintControl", Enum.RenderPriority.Input.Value + 1, control)
 	RunService.PreSimulation:Connect(physics)
-	UserInputService.JumpRequest:Connect(onJumpRequest)
 
 	State.phaseChanged:Connect(refreshEnabled)
 	State.meChanged:Connect(function(me)
@@ -5462,7 +6151,7 @@ end
 return Movement
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXDE331F2960FA47EBBFDAD508C9BE0B29">
+        <Item class="ModuleScript" referent="RBX664E098BAC7B4A26A0720B8E2F4D4FC9">
           <Properties><string name="Name">ObjectController</string><ProtectedString name="Source"><![CDATA[-- Brings placed objects to life on the client.
 --
 -- All motion (saws, fans, hammers, shuttles, cannonballs) is computed from the
@@ -5473,6 +6162,7 @@ return Movement
 -- are applied here too, because your client owns your physics and these
 -- must feel instant. Deadly contact is still decided by the server.
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -5487,6 +6177,7 @@ local Movement = require(script.Parent.MovementController)
 local Camera = require(script.Parent.CameraController)
 local Sound = require(script.Parent.SoundController)
 local Fx = require(script.Parent.FxController)
+local State = require(script.Parent.State)
 
 local C = Config.Objects
 local TAU = math.pi * 2
@@ -5507,6 +6198,11 @@ type Record = {
 	headPrevX: number?,
 	maxDist: number?,
 	consumed: { [number]: boolean }?,
+	path: { Vector3 }?,
+	pathLen: number?,
+	pathAt: number?,
+	used: boolean?,
+	lastExt: number?,
 }
 
 type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
@@ -5570,6 +6266,7 @@ local function register(model: Model)
 			model:ScaleTo(1)
 		end
 		rec.ready = true
+		Fx.puff(pivot.Position - Vector3.new(0, 1, 0), 4, 1)
 	end)
 	tween:Play()
 end
@@ -5590,6 +6287,66 @@ end
 --------------------------------------------------------------------------
 -- Cannonballs (deterministic from the clock, pooled parts)
 --------------------------------------------------------------------------
+
+local shotPools = {} :: { [string]: { BasePart } }
+local shotCount = {} :: { [string]: number }
+
+local function makeShot(id: string): BasePart
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Material = Enum.Material.SmoothPlastic
+	if id == "darts" then
+		p.Size = Vector3.new(1.6, 0.2, 0.2)
+		p.Color = Style.Forest.WoodDark
+		local tip = Instance.new("Part")
+		tip.Size = Vector3.new(0.4, 0.4, 0.06)
+		tip.Color = Style.UI.Bad
+		tip.Anchored = true
+		tip.CanCollide = false
+		tip.CanQuery = false
+		tip.CanTouch = false
+		tip.Name = "Fletch"
+		tip.Parent = p
+	elseif id == "puck" then
+		p.Shape = Enum.PartType.Cylinder
+		p.Size = Vector3.new(0.5, 1.4, 1.4)
+		p.Color = Style.Object.Rubber
+	else
+		p.Size = Vector3.new(1.6, 0.4, 0.1)
+		p.Color = Style.UI.Paper
+	end
+	p.Parent = ballFolder
+	return p
+end
+
+local function shot(id: string, pos: Vector3, dir: Vector3, spin: number)
+	local n = (shotCount[id] or 0) + 1
+	shotCount[id] = n
+	local pool = shotPools[id] or {}
+	shotPools[id] = pool
+	local p = pool[n]
+	if not p then
+		p = makeShot(id)
+		pool[n] = p
+	end
+	p.Transparency = 0
+	local cf: CFrame
+	if id == "puck" then
+		cf = CFrame.new(pos) * CFrame.Angles(0, math.pi / 2, 0) * CFrame.Angles(spin, 0, 0)
+	else
+		-- point along travel, in the camera's plane
+		local angle = math.atan2(dir.Y, dir.X)
+		cf = CFrame.new(pos) * CFrame.Angles(0, 0, angle)
+	end
+	p.CFrame = cf
+	local fletch = p:FindFirstChild("Fletch") :: BasePart?
+	if fletch then
+		fletch.CFrame = cf * CFrame.new(-0.7, 0, 0) * CFrame.Angles(0, 0, math.rad(45))
+	end
+end
 
 local function ball(i: number): BasePart
 	local b = balls[i]
@@ -5648,6 +6405,7 @@ end
 local function visuals(dt: number)
 	local t = now()
 	local ballIndex = 0
+	table.clear(shotCount)
 	local root = Movement.root()
 	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
 
@@ -5693,6 +6451,8 @@ local function visuals(dt: number)
 						local dir = if math.abs(vx) > 0.001 then math.sign(vx) else math.sign(root.Position.X - hx)
 						Movement.launch(Vector3.new(dir * C.HammerKnock.X, C.HammerKnock.Y, 0), 0.4)
 						Sound.play("bonk", 0.1)
+						Fx.burst(root.Position, Style.UI.Paper, 8)
+						Fx.streak(root.Position, Vector3.new(dir * C.HammerKnock.X, C.HammerKnock.Y, 0))
 						Camera.shake(1.2)
 					end
 				end
@@ -5723,6 +6483,7 @@ local function visuals(dt: number)
 							local knock = dir * C.CannonKnock.X + Vector3.new(0, C.CannonKnock.Y, 0)
 							Movement.launch(knock, 0.35)
 							Sound.play("bonk", 0.1)
+							Fx.burst(pos, Style.UI.Paper, 8)
 							Camera.shake(1)
 						end
 					end
@@ -5752,6 +6513,12 @@ local function visuals(dt: number)
 			end
 		elseif id == "trapdoor" then
 			local open = Objects.trapdoorOpen(age)
+			if open and not rec.used then
+				rec.used = true
+				Fx.puff(rec.pivot.Position - Vector3.new(0, 0.8, 0), 3, 0.7)
+			elseif not open then
+				rec.used = false
+			end
 			-- doors swing down on their outer hinges
 			local angle = if open then math.rad(85) else 0
 			-- (negative Z rotation drops the left door's inner edge, positive drops the right's)
@@ -5774,6 +6541,75 @@ local function visuals(dt: number)
 					a.part.Size = (a.part:GetAttribute("BaseSize") :: Vector3? or a.part.Size) * s
 				end
 			end
+		elseif id == "punch" then
+			local ext = Objects.punchExtend(age)
+			setGroup(rec, "glove", CFrame.new(ext * 3.6, 0, 0))
+			local prev = rec.lastExt or 0
+			rec.lastExt = ext
+			if ext > 0.95 and prev < 0.95 then
+				Sound.playAt("bonk", rec.model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.2)
+			end
+			if canAffect and root and ext > 0.3 and ext >= prev then
+				for _, a in rec.groups.glove or NONE do
+					if a.part.Name == "Glove" then
+						local rel = a.part.CFrame:PointToObjectSpace(root.Position)
+						if inBox(rel, 0.9 + 0.9, 0.9 + 1.2) and os.clock() > (rec.cooldown or 0) then
+							rec.cooldown = os.clock() + 0.6
+							local dir = rec.pivot.RightVector
+							Movement.launch(dir * C.PunchKnock.X + Vector3.new(0, C.PunchKnock.Y, 0), 0.4)
+							Sound.play("bonk", 0.1)
+							Fx.burst(a.part.Position, Style.UI.Paper)
+							Camera.shake(1.4)
+						end
+					end
+				end
+			end
+		elseif Objects.Shooters[id] then
+			if not rec.path or os.clock() - (rec.pathAt or 0) > 1 then
+				rec.path = Objects.shotPath(id, model, rec.pivot)
+				rec.pathLen = Objects.pathLength(rec.path :: { Vector3 })
+				rec.pathAt = os.clock()
+			end
+			local path = rec.path :: { Vector3 }
+			for _, s in Objects.activeShots(id, age, rec.pathLen :: number) do
+				local pos, dir = Objects.shotPosition(id, path, rec.pivot, s.dist)
+				shot(id, pos, dir, s.dist * 0.8)
+			end
+		elseif id == "jetpack" then
+			setGroup(rec, "float", CFrame.new(0, math.sin(age * 2.4) * 0.25, 0) * CFrame.Angles(0, math.sin(age * 1.3) * 0.4, 0))
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d:GetAttribute("Group") == "float" then
+					d.LocalTransparencyModifier = if rec.used then 0.7 else 0
+				end
+			end
+		elseif id == "portal" then
+			for _, gname in { "swirlA", "swirlB" } do
+				local x = if gname == "swirlA" then 0 else Objects.PORTAL_SPAN
+				for _, a in rec.groups[gname] or NONE do
+					a.part.CFrame = rec.pivot * CFrame.new(x, 0, 0.04) * CFrame.Angles(0, 0, age * (if gname == "swirlA" then 5 else -5)) * CFrame.new(0.6, 0, 0) * CFrame.Angles(0, math.pi / 2, 0)
+				end
+			end
+		elseif id == "coin" then
+			local takenBy = model:GetAttribute("TakenBy") :: number?
+			local anchor = rec.pivot
+			if takenBy then
+				-- carried: bob above the carrier's head so everyone can see who has it
+				local carrier = Players:GetPlayerByUserId(takenBy)
+				local head = carrier and carrier.Character and carrier.Character:FindFirstChild("Head") :: BasePart?
+				if head then
+					anchor = CFrame.new(head.Position + Vector3.new(0, 3, 0))
+				end
+				if not rec.used then
+					rec.used = true
+					Sound.play("points", 0.1)
+					Fx.ring(rec.pivot.Position, Style.UI.Gold, 4)
+				end
+			elseif rec.used then
+				rec.used = false
+			end
+			for _, a in rec.groups.coin or NONE do
+				a.part.CFrame = anchor * CFrame.new(0, math.sin(age * 3) * 0.2, 0) * CFrame.Angles(0, age * 3, 0) * a.rel
+			end
 		elseif id == "spring" then
 			local push = rec.padPush or 0
 			if push > 0 then
@@ -5782,6 +6618,13 @@ local function visuals(dt: number)
 			end
 		elseif id == "crumble" then
 			local fallen = model:GetAttribute("Fallen")
+			if fallen and not rec.used then
+				rec.used = true -- just collapsed: crumbs
+				Fx.burst(rec.pivot.Position, Style.Object.Crumble, 10)
+				Fx.puff(rec.pivot.Position, 4, 1)
+			elseif not fallen then
+				rec.used = false
+			end
 			local trig = model:GetAttribute("TriggeredAt") :: number?
 			for _, d in model:GetDescendants() do
 				if d:IsA("BasePart") then
@@ -5794,6 +6637,17 @@ local function visuals(dt: number)
 			elseif model:GetPivot() ~= rec.pivot then
 				model:PivotTo(rec.pivot)
 			end
+		end
+	end
+
+	for id, pool in shotPools do
+		for i = (shotCount[id] or 0) + 1, #pool do
+			pool[i].Transparency = 1
+			local f = pool[i]:FindFirstChild("Fletch") :: BasePart?
+			if f then
+				f.CFrame = CFrame.new(0, -500, 0)
+			end
+			pool[i].CFrame = CFrame.new(0, -500, 0)
 		end
 	end
 
@@ -5891,6 +6745,8 @@ local function physicsStep(dt: number)
 					Movement.launch(up * C.SpringPower, 0.35)
 				end
 				Sound.play("spring", 0.1)
+				Fx.ring(rec.pivot * Vector3.new(0, 0.8, 0), Style.Object.Spring, 5)
+				Fx.puff(rec.pivot * Vector3.new(0, 0.8, 0), 3, 0.8)
 			end
 		elseif rec.id == "bumper" then
 			local center = rec.pivot.Position
@@ -5904,6 +6760,31 @@ local function physicsStep(dt: number)
 				Sound.play("bumper", 0.15)
 				Fx.ring(center, Style.UI.Paper, 6)
 				Camera.shake(0.6)
+			end
+		elseif rec.id == "jetpack" then
+			if not rec.used and (r.Position - rec.pivot.Position).Magnitude < 2.6 then
+				rec.used = true
+				Movement.giveJetpack(C.JetpackTime)
+				Sound.play("grab")
+				Fx.ring(rec.pivot.Position, Style.UI.Cool, 4)
+			end
+		elseif rec.id == "portal" then
+			if os.clock() > (rec.cooldown or 0) then
+				local a = rec.pivot.Position
+				local b = (rec.pivot * CFrame.new(Objects.PORTAL_SPAN, 0, 0)).Position
+				local from: Vector3?, to: Vector3? = nil, nil
+				if (r.Position - a).Magnitude < 1.8 then
+					from, to = a, b
+				elseif (r.Position - b).Magnitude < 1.8 then
+					from, to = b, a
+				end
+				if from and to then
+					rec.cooldown = os.clock() + 0.8
+					Movement.teleport(to)
+					Fx.ring(from, Style.UI.Cool, 5)
+					Fx.ring(to, Style.UI.Accent, 5)
+					Sound.play("whoosh")
+				end
 			end
 		elseif rec.id == "fan" then
 			local rel = rec.pivot:PointToObjectSpace(r.Position)
@@ -6001,6 +6882,17 @@ function ObjectController.init()
 		watch(workspace:WaitForChild("Objects"))
 	end)
 
+	-- every race starts fresh: jetpacks can be picked up again
+	State.phaseChanged:Connect(function(phase)
+		if phase == "Countdown" then
+			for _, rec in records do
+				if rec.id == "jetpack" then
+					rec.used = false
+				end
+			end
+		end
+	end)
+
 	RunService.RenderStepped:Connect(visuals)
 	RunService.PreSimulation:Connect(physicsStep)
 	Net.event("Explode").OnClientEvent:Connect(explode)
@@ -6009,14 +6901,16 @@ end
 return ObjectController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX2B8635F51B3B43629EE3E9DBA2339581">
-          <Properties><string name="Name">PickController</string><ProtectedString name="Source"><![CDATA[-- The pick box: a crate drops in, pieces pop out onto the table, and
--- everyone grabs one. First click wins. Taken pieces get the grabber's
--- colour and name stamped on them, so you see who snatched what.
+        <Item class="ModuleScript" referent="RBXABC0F49A7BFD469AA0E1C3D22669A257">
+          <Properties><string name="Name">PickController</string><ProtectedString name="Source"><![CDATA[-- The pick box. Your whole screen becomes the inside of a wooden crate with
+-- 4-7 pieces tossed in at odd angles. No descriptions: you see the object,
+-- you grab it. First click wins. Whatever someone else grabs gets yanked
+-- out of the crate with their name on it.
 
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage.Shared
@@ -6025,7 +6919,6 @@ local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
-local Hud = require(script.Parent.HudController)
 local Sound = require(script.Parent.SoundController)
 local State = require(script.Parent.State)
 local UI = require(script.Parent.UI)
@@ -6038,14 +6931,25 @@ local player = Players.LocalPlayer
 
 local Pick = {}
 
-type Tile = { button: TextButton, face: Frame, stamp: Frame, stampLabel: TextLabel, stroke: UIStroke, scale: UIScale, taken: number }
+type Item = {
+	button: TextButton,
+	vp: ViewportFrame,
+	scale: UIScale,
+	name: TextLabel,
+	shadow: Frame,
+	home: UDim2,
+	tilt: number,
+	taken: number,
+}
 
 local gui: ScreenGui
 local crate: Frame?
-local tiles = {} :: { Tile }
-local myPick: string? = nil
+local timerLabel: TextLabel?
+local items = {} :: { Item }
+local myPick: number? = nil
 
-local KIND_COLOR = { route = U.Good, trap = U.Bad, tool = U.Gold }
+local PLANK_A = Color3.fromRGB(186, 138, 90)
+local PLANK_B = Color3.fromRGB(176, 128, 82)
 
 local function speciesColor(userId: number): Color3
 	local s = State.speciesOf[userId]
@@ -6055,20 +6959,10 @@ end
 
 local function nameOf(userId: number): string
 	local p = Players:GetPlayerByUserId(userId)
-	return if p then p.DisplayName else "?"
+	return if p then p.DisplayName else "Someone"
 end
 
-local function viewport(parent: Instance, id: string)
-	local vp = UI.new("ViewportFrame", {
-		BackgroundColor3 = U.PaperShade,
-		Size = UDim2.new(1, -12, 0, 78),
-		Position = UDim2.fromOffset(6, 6),
-		Ambient = Color3.fromRGB(170, 166, 160),
-		LightColor = Color3.fromRGB(255, 250, 240),
-		LightDirection = Vector3.new(-0.4, -1, -0.6),
-		ZIndex = 3,
-		Parent = parent,
-	}, { UI.corner(8) })
+local function fill(vp: ViewportFrame, id: string)
 	local model = Objects.build(id)
 	model.Parent = vp
 	local cam = Instance.new("Camera")
@@ -6076,9 +6970,29 @@ local function viewport(parent: Instance, id: string)
 	cam.Parent = vp
 	vp.CurrentCamera = cam
 	local cf, size = model:GetBoundingBox()
-	local extent = math.max(size.X, size.Y * 1.3)
-	local d = extent / 2 / math.tan(math.rad(15)) * 1.15 + size.Z / 2
-	cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, size.Y * 0.15, d), cf.Position)
+	local extent = math.max(size.X, size.Y)
+	local d = extent / 2 / math.tan(math.rad(15)) * 1.25 + size.Z / 2
+	-- slightly from above, like looking down into a box
+	cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, d * 0.35, d), cf.Position)
+end
+
+-- Spread n items over the crate floor: a loose grid with jitter, so nothing overlaps
+local function scatter(n: number, seed: number): { Vector2 }
+	local rng = Random.new(seed)
+	local rows = if n <= 4 then 1 else 2
+	local cols = math.ceil(n / rows)
+	local spots = {}
+	for i = 1, n do
+		local r = math.floor((i - 1) / cols)
+		local c = (i - 1) % cols
+		local inRow = if r == rows - 1 then n - cols * (rows - 1) else cols
+		local x = 0.12 + 0.76 * ((c + 0.5) / inRow)
+		local y = if rows == 1 then 0.55 else 0.4 + r * 0.32
+		x += rng:NextNumber(-0.04, 0.04)
+		y += rng:NextNumber(-0.05, 0.05)
+		spots[i] = Vector2.new(x, y)
+	end
+	return spots
 end
 
 local function close()
@@ -6087,235 +7001,232 @@ local function close()
 	end
 	local c = crate
 	crate = nil
-	table.clear(tiles)
-	UI.tween(c, 0.3, { Position = UDim2.new(0.5, 0, -0.6, 0) }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-	task.delay(0.35, function()
+	timerLabel = nil
+	table.clear(items)
+	UI.tween(c, 0.35, { Position = UDim2.fromScale(0, 1.1) }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	task.delay(0.4, function()
 		c:Destroy()
 	end)
 end
 
-local function open(items: { any })
+local function open(list: { any }, seed: number)
 	close()
 	myPick = nil
-	local count = #items
-	local cols = math.min(count, 5)
-	local rows = math.ceil(count / cols)
-	local tileW, tileH, gap = 116, 132, 12
-	local width = cols * tileW + (cols - 1) * gap + 48
-	local height = rows * tileH + (rows - 1) * gap + 96
 
-	-- The crate: a wooden frame with a darker rim
-	local holder = UI.new("Frame", {
-		BackgroundColor3 = W.Wood,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, -0.6, 0),
-		Size = UDim2.fromOffset(width, height),
-		Parent = gui,
-	}, { UI.corner(18), UI.new("UIStroke", { Color = W.WoodDark, Thickness = 5 }) })
-	crate = holder
-	UI.new("Frame", {
-		Name = "Shadow",
-		BackgroundColor3 = U.Ink,
-		BackgroundTransparency = 0.8,
+	local root = UI.new("Frame", {
+		BackgroundColor3 = PLANK_A,
+		BorderSizePixel = 0,
 		Size = UDim2.fromScale(1, 1),
-		Position = UDim2.fromOffset(0, 8),
-		ZIndex = 0,
-		Parent = holder,
-	}, { UI.corner(18) })
-	-- plank lines on the crate face
-	for i = 1, 3 do
+		Position = UDim2.fromScale(0, -1.1),
+		Parent = gui,
+	})
+	crate = root
+
+	-- Planks: alternating shades with thin dark gaps
+	local planks = 7
+	for i = 0, planks - 1 do
+		UI.new("Frame", {
+			BackgroundColor3 = if i % 2 == 0 then PLANK_A else PLANK_B,
+			BorderSizePixel = 0,
+			Size = UDim2.fromScale(1, 1 / planks),
+			Position = UDim2.fromScale(0, i / planks),
+			Parent = root,
+		})
 		UI.new("Frame", {
 			BackgroundColor3 = W.WoodDark,
-			BackgroundTransparency = 0.6,
+			BackgroundTransparency = 0.55,
 			BorderSizePixel = 0,
-			Size = UDim2.new(1, 0, 0, 2),
-			Position = UDim2.new(0, 0, i / 4, 0),
-			ZIndex = 1,
-			Parent = holder,
+			Size = UDim2.new(1, 0, 0, 3),
+			Position = UDim2.fromScale(0, i / planks),
+			Parent = root,
 		})
 	end
-	UI.label({
-		Text = "Grab a piece!",
+	-- Crate walls: a dark frame around the edge
+	for _, spec in {
+		{ UDim2.new(1, 0, 0, 22), UDim2.fromScale(0, 0) },
+		{ UDim2.new(1, 0, 0, 22), UDim2.new(0, 0, 1, -22) },
+		{ UDim2.new(0, 22, 1, 0), UDim2.fromScale(0, 0) },
+		{ UDim2.new(0, 22, 1, 0), UDim2.new(1, -22, 0, 0) },
+	} do
+		UI.new("Frame", { BackgroundColor3 = W.WoodDark, BorderSizePixel = 0, Size = spec[1], Position = spec[2], ZIndex = 2, Parent = root })
+	end
+
+	local title = UI.label({
+		Text = "Grab one!",
 		FontFace = F.Title,
-		TextSize = 26,
+		TextSize = 40,
 		TextColor3 = U.Paper,
-		Position = UDim2.fromOffset(24, 16),
-		ZIndex = 2,
-		Parent = holder,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 48),
+		ZIndex = 3,
+		Parent = root,
 	})
-	UI.new("UIStroke", { Color = W.WoodDark, Thickness = 2, Parent = holder:FindFirstChildOfClass("TextLabel") })
-	UI.label({
-		Text = "First come, first served",
-		FontFace = F.Bold,
-		TextSize = 14,
+	UI.new("UIStroke", { Color = W.WoodDark, Thickness = 3, Parent = title })
+	local timer = UI.label({
+		Text = "",
+		FontFace = F.Title,
+		TextSize = 22,
 		TextColor3 = U.Paper,
-		TextTransparency = 0.15,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -24, 0, 24),
-		ZIndex = 2,
-		Parent = holder,
+		TextTransparency = 0.1,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 98),
+		ZIndex = 3,
+		Parent = root,
 	})
+	UI.new("UIStroke", { Color = W.WoodDark, Thickness = 2, Parent = timer })
+	timerLabel = timer
 
-	local grid = UI.new("Frame", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(24, 68),
-		Size = UDim2.new(1, -48, 1, -88),
-		ZIndex = 2,
-		Parent = holder,
-	}, {
-		UI.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(tileW, tileH),
-			CellPadding = UDim2.fromOffset(gap, gap),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	})
+	local spots = scatter(#list, seed)
+	local rng = Random.new(seed + 1)
+	for i, entry in list do
+		local def = Objects.ById[entry.id]
+		local pos = UDim2.fromScale(spots[i].X, spots[i].Y)
+		local tilt = rng:NextNumber(-22, 22)
 
-	for i, item in items do
-		local def = Objects.ById[item.id]
+		-- soft shadow on the crate floor
+		local shadow = UI.new("Frame", {
+			BackgroundColor3 = U.Ink,
+			BackgroundTransparency = 0.78,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = pos + UDim2.fromScale(0.01, 0.11),
+			Size = UDim2.fromScale(0.14, 0.035),
+			ZIndex = 3,
+			Parent = root,
+		}, { UI.corner(999) })
+
 		local button = UI.new("TextButton", {
 			Text = "",
 			AutoButtonColor = false,
 			BackgroundTransparency = 1,
-			LayoutOrder = i,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = pos,
+			Size = UDim2.fromScale(0.26, 0.26),
+			Rotation = tilt,
 			Selectable = true,
-			ZIndex = 2,
-			Parent = grid,
-		})
+			ZIndex = 4,
+			Parent = root,
+		}, { UI.new("UIAspectRatioConstraint", { AspectRatio = 1, DominantAxis = Enum.DominantAxis.Height }) })
 		local scale = UI.new("UIScale", { Scale = 0, Parent = button })
-		local face = UI.new("Frame", {
-			BackgroundColor3 = U.Paper,
+		local vp = UI.new("ViewportFrame", {
+			BackgroundTransparency = 1,
 			Size = UDim2.fromScale(1, 1),
-			ZIndex = 2,
+			Ambient = Color3.fromRGB(176, 168, 158),
+			LightColor = Color3.fromRGB(255, 248, 236),
+			LightDirection = Vector3.new(-0.3, -1, -0.5),
+			ZIndex = 4,
 			Parent = button,
-		}, { UI.corner(12) })
-		local stroke = UI.new("UIStroke", { Color = U.Accent, Thickness = 0, Parent = face })
-		viewport(face, item.id)
-		UI.new("Frame", {
-			BackgroundColor3 = KIND_COLOR[def.kind],
-			Size = UDim2.fromOffset(10, 10),
-			Position = UDim2.fromOffset(10, 94),
-			ZIndex = 3,
-			Parent = face,
-		}, { UI.corner(5) })
-		UI.label({
+		})
+		fill(vp, entry.id)
+		local name = UI.label({
 			Text = def.name,
 			FontFace = F.Title,
-			TextSize = 15,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.new(1, -30, 0, 20),
-			Position = UDim2.fromOffset(24, 89),
-			ZIndex = 3,
-			Parent = face,
-		})
-		UI.label({
-			Text = def.blurb,
-			TextSize = 11,
-			TextColor3 = U.Muted,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.new(1, -16, 0, 16),
-			Position = UDim2.fromOffset(8, 110),
-			ZIndex = 3,
-			Parent = face,
-		})
-
-		-- "Taken" stamp, hidden until someone grabs it
-		local stamp = UI.new("Frame", {
-			BackgroundColor3 = U.Ink,
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-			ZIndex = 5,
-			Parent = face,
-		}, { UI.corner(12) })
-		local stampLabel = UI.label({
-			Text = "",
-			FontFace = F.Title,
-			TextSize = 15,
+			TextSize = 20,
 			TextColor3 = U.Paper,
-			BackgroundColor3 = U.Ink,
-			BackgroundTransparency = 1,
 			TextTransparency = 1,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.42),
-			Rotation = -8,
-			ZIndex = 6,
-			Parent = stamp,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0.9),
+			ZIndex = 5,
+			Parent = button,
 		})
-		UI.corner(8).Parent = stampLabel
-		UI.pad(10, 4).Parent = stampLabel
+		local nameStroke = UI.new("UIStroke", { Color = U.Ink, Thickness = 2, Transparency = 1, Parent = name })
 
-		local tile: Tile = { button = button, face = face, stamp = stamp, stampLabel = stampLabel, stroke = stroke, scale = scale, taken = 0 }
-		tiles[i] = tile
+		local item: Item = { button = button, vp = vp, scale = scale, name = name, shadow = shadow, home = pos, tilt = tilt, taken = 0 }
+		items[i] = item
 
-		button.MouseEnter:Connect(function()
-			if tile.taken == 0 and not myPick then
-				UI.tween(scale, 0.12, { Scale = 1.06 })
-				UI.tween(stroke, 0.12, { Thickness = 3 })
+		local function hover(on: boolean)
+			if item.taken ~= 0 or myPick then
+				return
+			end
+			UI.tween(scale, 0.15, { Scale = if on then 1.12 else 1 }, Enum.EasingStyle.Back)
+			UI.tween(button, 0.15, { Rotation = if on then 0 else tilt })
+			UI.tween(name, 0.12, { TextTransparency = if on then 0 else 1 })
+			UI.tween(nameStroke, 0.12, { Transparency = if on then 0 else 1 })
+			if on then
 				Sound.play("hover")
 			end
+		end
+		button.MouseEnter:Connect(function()
+			hover(true)
 		end)
 		button.MouseLeave:Connect(function()
-			UI.tween(scale, 0.12, { Scale = 1 })
-			UI.tween(stroke, 0.12, { Thickness = 0 })
+			hover(false)
+		end)
+		button.SelectionGained:Connect(function()
+			hover(true)
+		end)
+		button.SelectionLost:Connect(function()
+			hover(false)
 		end)
 		button.Activated:Connect(function()
-			if tile.taken ~= 0 or myPick then
+			if item.taken ~= 0 or myPick then
 				Sound.play("error")
 				return
 			end
-			UI.tween(scale, 0.06, { Scale = 0.92 })
+			UI.tween(scale, 0.06, { Scale = 0.9 })
 			PickEvent:FireServer(i)
 		end)
 
-		-- pop out of the crate one by one
-		task.delay(0.25 + i * 0.07, function()
-			UI.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
-			Sound.play("hover")
+		-- tumble into the crate one after another
+		task.delay(0.35 + i * 0.08, function()
+			UI.tween(scale, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+			Sound.play("hover", 0.3)
 		end)
 	end
 
-	UI.tween(holder, 0.45, { Position = UDim2.fromScale(0.5, 0.52) }, Enum.EasingStyle.Back)
+	UI.tween(root, 0.45, { Position = UDim2.fromScale(0, 0) }, Enum.EasingStyle.Quad)
 	Sound.play("crate")
-	if UserInputService.GamepadEnabled and tiles[1] then
-		task.delay(0.6, function()
-			if tiles[1] then
-				GuiService.SelectedObject = tiles[1].button
+	if UserInputService.GamepadEnabled and items[1] then
+		task.delay(0.8, function()
+			if items[1] then
+				GuiService.SelectedObject = items[1].button
 			end
 		end)
 	end
 end
 
-local function update(items: { any })
-	for i, item in items do
-		local tile = tiles[i]
-		if not tile or tile.taken == item.takenBy then
+local function update(list: { any })
+	for i, entry in list do
+		local item = items[i]
+		if not item or item.taken == entry.takenBy or entry.takenBy == 0 then
 			continue
 		end
-		tile.taken = item.takenBy
-		if item.takenBy == 0 then
-			continue
-		end
-		local mine = item.takenBy == player.UserId
-		local color = speciesColor(item.takenBy)
-		tile.stamp.BackgroundTransparency = if mine then 0.75 else 0.45
-		tile.stampLabel.Text = if mine then "YOURS" else nameOf(item.takenBy)
-		tile.stampLabel.BackgroundColor3 = if mine then U.Accent else color
-		tile.stampLabel.BackgroundTransparency = 0
-		tile.stampLabel.TextTransparency = 0
-		tile.stroke.Color = if mine then U.Accent else color
-		tile.stroke.Thickness = 3
-		-- stamp slams down
-		local s = UI.new("UIScale", { Scale = 1.8, Parent = tile.stampLabel })
-		UI.tween(s, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
-		UI.tween(tile.scale, 0.1, { Scale = 1 })
-		if mine then
-			myPick = items[i].id
+		item.taken = entry.takenBy
+		UI.tween(item.name, 0.1, { TextTransparency = 1 })
+		item.shadow.Visible = false
+
+		if entry.takenBy == player.UserId then
+			-- yours: lift it out toward you and keep it front and centre
+			myPick = i
 			Sound.play("grab")
+			item.button.ZIndex = 8
+			item.vp.ZIndex = 8
+			UI.tween(item.button, 0.4, { Position = UDim2.fromScale(0.5, 0.86), Rotation = 0 }, Enum.EasingStyle.Back)
+			UI.tween(item.scale, 0.4, { Scale = 0.8 }, Enum.EasingStyle.Back)
+			for _, other in items do
+				if other ~= item and other.taken == 0 then
+					UI.tween(other.vp, 0.2, { ImageTransparency = 0.45 })
+				end
+			end
 		else
+			-- someone else's: a name tag pops, then it's yanked out of the crate
 			Sound.play("pick", 0.2)
+			local tag = UI.pill(nameOf(entry.takenBy), speciesColor(entry.takenBy), U.Paper, 16)
+			tag.AnchorPoint = Vector2.new(0.5, 0.5)
+			tag.Position = item.home
+			tag.ZIndex = 9
+			tag.Parent = item.button.Parent
+			local s = UI.new("UIScale", { Scale = 1.8, Parent = tag })
+			UI.tween(s, 0.2, { Scale = 1 }, Enum.EasingStyle.Back)
+			UI.tween(item.button, 0.5, { Position = item.home - UDim2.fromScale(0, 0.7), Rotation = item.tilt * 3 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			task.delay(1.2, function()
+				if tag.Parent then
+					UI.tween(tag, 0.3, { BackgroundTransparency = 1 })
+					local l = tag:FindFirstChildOfClass("TextLabel")
+					if l then
+						UI.tween(l, 0.3, { TextTransparency = 1 })
+					end
+				end
+			end)
 		end
 	end
 end
@@ -6324,40 +7235,38 @@ function Pick.init()
 	gui = UI.new("ScreenGui", {
 		Name = "PickBox",
 		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
 		DisplayOrder = 5,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	local scale = UI.new("UIScale", { Parent = gui })
-	local function rescale()
-		local vp = workspace.CurrentCamera.ViewportSize
-		scale.Scale = math.clamp(math.min(vp.Y / 820, vp.X / 900), 0.55, 1.1)
-	end
-	rescale()
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
 
 	-- The box arrives just before the "Pick" phase is announced, so open on
 	-- the first message and treat every later one as an update.
-	Net.event("Box").OnClientEvent:Connect(function(items, pickers: { number })
+	Net.event("Box").OnClientEvent:Connect(function(list, pickers: { number }, seed: number?)
 		if not crate then
-			-- only people in this round pick; menu-sitters just watch
+			-- only people in this round pick; menu-sitters just watch the level
 			if not table.find(pickers or {}, player.UserId) then
 				return
 			end
-			open(items)
+			open(list, seed or 1)
 		end
-		update(items)
+		update(list)
+	end)
+
+	RunService.Heartbeat:Connect(function()
+		if timerLabel and State.phase == "Pick" then
+			timerLabel.Text = tostring(math.ceil(State.timeLeft()))
+		end
 	end)
 
 	State.phaseChanged:Connect(function(phase)
-		if phase == "Build" then
-			if myPick then
-				local def = Objects.ById[myPick]
-				Hud.toast("You grabbed: " .. (if def then def.name else myPick))
+		if phase ~= "Pick" then
+			if phase == "Build" and crate then
+				task.delay(0.1, close)
+			else
+				close()
 			end
-			close()
-		elseif phase ~= "Pick" then
-			close()
 		end
 	end)
 end
@@ -6365,11 +7274,11 @@ end
 return Pick
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX8D6906EAB98A4709A3CD2335103B4680">
-          <Properties><string name="Name">ResultsUI</string><ProtectedString name="Source"><![CDATA[-- The score table: one bar per player racing toward the finish line.
--- Banked points sit in your animal's colour; this round's points slide in
--- category by category (finish, traps, clutch, own route) for everyone at
--- once, each with a rising note. Readable at a glance, satisfying to watch.
+        <Item class="ModuleScript" referent="RBXB7F40963A54E4D5BB548EFC648411667">
+          <Properties><string name="Name">ResultsUI</string><ProtectedString name="Source"><![CDATA[-- The score table, full screen. One fat bar per player racing toward the
+-- finish line. Banked points sit in your animal's colour; this round's points
+-- slide in category by category (finish, traps, coin, clutch, own route) for
+-- everyone at once, each with a rising note.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6386,14 +7295,14 @@ local F = Style.Font
 
 local ResultsUI = {}
 
-local LABELS = { finish = "Finish", trap = "Trap", clutch = "Clutch", route = "Own route" }
-local WIDTH = 720
-local TRACK_X = 196
-local TRACK_W = 430
-local ROW_H = 46
-local BAR_H = 24
+local LABELS = { finish = "Finish", trap = "Trap", coin = "Coin", clutch = "Clutch", route = "Own route" }
+local WIDTH = 1040
+local TRACK_X = 250
+local TRACK_W = 640
+local ROW_H = 66
+local BAR_H = 36
 
-local panel: Frame? = nil
+local gui: ScreenGui
 local token = 0
 
 local function speciesColor(species: string?): Color3
@@ -6401,14 +7310,17 @@ local function speciesColor(species: string?): Color3
 	return if s then s.body else U.Muted
 end
 
+function ResultsUI.setVisible(visible: boolean)
+	gui.Enabled = visible
+end
+
 function ResultsUI.close()
 	token += 1
-	if panel then
-		local p = panel
-		panel = nil
-		UI.tween(p, 0.2, { Position = UDim2.new(0.5, 0, 0.5, 40) })
-		task.delay(0.2, function()
-			p:Destroy()
+	local bg = gui and gui:FindFirstChild("Backdrop")
+	if bg then
+		UI.tween(bg :: Frame, 0.3, { Position = UDim2.fromScale(0, 1.05) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		task.delay(0.32, function()
+			bg:Destroy()
 		end)
 	end
 end
@@ -6422,61 +7334,72 @@ export type Options = {
 }
 
 -- rows: { userId, name, species, before, items = {{cat,label,points}}, total }
-function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
+function ResultsUI.show(rows: { any }, opts: Options)
 	ResultsUI.close()
 	token += 1
 	local myToken = token
 
-	local height = 132 + #rows * ROW_H + 26
-	local holder, face = UI.card({
+	local backdrop = UI.new("Frame", {
+		Name = "Backdrop",
+		BackgroundColor3 = U.Paper,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0, 1.05),
+		Parent = gui,
+	})
+	UI.tween(backdrop, 0.4, { Position = UDim2.fromScale(0, 0) }, Enum.EasingStyle.Quad)
+
+	local height = 190 + #rows * ROW_H
+	local box = UI.new("Frame", {
+		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 40),
+		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(WIDTH, height),
-		Parent = parent,
-	}, 18)
-	panel = holder
-	UI.tween(holder, 0.32, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
+		Parent = backdrop,
+	})
+	local scale = UI.new("UIScale", { Parent = box })
+	local vp = workspace.CurrentCamera.ViewportSize
+	scale.Scale = math.clamp(math.min((vp.X - 40) / WIDTH, (vp.Y - 40) / height), 0.45, 1.3)
 
-	UI.label({ Text = opts.title, FontFace = F.Title, TextSize = 30, Position = UDim2.fromOffset(26, 18), Parent = face })
-	UI.label({ Text = opts.subtitle, TextSize = 14, TextColor3 = U.Muted, Position = UDim2.fromOffset(26, 58), Parent = face })
+	UI.label({ Text = opts.title, FontFace = F.Title, TextSize = 48, Position = UDim2.fromOffset(0, 0), Parent = box })
+	UI.label({ Text = opts.subtitle, TextSize = 18, TextColor3 = U.Muted, Position = UDim2.fromOffset(2, 60), Parent = box })
 
-	-- Legend, top right
 	local legend = UI.new("Frame", {
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -24, 0, 26),
-		Size = UDim2.fromOffset(330, 20),
-		Parent = face,
-	}, { UI.list(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Center) })
+		Position = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.fromOffset(520, 24),
+		Parent = box,
+	}, { UI.list(Enum.FillDirection.Horizontal, 16, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Center) })
 	for i, cat in Style.ScoreOrder do
 		local item = UI.new("Frame", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.XY, Size = UDim2.new(), LayoutOrder = i, Parent = legend }, {
-			UI.list(Enum.FillDirection.Horizontal, 5, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center),
+			UI.list(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center),
 		})
-		UI.new("Frame", { BackgroundColor3 = Style.ScoreColor[cat], Size = UDim2.fromOffset(10, 10), Parent = item }, { UI.corner(3) })
-		UI.label({ Text = LABELS[cat], TextSize = 12, TextColor3 = U.InkSoft, FontFace = F.Bold, Parent = item })
+		UI.new("Frame", { BackgroundColor3 = Style.ScoreColor[cat], Size = UDim2.fromOffset(14, 14), Parent = item }, { UI.corner(4) })
+		UI.label({ Text = LABELS[cat], TextSize = 15, TextColor3 = U.InkSoft, FontFace = F.Bold, Parent = item })
 	end
 
-	local top = 100
+	local top = 140
 	local target = math.max(opts.target, 1)
 	local function px(points: number): number
 		return math.clamp(points / target, 0, 1) * TRACK_W
 	end
 
-	-- Finish line across all rows, with a little flag tag
+	-- Finish line across every row, with a tag on top
 	local lineH = #rows * ROW_H
 	UI.new("Frame", {
 		BackgroundColor3 = U.Ink,
 		BorderSizePixel = 0,
-		Size = UDim2.fromOffset(3, lineH + 6),
-		Position = UDim2.fromOffset(TRACK_X + TRACK_W, top - 4),
+		Size = UDim2.fromOffset(4, lineH),
+		Position = UDim2.fromOffset(TRACK_X + TRACK_W, top),
 		ZIndex = 4,
-		Parent = face,
+		Parent = box,
 	})
-	local tag = UI.pill("FINISH " .. target, U.Ink, U.Paper, 11)
+	local tag = UI.pill("FINISH  " .. target, U.Ink, U.Paper, 14)
 	tag.AnchorPoint = Vector2.new(0.5, 1)
-	tag.Position = UDim2.fromOffset(TRACK_X + TRACK_W + 1, top - 6)
+	tag.Position = UDim2.fromOffset(TRACK_X + TRACK_W + 2, top - 6)
 	tag.ZIndex = 4
-	tag.Parent = face
+	tag.Parent = box
 
 	type RowUI = { offset: number, segs: Frame, total: TextLabel, gainedLabel: TextLabel, data: any, line: Frame }
 	local rowUIs = {} :: { RowUI }
@@ -6488,46 +7411,44 @@ function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
 		local line = UI.new("Frame", {
 			BackgroundColor3 = U.PaperShade,
 			BackgroundTransparency = if mine then 0 else 1,
-			Size = UDim2.new(1, -24, 0, ROW_H - 6),
-			Position = UDim2.fromOffset(12, y),
-			Parent = face,
-		}, { UI.corner(10) })
+			Size = UDim2.new(1, 0, 0, ROW_H - 8),
+			Position = UDim2.fromOffset(-60, y),
+			Parent = box,
+		}, { UI.corner(14) })
 		if isWinner then
-			UI.new("UIStroke", { Color = U.Gold, Thickness = 3, Parent = line })
+			UI.new("UIStroke", { Color = U.Gold, Thickness = 4, Parent = line })
 		end
-
-		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 16, TextColor3 = U.Muted, Position = UDim2.fromOffset(12, 10), Parent = line })
+		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 24, TextColor3 = U.Muted, Position = UDim2.fromOffset(16, 14), Parent = line })
 		UI.new("Frame", {
 			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.fromOffset(34, 13),
+			Size = UDim2.fromOffset(20, 20),
+			Position = UDim2.fromOffset(52, 19),
 			Parent = line,
-		}, { UI.corner(7) })
+		}, { UI.corner(10) })
 		UI.label({
 			Text = row.name,
 			FontFace = F.Bold,
-			TextSize = 15,
+			TextSize = 22,
 			TextTruncate = Enum.TextTruncate.AtEnd,
 			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(120, ROW_H - 6),
-			Position = UDim2.fromOffset(56, 0),
+			Size = UDim2.fromOffset(160, ROW_H - 8),
+			Position = UDim2.fromOffset(82, 0),
 			Parent = line,
 		})
 
-		-- Track + 100-point ticks
 		local track = UI.new("Frame", {
 			BackgroundColor3 = U.Paper,
 			Size = UDim2.fromOffset(TRACK_W, BAR_H),
-			Position = UDim2.fromOffset(TRACK_X - 12, (ROW_H - 6 - BAR_H) / 2),
+			Position = UDim2.fromOffset(TRACK_X, (ROW_H - 8 - BAR_H) / 2),
 			ClipsDescendants = true,
 			Parent = line,
-		}, { UI.corner(7), UI.new("UIStroke", { Color = U.Ink, Transparency = 0.85, Thickness = 1 }) })
+		}, { UI.corner(10), UI.new("UIStroke", { Color = U.Ink, Transparency = 0.82, Thickness = 2 }) })
 		for p = 100, target - 1, 100 do
 			UI.new("Frame", {
 				BackgroundColor3 = U.Ink,
-				BackgroundTransparency = 0.9,
+				BackgroundTransparency = 0.88,
 				BorderSizePixel = 0,
-				Size = UDim2.fromOffset(1, BAR_H),
+				Size = UDim2.fromOffset(2, BAR_H),
 				Position = UDim2.fromOffset(px(p), 0),
 				ZIndex = 3,
 				Parent = track,
@@ -6548,48 +7469,57 @@ function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
 		local total = UI.label({
 			Text = tostring(row.before or row.total),
 			FontFace = F.Title,
-			TextSize = 18,
+			TextSize = 28,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(52, ROW_H - 6),
+			Size = UDim2.fromOffset(80, ROW_H - 8),
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -10, 0, 0),
+			Position = UDim2.new(1, -14, 0, 0),
 			Parent = line,
 		})
 		local gainedLabel = UI.label({
 			Text = "",
 			FontFace = F.Title,
-			TextSize = 14,
+			TextSize = 20,
 			TextColor3 = U.Accent,
 			TextTransparency = 1,
 			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -66, 0.5, 0),
+			Position = UDim2.new(1, -100, 0.5, 0),
 			Parent = line,
 		})
 		rowUIs[i] = { offset = banked, segs = segs, total = total, gainedLabel = gainedLabel, data = row, line = line }
+
+		-- rows slide in one after another
+		task.delay(0.15 + i * 0.06, function()
+			if line.Parent then
+				UI.tween(line, 0.35, { Position = UDim2.fromOffset(0, y) }, Enum.EasingStyle.Back)
+			end
+		end)
 	end
 
-	-- Verdict stamp, slammed across the middle
 	local function stamp(text: string)
 		local s = UI.label({
 			Text = text,
 			FontFace = F.Title,
-			TextSize = 54,
+			TextSize = 96,
 			TextColor3 = U.Bad,
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0, top + lineH / 2),
+			Position = UDim2.fromOffset(WIDTH / 2, top + lineH / 2),
 			Rotation = -8,
 			ZIndex = 10,
-			Parent = face,
+			Parent = box,
 		})
-		UI.new("UIStroke", { Color = U.Paper, Thickness = 4, Parent = s })
+		UI.new("UIStroke", { Color = U.Paper, Thickness = 6, Parent = s })
 		local sc = UI.new("UIScale", { Scale = 2.6, Parent = s })
 		UI.tween(sc, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
 		Sound.play("stamp")
 	end
 
 	task.spawn(function()
-		task.wait(0.45)
+		task.wait(0.7)
+		if myToken ~= token then
+			return
+		end
 		if opts.verdict == "TOO_EASY" then
 			stamp("TOO EASY!")
 		elseif opts.verdict == "TOO_HARD" then
@@ -6609,7 +7539,7 @@ function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
 				end
 				if pts > 0 then
 					any = true
-					local w = math.max(px(pts), 3)
+					local w = math.max(px(pts), 4)
 					local seg = UI.new("Frame", {
 						BackgroundColor3 = Style.ScoreColor[cat],
 						BorderSizePixel = 0,
@@ -6619,32 +7549,31 @@ function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
 						ZIndex = 2,
 						Parent = r.segs,
 					})
-					if w > 44 and label then
+					if w > 60 and label then
 						UI.label({
 							Text = label,
 							FontFace = F.Bold,
-							TextSize = 12,
+							TextSize = 16,
 							TextColor3 = U.Paper,
-							Position = UDim2.fromOffset(6, 4),
+							Position = UDim2.fromOffset(8, 7),
 							ZIndex = 3,
 							Parent = seg,
 						})
 					end
-					UI.tween(seg, 0.35, { Size = UDim2.fromOffset(w, BAR_H) }, Enum.EasingStyle.Back)
+					UI.tween(seg, 0.4, { Size = UDim2.fromOffset(w, BAR_H) }, Enum.EasingStyle.Back)
 					r.offset += w
 				end
 			end
 			if any then
 				Sound.play("bar", 0, pitch)
 				pitch *= 1.12
-				task.wait(0.55)
+				task.wait(0.6)
 				if myToken ~= token then
 					return
 				end
 			end
 		end
 
-		-- Count totals up and flash what each player gained
 		for _, r in rowUIs do
 			local from = r.data.before or r.data.total
 			local to = r.data.total
@@ -6653,27 +7582,38 @@ function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
 				r.gainedLabel.Text = "+" .. gained
 				UI.tween(r.gainedLabel, 0.2, { TextTransparency = 0 })
 				task.spawn(function()
-					for s = 1, 10 do
+					for s = 1, 12 do
 						task.wait(0.03)
 						if not r.total.Parent then
 							return
 						end
-						r.total.Text = tostring(math.floor(from + gained * s / 10))
+						r.total.Text = tostring(math.floor(from + gained * s / 12))
 					end
 				end)
 			end
 			if to >= target then
-				UI.new("UIStroke", { Color = U.Gold, Thickness = 3, Parent = r.line })
+				UI.new("UIStroke", { Color = U.Gold, Thickness = 4, Parent = r.line })
 			end
 		end
 		Sound.play("points")
 	end)
 end
 
+function ResultsUI.init(playerGui: Instance)
+	gui = UI.new("ScreenGui", {
+		Name = "ScoreTable",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 4,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = playerGui,
+	})
+end
+
 return ResultsUI
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX34D5A68E77BF4F3680ABAD2B433602AF">
+        <Item class="ModuleScript" referent="RBX8B1866B1C63146A9B5A6AFE9C53A68C7">
           <Properties><string name="Name">SoundController</string><ProtectedString name="Source"><![CDATA[-- Every sound in the game goes through here, so swapping in real audio later
 -- is a matter of editing this one table.
 --
@@ -6778,7 +7718,7 @@ end
 return SoundController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX42C8C189B06E4E44B3DEF84D298FCA59">
+        <Item class="ModuleScript" referent="RBX9DB3D726D68148FEA2FA3C3085EAAD51">
           <Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side mirror of what the server told us. Read-only for gameplay;
 -- the server is always the source of truth.
 
@@ -6892,7 +7832,7 @@ end
 return State
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXCF042630CFD440B0B2A69EF9FF556246">
+        <Item class="ModuleScript" referent="RBXC5141D2EA5F24E00B1330CCBA4BBA5DF">
           <Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- Tiny UI kit so every panel, label and button shares one look:
 -- warm paper cards, ink text, a hard offset shadow (no blur, no gradients).
 
@@ -7030,10 +7970,10 @@ return UI
       </Item>
     </Item>
   </Item>
-  <Item class="Players" referent="RBXE5A5B18EE42349AE86CC0D09ACC6814A">
+  <Item class="Players" referent="RBX84A19AD0B52C42A58D18AF1E549AF7E1">
     <Properties><string name="Name">Players</string><bool name="CharacterAutoLoads">false</bool></Properties>
   </Item>
-  <Item class="SoundService" referent="RBX71BF6695F3AC4304AB019418EA756EAE">
+  <Item class="SoundService" referent="RBXB93D225718F941CF9239E7758274594E">
     <Properties><string name="Name">SoundService</string></Properties>
   </Item>
 </roblox>

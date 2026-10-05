@@ -15,7 +15,9 @@ Config.Match = {
 	RunTime = 60,
 	ResultsTime = 8,
 	WinnerTime = 10,
-	BoxExtra = 2, -- the pick box holds players + this many pieces
+	BoxMin = 4, -- the pick box holds 4-7 pieces...
+	BoxMax = 7,
+	BoxSpare = 1, -- ...but always at least players + this many
 }
 
 Config.Scoring = {
@@ -25,6 +27,7 @@ Config.Scoring = {
 	Clutch = 15, -- finish with under ClutchWindow seconds left
 	ClutchWindow = 5,
 	OwnRoute = 15, -- finish after touching a route piece you placed
+	Coin = 40, -- grab a coin AND reach the flag with it
 }
 
 Config.Movement = {
@@ -55,6 +58,9 @@ Config.Objects = {
 	CrumbleRespawn = 3.5,
 	BombRadius = 5,
 	BumperKnock = 70,
+	PunchKnock = Vector3.new(82, 26, 0),
+	JetpackTime = 3,
+	JetpackLift = 30,
 }
 
 -- 2.5D: everything lives on the Z = 0 plane, the camera looks down -Z.

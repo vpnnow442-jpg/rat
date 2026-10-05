@@ -30,15 +30,18 @@ Multiplayer test: **Test → Clients and Servers → pick 2–4 players → Star
 | Place piece | Click | A | Tap spot, then **Place** |
 | Rotate | R | X | **Rotate** |
 | Back | Right-click / Q | B | **Back** |
-| Pan while building | Push cursor to a screen edge | Stick to edge | Drag to edge |
+| Look around the map while building | Just move the cursor: the map follows it | Stick | Drag |
 | Zoom while building | Mouse wheel | — | Pinch |
+| Jetpack (after grabbing one) | Hold jump | Hold A | Hold jump |
+| Emotes: wave, dance, laugh, sit | 1 / 2 / 3 / 4 | — | Buttons, bottom left |
 
 ## How a round works
 
-1. **Pick**: a crate opens with a few more pieces than players. First click wins.
+1. **Pick**: your screen turns into a crate with 4–7 pieces tossed in. First click wins.
 2. **Build**: everyone places their piece. You see other players' ghosts live.
 3. **Run**: race to the flag.
-4. **Score**: the bar table fills in. First to **600** wins (max 12 rounds, last one double).
+4. **Score**: the full-screen bar table fills in. First to **600** wins (max 12 rounds, last one double).
+   Carry a **coin** to the flag for bonus points.
 
 ## Project layout
 

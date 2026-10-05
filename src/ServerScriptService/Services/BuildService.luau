@@ -36,6 +36,7 @@ local hands = {} :: { [Player]: { string } }
 local placed = {} :: { [Player]: boolean }
 local lastCursor = {} :: { [Player]: number }
 local pickOpen = false
+local boxSeed = 0
 local buildOpen = false
 
 local function weightedPick(pool: { Objects.Def }): Objects.Def
@@ -108,7 +109,8 @@ local function sendBox()
 	for _, p in pickers do
 		table.insert(ids, p.UserId)
 	end
-	BoxEvent:FireAllClients(payload, ids)
+	-- the seed lets every client scatter the pieces in the same spots
+	BoxEvent:FireAllClients(payload, ids, boxSeed)
 end
 
 --------------------------------------------------------------------------
@@ -135,7 +137,10 @@ function BuildService.openPick(players: { Player }, round: number)
 	table.clear(box)
 	table.clear(picked)
 	pickers = table.clone(players)
-	for _, id in roll(#players + Config.Match.BoxExtra, round) do
+	local M = Config.Match
+	local count = math.max(#players + M.BoxSpare, math.random(M.BoxMin, M.BoxMax))
+	boxSeed = math.random(1, 2 ^ 30)
+	for _, id in roll(count, round) do
 		table.insert(box, { id = id, takenBy = 0 })
 	end
 	pickOpen = true

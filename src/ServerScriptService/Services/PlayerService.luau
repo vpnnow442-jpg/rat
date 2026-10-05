@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Characters = require(Shared.Characters)
 local Config = require(Shared.Config)
+local Net = require(Shared.Net)
 local Style = require(Shared.Style)
 
 local PlayerService = {}
@@ -170,6 +171,22 @@ function PlayerService.init()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		PlayerService.species[player] = nil
+	end)
+
+	-- Emotes: stamp the name + time on the character; every client animates it
+	local EMOTES = { wave = true, dance = true, laugh = true, sit = true }
+	local lastEmote = {} :: { [Player]: number }
+	Net.event("Emote").OnServerEvent:Connect(function(player, id)
+		if typeof(id) ~= "string" or not EMOTES[id] or not player.Character then
+			return
+		end
+		local now = os.clock()
+		if now - (lastEmote[player] or 0) < 0.5 then
+			return
+		end
+		lastEmote[player] = now
+		player.Character:SetAttribute("Emote", id)
+		player.Character:SetAttribute("EmoteAt", workspace:GetServerTimeNow())
 	end)
 end
 

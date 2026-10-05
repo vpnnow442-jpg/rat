@@ -67,7 +67,6 @@ local function clearGhost()
 	ghost = nil
 	highlight = nil
 	Camera.building = false
-	Camera.pan = Vector2.zero
 end
 
 local function sendCursor(id: string)
@@ -184,18 +183,9 @@ local function update(dt: number)
 		return
 	end
 
-	-- Cursor resting near a screen edge pans the build camera that way
+	-- The build camera follows the cursor across the level
 	local vp = workspace.CurrentCamera.ViewportSize
-	local EDGE = 0.1
-	local function edge(n: number): number
-		if n < EDGE then
-			return -(EDGE - n) / EDGE
-		elseif n > 1 - EDGE then
-			return (n - (1 - EDGE)) / EDGE
-		end
-		return 0
-	end
-	Camera.pan = Vector2.new(edge(pointer.X / vp.X), -edge(pointer.Y / vp.Y))
+	Camera.pointer = Vector2.new(pointer.X / math.max(vp.X, 1), pointer.Y / math.max(vp.Y, 1))
 
 	local world = worldPoint(pointer)
 	if not world then

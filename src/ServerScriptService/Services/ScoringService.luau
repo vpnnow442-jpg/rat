@@ -4,7 +4,7 @@
 --   first to Config.Match.PointsToWin wins the match
 --   finish 1st/2nd/3rd/4th+ -> 100/75/50/25
 --   take someone out with your object -> +25 each (max 75 a round)
---   small bonuses: clutch finish, finishing via a route you built
+--   small bonuses: carry a coin to the flag, clutch finish, finishing via a route you built
 --   BUT if everyone finishes, it was TOO EASY: nobody scores
 --   and if nobody finishes, it was TOO HARD: trap points don't count
 -- So the best level is one that's deadly but beatable. That's the game.
@@ -101,6 +101,10 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 					end
 					if HazardService.usedOwnRoute(player) then
 						add("route", "Own route", S.OwnRoute)
+					end
+					local coins = HazardService.coinsOf(player)
+					if coins > 0 then
+						add("coin", if coins == 1 then "Coin" else ("Coin x" .. coins), S.Coin * coins)
 					end
 				end
 			end
