@@ -111,8 +111,15 @@ local function isRunning(player: Player): boolean
 	return RoundService.phase == "Run" and status[player] == "running"
 end
 
+local SPAWN_PROTECTION = 1
+
 local function fail(player: Player, cause: string, killerId: number?)
 	if not isRunning(player) then
+		return
+	end
+	-- spawn protection: no trap can take you out in the first second
+	-- (falling out of the world still counts)
+	if cause ~= "fall" and os.clock() - runStarted < SPAWN_PROTECTION then
 		return
 	end
 	status[player] = "dead"
@@ -173,6 +180,8 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 	task.wait(Config.Match.CountdownTime)
 
 	runStarted = os.clock()
+	-- every timed trap restarts its cycle from here (see Objects.age)
+	workspace:SetAttribute("RunStart", workspace:GetServerTimeNow())
 	for _, p in runners do
 		status[p] = "running"
 	end
@@ -202,6 +211,18 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 			end
 		end
 		HazardService.tick(alive)
+		-- Finish by position too, so reaching the flag can never be missed
+		-- (Touched can drop contacts on fast-moving, client-owned characters)
+		local flag = LevelService.flag
+		for _, p in alive do
+			local root = PlayerService.root(p)
+			if root then
+				local d = root.Position - flag
+				if math.abs(d.X) <= 3.5 and d.Y > -1 and d.Y < 9 then
+					finish(p)
+				end
+			end
+		end
 		for _, p in runners do
 			if status[p] == "running" then
 				local root = PlayerService.root(p)

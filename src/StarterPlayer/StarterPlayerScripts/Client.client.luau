@@ -16,6 +16,7 @@ local Objects = require(Controllers.ObjectController)
 local Pick = require(Controllers.PickController)
 local Build = require(Controllers.BuildController)
 local Animator = require(Controllers.CharacterAnimator)
+local Cursor = require(Controllers.CursorController)
 local Menu = require(Controllers.MenuController)
 
 State.init() -- first: everyone else reads State
@@ -28,4 +29,5 @@ Objects.init()
 Pick.init()
 Build.init()
 Animator.init()
+Cursor.init()
 task.spawn(Menu.init) -- waits for the loading screen to finish

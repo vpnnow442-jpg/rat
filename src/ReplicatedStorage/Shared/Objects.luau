@@ -93,10 +93,24 @@ end
 -- Timed objects: both server and client compute state from the same clock
 --------------------------------------------------------------------------
 
+-- How long a timed object has been running. Every timed trap restarts its
+-- cycle when the race starts (workspace "RunStart"), so nothing is already
+-- mid-fire the moment you're released.
+function Objects.age(model: Model, now: number): number
+	local placed = (model:GetAttribute("PlacedAt") :: number?) or now
+	local runStart = workspace:GetAttribute("RunStart") :: number?
+	local base = if runStart and runStart > placed then runStart else placed
+	return now - base
+end
+
 Objects.LASER_PERIOD = 3.2
--- "on" for 1.4s, a short "warn" flicker before it fires again, otherwise "off"
+Objects.LASER_DELAY = 2 -- quiet at the start of every race...
+-- then "on" for 1.4s, a "warn" flicker before each shot, otherwise "off"
 function Objects.laserState(age: number): string
-	local t = age % Objects.LASER_PERIOD
+	if age < Objects.LASER_DELAY then
+		return if age > Objects.LASER_DELAY - 0.6 then "warn" else "off"
+	end
+	local t = (age - Objects.LASER_DELAY) % Objects.LASER_PERIOD
 	if t < 1.4 then
 		return "on"
 	elseif t > Objects.LASER_PERIOD - 0.5 then
@@ -135,9 +149,9 @@ Objects.PORTAL_SPAN = 14 -- distance from the entry ring to the exit ring
 export type Shooter = { interval: number, speed: number, delay: number, muzzle: Vector3, mode: string, range: number, wave: number? }
 
 Objects.Shooters = {
-	darts = { interval = 2.0, speed = 34, delay = 0.8, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
-	puck = { interval = 3.0, speed = 24, delay = 1.2, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
-	plane = { interval = 3.2, speed = 13, delay = 1.0, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
+	darts = { interval = 2.0, speed = 34, delay = 1.6, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
+	puck = { interval = 3.0, speed = 24, delay = 1.8, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
+	plane = { interval = 3.2, speed = 13, delay = 1.6, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
 } :: { [string]: Shooter }
 
 -- Raycast against solid level/object geometry only. Skips anything that

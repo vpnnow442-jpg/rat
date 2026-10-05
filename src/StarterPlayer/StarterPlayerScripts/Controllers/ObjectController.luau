@@ -49,10 +49,15 @@ type Record = {
 	pathAt: number?,
 	used: boolean?,
 	lastExt: number?,
+	lastShot: number?,
+	lastState: string?,
 }
 
 type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
 local birds = {} :: { Bird }
+local flakes = {} :: { Part }
+local levelConveyors = {} :: { BasePart }
+local conveyorLevel: Instance? = nil
 
 local records = {} :: { [Model]: Record }
 local NONE = {} :: { Animated }
@@ -263,7 +268,7 @@ local function visuals(dt: number)
 		if not rec.ready then
 			continue
 		end
-		local age = t - rec.placedAt
+		local age = Objects.age(model, t)
 		local id = rec.id
 
 		if id == "saw" then
@@ -346,6 +351,10 @@ local function visuals(dt: number)
 				end
 				local len = rec.maxDist :: number
 				local state = Objects.laserState(age)
+				if state == "on" and rec.lastState ~= "on" then
+					Sound.playAt("laser", beam.part, 0.1)
+				end
+				rec.lastState = state
 				local thick = if state == "on" then 0.4 else 0.1
 				beam.part.Size = Vector3.new(len, thick, thick)
 				beam.part.CFrame = rec.pivot * CFrame.new(1 + len / 2, 0, 0)
@@ -362,6 +371,7 @@ local function visuals(dt: number)
 			if open and not rec.used then
 				rec.used = true
 				Fx.puff(rec.pivot.Position - Vector3.new(0, 0.8, 0), 3, 0.7)
+				Sound.playAt("door", model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.15)
 			elseif not open then
 				rec.used = false
 			end
@@ -420,6 +430,12 @@ local function visuals(dt: number)
 			for _, s in Objects.activeShots(id, age, rec.pathLen :: number) do
 				local pos, dir = Objects.shotPosition(id, path, rec.pivot, s.dist)
 				shot(id, pos, dir, s.dist * 0.8)
+				if s.k ~= rec.lastShot and s.dist < 4 then
+					rec.lastShot = s.k
+					local where = model:FindFirstChildWhichIsA("BasePart") :: BasePart
+					Sound.playAt(if id == "darts" then "dart" elseif id == "puck" then "puckshot" else "planeshot", where, 0.15)
+					Fx.puff(path[1], 2, 0.5)
+				end
 			end
 		elseif id == "jetpack" then
 			setGroup(rec, "float", CFrame.new(0, math.sin(age * 2.4) * 0.25, 0) * CFrame.Angles(0, math.sin(age * 1.3) * 0.4, 0))
@@ -467,6 +483,7 @@ local function visuals(dt: number)
 			if fallen and not rec.used then
 				rec.used = true -- just collapsed: crumbs
 				Fx.burst(rec.pivot.Position, Style.Object.Crumble, 10)
+				Sound.playAt("crumble", model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.2)
 				Fx.puff(rec.pivot.Position, 4, 1)
 			elseif not fallen then
 				rec.used = false
@@ -503,6 +520,19 @@ local function visuals(dt: number)
 
 	-- Ambient level life: flag sway, drifting clouds, the odd bird
 	local level = workspace:FindFirstChild("Level")
+	local snowing = level ~= nil and level:GetAttribute("World") == "Mountain"
+	local cam = workspace.CurrentCamera.CFrame.Position
+	for i, f in flakes do
+		if snowing then
+			local seed = i * 37.17
+			local x = cam.X + ((seed * 7 + t * (1 + (i % 3))) % 140) - 70
+			local y = cam.Y + 45 - ((seed * 3 + t * (4 + (i % 4))) % 90)
+			local z = 3 + (i % 9) * 1.3
+			f.CFrame = CFrame.new(x + math.sin(t + seed) * 1.5, y, z)
+		elseif f.Position.Y > -400 then
+			f.CFrame = CFrame.new(0, -500, 0)
+		end
+	end
 	if level then
 		local bmin = level:GetAttribute("BuildMin") :: Vector3?
 		local bmax = level:GetAttribute("BuildMax") :: Vector3?
@@ -510,7 +540,7 @@ local function visuals(dt: number)
 			local span = bmax.X - bmin.X + 160
 			for _, b in birds do
 				local x = bmin.X - 80 + ((t * b.speed + b.offset) % (span * 2))
-				local visible = x < bmax.X + 80
+				local visible = x < bmax.X + 80 and level:GetAttribute("World") ~= "Factory" -- no birds indoors
 				local pos = Vector3.new(x, b.y + math.sin(t * 0.8 + b.offset) * 2, b.z)
 				local flap = math.sin(t * 9 + b.offset) * 0.6
 				local cf = if visible then CFrame.new(pos) else CFrame.new(0, -500, 0)
@@ -533,7 +563,15 @@ local function visuals(dt: number)
 		local decor = level:FindFirstChild("Decor")
 		if decor then
 			for _, m in decor:GetChildren() do
-				if m:IsA("Model") and m:GetAttribute("Group") == "cloud" then
+				if m:IsA("Model") and m:GetAttribute("Group") == "gear" then
+					local base = m:GetAttribute("Base") :: CFrame?
+					if not base then
+						m:SetAttribute("Base", m:GetPivot())
+						base = m:GetPivot()
+					end
+					local spin = (m:GetAttribute("Spin") :: number?) or 0.3
+					m:PivotTo((base :: CFrame) * CFrame.Angles(0, 0, t * spin))
+				elseif m:IsA("Model") and m:GetAttribute("Group") == "cloud" then
 					local base = m:GetAttribute("Base") :: CFrame?
 					if not base then
 						m:SetAttribute("Base", m:GetPivot())
@@ -550,6 +588,21 @@ end
 -- Things that physically carry or push you: run before physics.
 local function physicsStep(dt: number)
 	local t = now()
+	local level = workspace:FindFirstChild("Level")
+	if level ~= conveyorLevel then
+		conveyorLevel = level
+		table.clear(levelConveyors)
+		if level then
+			for _, d in level:GetDescendants() do
+				if d:IsA("BasePart") and d:GetAttribute("Conveyor") then
+					table.insert(levelConveyors, d)
+				end
+			end
+		end
+	end
+	for _, belt in levelConveyors do
+		belt.AssemblyLinearVelocity = Vector3.new(belt:GetAttribute("Conveyor") :: number, 0, 0)
+	end
 	local root = Movement.root()
 	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
 	local windX = 0
@@ -558,7 +611,7 @@ local function physicsStep(dt: number)
 		if not model.Parent or not rec.ready then
 			continue
 		end
-		local age = t - rec.placedAt
+		local age = Objects.age(model, t)
 
 		if rec.id == "mover" then
 			local travel = 10
@@ -630,6 +683,7 @@ local function physicsStep(dt: number)
 					Fx.ring(from, Style.UI.Cool, 5)
 					Fx.ring(to, Style.UI.Accent, 5)
 					Sound.play("whoosh")
+					Sound.play("portal", 0.1)
 				end
 			end
 		elseif rec.id == "fan" then
@@ -697,6 +751,14 @@ function ObjectController.init()
 		p.CastShadow = false
 		p.Parent = ballFolder
 		return p
+	end
+	for _ = 1, 40 do
+		local f = bit(Vector3.new(0.3, 0.3, 0.3))
+		f.Shape = Enum.PartType.Ball
+		f.Color = Style.UI.Paper
+		f.Transparency = 0.15
+		f.CFrame = CFrame.new(0, -500, 0)
+		table.insert(flakes, f)
 	end
 	for i = 1, 3 do
 		table.insert(birds, {

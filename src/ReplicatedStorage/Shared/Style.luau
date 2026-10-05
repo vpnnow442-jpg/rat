@@ -48,6 +48,35 @@ Style.Forest = {
 	Cloud = Color3.fromRGB(252, 250, 246),
 }
 
+Style.Mountain = {
+	Snow = Color3.fromRGB(240, 244, 248),
+	SnowShade = Color3.fromRGB(212, 222, 234),
+	Rock = Color3.fromRGB(124, 130, 142),
+	RockDark = Color3.fromRGB(96, 102, 114),
+	Ice = Color3.fromRGB(176, 220, 236),
+	Pine = Color3.fromRGB(58, 98, 82),
+	PineDark = Color3.fromRGB(44, 80, 68),
+	Peak = Color3.fromRGB(166, 178, 198),
+	PeakFar = Color3.fromRGB(196, 206, 222),
+	Mist = Color3.fromRGB(232, 238, 244),
+}
+
+Style.Factory = {
+	Floor = Color3.fromRGB(104, 108, 118),
+	Concrete = Color3.fromRGB(132, 130, 128),
+	Steel = Color3.fromRGB(122, 130, 142),
+	SteelDark = Color3.fromRGB(80, 86, 98),
+	Girder = Color3.fromRGB(214, 122, 56),
+	GirderDark = Color3.fromRGB(170, 92, 44),
+	Hazard = Color3.fromRGB(240, 184, 72),
+	Brick = Color3.fromRGB(150, 94, 78),
+	BrickDark = Color3.fromRGB(124, 76, 64),
+	Pipe = Color3.fromRGB(88, 138, 158),
+	Window = Color3.fromRGB(244, 224, 176),
+	Belt = Color3.fromRGB(52, 50, 60),
+	Goo = Color3.fromRGB(124, 198, 90),
+}
+
 -- Shared materials for placed objects so they read as one family
 Style.Object = {
 	Metal = Color3.fromRGB(96, 100, 112),

@@ -24,6 +24,7 @@ local PlaceEvent = Net.event("Place")
 local PlaceResult = Net.event("PlaceResult")
 local Explode = Net.event("Explode")
 local Cursor = Net.unreliable("Cursor")
+local PickCursor = Net.unreliable("PickCursor")
 
 local BuildService = {}
 
@@ -117,6 +118,28 @@ end
 -- Pick
 --------------------------------------------------------------------------
 
+-- Everyone sees everyone's cursor over the crate (screen position, 0..1)
+local lastPickCursor = {} :: { [Player]: number }
+local function onPickCursor(player: Player, nx: any, ny: any)
+	if not pickOpen or not table.find(pickers, player) then
+		return
+	end
+	if typeof(nx) ~= "number" or typeof(ny) ~= "number" or nx ~= nx or ny ~= ny then
+		return
+	end
+	local now = os.clock()
+	if now - (lastPickCursor[player] or 0) < 0.06 then
+		return
+	end
+	lastPickCursor[player] = now
+	nx, ny = math.clamp(nx, 0, 1), math.clamp(ny, 0, 1)
+	for _, other in pickers do
+		if other ~= player and other.Parent then
+			PickCursor:FireClient(other, player.UserId, nx, ny)
+		end
+	end
+end
+
 local function onPick(player: Player, slot: any)
 	if not pickOpen or picked[player] or not table.find(pickers, player) then
 		return
@@ -159,6 +182,11 @@ end
 -- Too slow? You get whatever's left.
 function BuildService.closePick()
 	pickOpen = false
+	for _, p in pickers do
+		if p.Parent then
+			PickCursor:FireClient(p, 0, -1, -1) -- clear all
+		end
+	end
 	for _, p in pickers do
 		if p.Parent and not picked[p] then
 			local free = {}
@@ -320,6 +348,7 @@ end
 
 function BuildService.init()
 	PickEvent.OnServerEvent:Connect(onPick)
+	PickCursor.OnServerEvent:Connect(onPickCursor)
 	PlaceEvent.OnServerEvent:Connect(onPlace)
 	Cursor.OnServerEvent:Connect(onCursor)
 	Players.PlayerRemoving:Connect(function(p)

@@ -26,7 +26,7 @@ Core loop: **PICK → BUILD → RUN → FAIL/LAUGH → SCORE → AGAIN**.
 | # | Phase | Status |
 |---|---|---|
 | 1 | Movement & physics | ✅ coyote time, jump buffer, air jump, wall slide/jump, ice, honey, launches, 2.5D lock |
-| 2 | Level & goal | ✅ 3 big Forest layouts (~236 studs) with high/low routes, safe zones, flag |
+| 2 | Level & goal | ✅ 7 maps in 3 worlds (Forest, Mountain, Factory), each with its own pieces, background, lighting; finish detected by touch *and* position |
 | 3 | Pick + build phase | ✅ shared pick box, ghost preview, snap, rotate, cancel, zoom/pan build camera, live ghosts of other builders, server validation |
 | 4 | Round system | ✅ intro → (pick → build → countdown → run → results) until 600 points → winner |
 | 5 | Scoring | ✅ 100/75/50/25, traps, clutch, own-route, too easy / too hard; animated bar table with a finish line |
@@ -46,6 +46,12 @@ Open `ChaosCourse.rbxlx` in Studio, press **Play**, then **Play** in the menu (s
 For multiplayer: **Test → Clients and Servers → 2–4 players → Start**.
 
 New in this version:
+- [ ] Reaching the flag always counts (checkered finish pad marks it)
+- [ ] Lasers wait 2s at the start of a race; nothing kills you in the first second
+- [ ] Your name (in your animal's colour) floats over your character; "YOU" marker over yours
+- [ ] While picking/placing, your cursor is your animal's head; you see everyone's cursors in the crate
+- [ ] Mountain and Factory worlds: ice slides, conveyors carry you, snow falls, gears turn
+- [ ] Footsteps, fall wind, and a distinct sound for each trap
 - [ ] **Double jump works with fast taps** (was broken: fast double-taps got ignored)
 - [ ] Pick box is full screen, pieces scattered, no descriptions
 - [ ] Score table is full screen

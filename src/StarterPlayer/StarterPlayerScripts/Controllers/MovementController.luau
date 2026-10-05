@@ -52,6 +52,8 @@ local iceVX = 0
 local peakFall = 0
 local jetUntil = 0
 local lastFlame = 0
+local nextStep = 0
+local windPlayed = false
 
 local rayParams = RaycastParams.new()
 rayParams.CollisionGroup = "Players" -- skips every character's hitbox
@@ -261,6 +263,22 @@ local function physics(dt: number)
 		end
 	end
 
+	-- footsteps: faster stride, faster steps
+	local vxAbs = math.abs(v.X)
+	if onFloor and vxAbs > 4 and now > nextStep then
+		nextStep = now + math.clamp(5.5 / vxAbs, 0.2, 0.45)
+		Sound.play("step", 0.25)
+	end
+	-- a rush of wind once you're really dropping
+	if not onFloor and v.Y < -70 then
+		if not windPlayed then
+			windPlayed = true
+			Sound.play("fallwind", 0.1)
+		end
+	elseif onFloor then
+		windPlayed = false
+	end
+
 	-- Jetpack: holding jump pushes you up toward a steady climb
 	if now < jetUntil and jumpHeld() then
 		local cur = root.AssemblyLinearVelocity
@@ -269,6 +287,9 @@ local function physics(dt: number)
 		if now - lastFlame > 0.05 then
 			lastFlame = now
 			Fx.puff(p - Vector3.new(0, 2.2, 0), 1, 0.5, Color3.fromRGB(255, 176, 80))
+			if math.random() < 0.35 then
+				Sound.play("jet", 0.3)
+			end
 		end
 	end
 end

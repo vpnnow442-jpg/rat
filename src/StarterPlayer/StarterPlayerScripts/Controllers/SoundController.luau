@@ -1,8 +1,13 @@
 -- Every sound in the game goes through here, so swapping in real audio later
 -- is a matter of editing this one table.
 --
--- PLACEHOLDERS: these are sounds that ship inside the Roblox client.
--- Replace with Creator Store audio ("rbxassetid://123...") before release.
+-- These are sounds that ship inside the Roblox client, pitched and varied so
+-- each action still sounds distinct. To upgrade any of them:
+--   1. In Studio open the Toolbox -> Audio, search e.g. "cartoon boing"
+--   2. Prefer sounds uploaded by Roblox (those are free and always public)
+--   3. Right-click the sound -> Copy Asset ID
+--   4. Paste it below as  id = "rbxassetid://THE_NUMBER"
+-- Nothing else in the game needs to change.
 
 local SoundService = game:GetService("SoundService")
 
@@ -32,6 +37,16 @@ local SOUNDS = {
 	crate = { id = "rbxasset://sounds/swoosh.wav", volume = 0.5, pitch = 0.65 },
 	hover = { id = "rbxasset://sounds/clickfast.wav", volume = 0.15, pitch = 2.2 },
 	victory = { id = "rbxasset://sounds/victory.wav", volume = 0.5, pitch = 1 },
+	step = { id = "rbxasset://sounds/action_footsteps_plastic.mp3", volume = 0.18, pitch = 1.25 },
+	fallwind = { id = "rbxasset://sounds/action_falling.mp3", volume = 0.3, pitch = 1 },
+	dart = { id = "rbxasset://sounds/swoosh.wav", volume = 0.35, pitch = 1.9 },
+	puckshot = { id = "rbxasset://sounds/collide.wav", volume = 0.3, pitch = 1.7 },
+	planeshot = { id = "rbxasset://sounds/swoosh.wav", volume = 0.25, pitch = 1.3 },
+	laser = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.3, pitch = 0.45 },
+	door = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 0.6 },
+	crumble = { id = "rbxasset://sounds/collide.wav", volume = 0.4, pitch = 0.7 },
+	jet = { id = "rbxasset://sounds/swoosh.wav", volume = 0.12, pitch = 0.55 },
+	portal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.35, pitch = 0.8 },
 }
 
 local SoundController = {}

@@ -327,6 +327,10 @@ local function update(list: { any })
 	end
 end
 
+function Pick.isOpen(): boolean
+	return crate ~= nil
+end
+
 function Pick.init()
 	gui = UI.new("ScreenGui", {
 		Name = "PickBox",

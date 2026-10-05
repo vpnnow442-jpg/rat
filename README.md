@@ -35,11 +35,22 @@ Multiplayer test: **Test → Clients and Servers → pick 2–4 players → Star
 | Jetpack (after grabbing one) | Hold jump | Hold A | Hold jump |
 | Emotes: wave, dance, laugh, sit | 1 / 2 / 3 / 4 | — | Buttons, bottom left |
 
+## Worlds
+
+| World | Maps | What's different |
+|---|---|---|
+| Forest | Mossy Hollow, Fallen Log, Canopy Run | grass, logs, treetop decks, river below |
+| Mountain | Frosty Ridge, Avalanche Pass | natural **ice** (keeps your momentum), cliffs, snowfall |
+| Factory | Assembly Line, Pipe Dream | **conveyor belts** (some run backwards), girders, pipes, toxic goo below |
+
+A different map every match, and a different world whenever possible.
+
 ## How a round works
 
 1. **Pick**: your screen turns into a crate with 4–7 pieces tossed in. First click wins.
 2. **Build**: everyone places their piece. You see other players' ghosts live.
-3. **Run**: race to the flag.
+3. **Run**: race to the flag. For the first second nothing can take you out
+   (spawn protection), and lasers stay off for 2 seconds.
 4. **Score**: the full-screen bar table fills in. First to **600** wins (max 12 rounds, last one double).
    Carry a **coin** to the flag for bonus points.
 

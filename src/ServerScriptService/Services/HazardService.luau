@@ -150,7 +150,7 @@ function HazardService.tick(running: { Player })
 			paths[m] = cache
 		end
 		local c = cache :: { path: { Vector3 }, len: number, at: number }
-		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local age = Objects.age(m, now)
 		local step = Objects.Shooters[id].speed * 0.12
 		for _, shot in Objects.activeShots(id, age, c.len) do
 			local a = Objects.shotPosition(id, c.path, pivot, math.max(shot.dist - step, 0))
@@ -190,7 +190,7 @@ function HazardService.tick(running: { Player })
 			table.remove(lasers, i)
 			continue
 		end
-		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local age = Objects.age(m, now)
 		if Objects.laserState(age) ~= "on" then
 			continue
 		end

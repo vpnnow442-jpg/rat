@@ -17,6 +17,7 @@ local Style = require(Shared.Style)
 
 local Camera = require(script.Parent.CameraController)
 local Hud = require(script.Parent.HudController)
+local Portrait = require(script.Parent.Portrait)
 local Sound = require(script.Parent.SoundController)
 local State = require(script.Parent.State)
 
@@ -216,14 +217,21 @@ end
 local function nameTag(model: Model, userId: number)
 	local p = Players:GetPlayerByUserId(userId)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(140, 20)
-	gui.StudsOffset = Vector3.new(0, 2.5, 0)
+	gui.Size = UDim2.fromOffset(120, 84)
+	gui.StudsOffset = Vector3.new(0, 3.2, 0)
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
+	local vp = Portrait.head(State.speciesOf[userId])
+	vp.Size = UDim2.fromOffset(56, 56)
+	vp.AnchorPoint = Vector2.new(0.5, 0)
+	vp.Position = UDim2.fromScale(0.5, 0)
+	vp.Parent = gui
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
+	label.AnchorPoint = Vector2.new(0.5, 0)
+	label.Position = UDim2.new(0.5, 0, 0, 56)
+	label.Size = UDim2.fromOffset(120, 22)
 	label.BackgroundTransparency = 1
-	label.FontFace = Style.Font.Bold
+	label.FontFace = Style.Font.Title
 	label.TextSize = 14
 	label.TextColor3 = Style.UI.Paper
 	label.Text = if p then p.DisplayName else "?"

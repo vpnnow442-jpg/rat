@@ -1,13 +1,13 @@
 <roblox version="4">
-  <Item class="Workspace" referent="RBXE481A75831A8420AA7B9E61FD1339BD3">
+  <Item class="Workspace" referent="RBXA494DF5E03D441488190BC426707921B">
     <Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties>
   </Item>
-  <Item class="Lighting" referent="RBX2158B7EBE981476F9C12A881E527DA5C">
+  <Item class="Lighting" referent="RBXD2B38B7F27C643F18391DB121863CB21">
     <Properties><string name="Name">Lighting</string></Properties>
   </Item>
-  <Item class="ReplicatedFirst" referent="RBX9951DA0932B64F67BF7996E22A9CF3EB">
+  <Item class="ReplicatedFirst" referent="RBX93DAB8D918144DA5B36C3FBCE4BE9D04">
     <Properties><string name="Name">ReplicatedFirst</string></Properties>
-    <Item class="LocalScript" referent="RBX0DFC00A6D62147C6AFE8BBD77808711E">
+    <Item class="LocalScript" referent="RBX64E73B8E7F1C413E852650CBEF089DD7">
       <Properties><string name="Name">Loading</string><ProtectedString name="Source"><![CDATA[-- Loading screen. Runs before anything else, so it can't use the shared
 -- modules yet: colours and fonts are repeated here on purpose.
 -- Tips teach the core rule while you wait.
@@ -201,11 +201,11 @@ gui:Destroy()
 ]]></ProtectedString></Properties>
     </Item>
   </Item>
-  <Item class="ReplicatedStorage" referent="RBX07D6260AA881400DBAFE1BDA83CF85A0">
+  <Item class="ReplicatedStorage" referent="RBX88C5A04824D84925B80FDB2C3BC34576">
     <Properties><string name="Name">ReplicatedStorage</string></Properties>
-    <Item class="Folder" referent="RBX3C82CD4C5C614301BB08C7C971C5785D">
+    <Item class="Folder" referent="RBX54E2833396A8424295B573DB249CA56B">
       <Properties><string name="Name">Shared</string></Properties>
-      <Item class="ModuleScript" referent="RBX5C3B0B389AA04FA6AA4F1137C2704C95">
+      <Item class="ModuleScript" referent="RBXE0A328E55A1744518EE489D1432F1304">
         <Properties><string name="Name">Characters</string><ProtectedString name="Source"><![CDATA[--!strict
 -- The cast. Every animal shares the exact same hitbox (HumanoidRootPart);
 -- everything you see is massless decoration animated by the client.
@@ -416,7 +416,7 @@ end
 return Characters
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX0B5A7C38D7E84640A7CBD4D769694077">
+      <Item class="ModuleScript" referent="RBX1BBA59FCC0AB4136AAE4F309FC0A66D0">
         <Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Every tuning number lives here so playtesting changes are one-line edits.
 
@@ -492,7 +492,7 @@ Config.World = {
 return Config
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX76B4956A9B0F4F4895FE1EA003B55F62">
+      <Item class="ModuleScript" referent="RBXA7FFE32175FF4AD8B87A4077EFC4D99A">
         <Properties><string name="Name">Levels</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Hand-authored layouts, stored as plain data.
 -- The same shape will be what community levels save to DataStores later.
@@ -508,10 +508,11 @@ return Config
 -- Reference: single jump ~7 studs high, double jump ~12, ~18 across.
 
 export type Piece = {
-	kind: "ground" | "ledge" | "stump" | "tree" | "rock" | "log",
+	kind: "ground" | "ledge" | "stump" | "tree" | "rock" | "log" | "cliff" | "ice" | "girder" | "pipe" | "conveyor",
 	x0: number,
 	x1: number,
 	top: number,
+	speed: number?, -- conveyors: studs/s, negative runs backwards
 }
 
 export type Layout = {
@@ -597,10 +598,113 @@ Levels.Forest = {
 	},
 } :: { Layout }
 
+-- MOUNTAIN: snow, cliffs, and natural ice that keeps your momentum
+Levels.Mountain = {
+	{
+		name = "Frosty Ridge",
+		world = "Mountain",
+		spawn = Vector2.new(0, 12),
+		flag = Vector2.new(214, 20),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 68),
+		seed = 51,
+		pieces = {
+			{ kind = "ground", x0 = -12, x1 = 12, top = 12 },
+			{ kind = "ice", x0 = 26, x1 = 48, top = 8 },
+			{ kind = "cliff", x0 = 58, x1 = 64, top = 18 },
+			{ kind = "ledge", x0 = 72, x1 = 86, top = 30 },
+			{ kind = "ground", x0 = 76, x1 = 98, top = 6 },
+			{ kind = "cliff", x0 = 112, x1 = 118, top = 18 },
+			{ kind = "ice", x0 = 128, x1 = 152, top = 12 },
+			{ kind = "ledge", x0 = 162, x1 = 174, top = 22 },
+			{ kind = "cliff", x0 = 180, x1 = 186, top = 14 },
+			{ kind = "ground", x0 = 202, x1 = 232, top = 20 },
+		},
+	},
+	{
+		name = "Avalanche Pass",
+		world = "Mountain",
+		spawn = Vector2.new(-2, 22),
+		flag = Vector2.new(216, 24),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 72),
+		seed = 67,
+		pieces = {
+			{ kind = "ground", x0 = -12, x1 = 10, top = 22 },
+			{ kind = "ledge", x0 = 24, x1 = 36, top = 16 },
+			{ kind = "ice", x0 = 48, x1 = 68, top = 10 },
+			{ kind = "cliff", x0 = 80, x1 = 85, top = 20 },
+			{ kind = "ground", x0 = 96, x1 = 120, top = 14 },
+			{ kind = "ledge", x0 = 106, x1 = 118, top = 34 },
+			{ kind = "cliff", x0 = 132, x1 = 137, top = 22 },
+			{ kind = "ice", x0 = 148, x1 = 172, top = 16 },
+			{ kind = "cliff", x0 = 184, x1 = 188, top = 28 },
+			{ kind = "ground", x0 = 202, x1 = 232, top = 24 },
+		},
+	},
+} :: { Layout }
+
+-- FACTORY: steel girders, pipes, and conveyor belts (some run backwards)
+Levels.Factory = {
+	{
+		name = "Assembly Line",
+		world = "Factory",
+		spawn = Vector2.new(0, 10),
+		flag = Vector2.new(216, 18),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 64),
+		seed = 83,
+		pieces = {
+			{ kind = "ground", x0 = -12, x1 = 12, top = 10 },
+			{ kind = "conveyor", x0 = 26, x1 = 48, top = 8, speed = 10 },
+			{ kind = "pipe", x0 = 58, x1 = 62, top = 18 },
+			{ kind = "girder", x0 = 70, x1 = 86, top = 26 },
+			{ kind = "conveyor", x0 = 76, x1 = 102, top = 4, speed = -9 },
+			{ kind = "pipe", x0 = 114, x1 = 118, top = 14 },
+			{ kind = "girder", x0 = 126, x1 = 142, top = 12 },
+			{ kind = "conveyor", x0 = 152, x1 = 174, top = 16, speed = 12 },
+			{ kind = "girder", x0 = 178, x1 = 190, top = 24 },
+			{ kind = "ground", x0 = 204, x1 = 232, top = 18 },
+		},
+	},
+	{
+		name = "Pipe Dream",
+		world = "Factory",
+		spawn = Vector2.new(-2, 18),
+		flag = Vector2.new(214, 12),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 66),
+		seed = 97,
+		pieces = {
+			{ kind = "ground", x0 = -12, x1 = 10, top = 18 },
+			{ kind = "pipe", x0 = 22, x1 = 26, top = 14 },
+			{ kind = "girder", x0 = 34, x1 = 50, top = 22 },
+			{ kind = "conveyor", x0 = 40, x1 = 70, top = 6, speed = 11 },
+			{ kind = "pipe", x0 = 80, x1 = 84, top = 16 },
+			{ kind = "girder", x0 = 92, x1 = 108, top = 30 },
+			{ kind = "conveyor", x0 = 98, x1 = 126, top = 10, speed = -10 },
+			{ kind = "pipe", x0 = 138, x1 = 142, top = 20 },
+			{ kind = "girder", x0 = 152, x1 = 170, top = 14 },
+			{ kind = "pipe", x0 = 182, x1 = 186, top = 20 },
+			{ kind = "ground", x0 = 200, x1 = 232, top = 12 },
+		},
+	},
+} :: { Layout }
+
+function Levels.all(): { Layout }
+	local list = {}
+	for _, group in { Levels.Forest, Levels.Mountain, Levels.Factory } do
+		for _, l in group do
+			table.insert(list, l)
+		end
+	end
+	return list
+end
+
 return Levels
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXFAF8CA1B24784653AC059046A039759B">
+      <Item class="ModuleScript" referent="RBXF2D3571864884E1BB584B5BCD8393765">
         <Properties><string name="Name">Net</string><ProtectedString name="Source"><![CDATA[--!strict
 -- All remotes in one place. Server creates them, clients wait for them.
 -- Rule: clients only ever *ask*. The server decides everything that matters.
@@ -631,6 +735,7 @@ local FUNCTIONS = {
 
 local UNRELIABLE = {
 	"Cursor", -- C->S->C  live ghost previews of other builders
+	"PickCursor", -- C->S->C  everyone's animal cursor over the pick box
 }
 
 local Net = {}
@@ -674,7 +779,7 @@ end
 return Net
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX1E0833C890374B20B35313A06A4FE9E0">
+      <Item class="ModuleScript" referent="RBX65F7E02A081F4A93A0E5115B6B1390C8">
         <Properties><string name="Name">Objects</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Placeable object definitions + their models.
 -- The server builds the real thing; the client builds the same model for
@@ -770,10 +875,24 @@ end
 -- Timed objects: both server and client compute state from the same clock
 --------------------------------------------------------------------------
 
+-- How long a timed object has been running. Every timed trap restarts its
+-- cycle when the race starts (workspace "RunStart"), so nothing is already
+-- mid-fire the moment you're released.
+function Objects.age(model: Model, now: number): number
+	local placed = (model:GetAttribute("PlacedAt") :: number?) or now
+	local runStart = workspace:GetAttribute("RunStart") :: number?
+	local base = if runStart and runStart > placed then runStart else placed
+	return now - base
+end
+
 Objects.LASER_PERIOD = 3.2
--- "on" for 1.4s, a short "warn" flicker before it fires again, otherwise "off"
+Objects.LASER_DELAY = 2 -- quiet at the start of every race...
+-- then "on" for 1.4s, a "warn" flicker before each shot, otherwise "off"
 function Objects.laserState(age: number): string
-	local t = age % Objects.LASER_PERIOD
+	if age < Objects.LASER_DELAY then
+		return if age > Objects.LASER_DELAY - 0.6 then "warn" else "off"
+	end
+	local t = (age - Objects.LASER_DELAY) % Objects.LASER_PERIOD
 	if t < 1.4 then
 		return "on"
 	elseif t > Objects.LASER_PERIOD - 0.5 then
@@ -812,9 +931,9 @@ Objects.PORTAL_SPAN = 14 -- distance from the entry ring to the exit ring
 export type Shooter = { interval: number, speed: number, delay: number, muzzle: Vector3, mode: string, range: number, wave: number? }
 
 Objects.Shooters = {
-	darts = { interval = 2.0, speed = 34, delay = 0.8, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
-	puck = { interval = 3.0, speed = 24, delay = 1.2, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
-	plane = { interval = 3.2, speed = 13, delay = 1.0, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
+	darts = { interval = 2.0, speed = 34, delay = 1.6, muzzle = Vector3.new(1.1, 0, 0), mode = "ray", range = 70 },
+	puck = { interval = 3.0, speed = 24, delay = 1.8, muzzle = Vector3.new(1.7, -0.3, 0), mode = "bounce", range = 110 },
+	plane = { interval = 3.2, speed = 13, delay = 1.6, muzzle = Vector3.new(1.2, 0.3, 0), mode = "fixed", range = 60, wave = 2.2 },
 } :: { [string]: Shooter }
 
 -- Raycast against solid level/object geometry only. Skips anything that
@@ -1360,7 +1479,7 @@ end
 return Objects
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX624EA5E5B2F046D3AFEA7C88DA4CC461">
+      <Item class="ModuleScript" referent="RBXF06C90B943134E28816486EA7CB423D0">
         <Properties><string name="Name">Style</string><ProtectedString name="Source"><![CDATA[--!strict
 -- One palette for UI and world. Flat colors, no gradients, no neon.
 
@@ -1411,6 +1530,35 @@ Style.Forest = {
 	Cloud = Color3.fromRGB(252, 250, 246),
 }
 
+Style.Mountain = {
+	Snow = Color3.fromRGB(240, 244, 248),
+	SnowShade = Color3.fromRGB(212, 222, 234),
+	Rock = Color3.fromRGB(124, 130, 142),
+	RockDark = Color3.fromRGB(96, 102, 114),
+	Ice = Color3.fromRGB(176, 220, 236),
+	Pine = Color3.fromRGB(58, 98, 82),
+	PineDark = Color3.fromRGB(44, 80, 68),
+	Peak = Color3.fromRGB(166, 178, 198),
+	PeakFar = Color3.fromRGB(196, 206, 222),
+	Mist = Color3.fromRGB(232, 238, 244),
+}
+
+Style.Factory = {
+	Floor = Color3.fromRGB(104, 108, 118),
+	Concrete = Color3.fromRGB(132, 130, 128),
+	Steel = Color3.fromRGB(122, 130, 142),
+	SteelDark = Color3.fromRGB(80, 86, 98),
+	Girder = Color3.fromRGB(214, 122, 56),
+	GirderDark = Color3.fromRGB(170, 92, 44),
+	Hazard = Color3.fromRGB(240, 184, 72),
+	Brick = Color3.fromRGB(150, 94, 78),
+	BrickDark = Color3.fromRGB(124, 76, 64),
+	Pipe = Color3.fromRGB(88, 138, 158),
+	Window = Color3.fromRGB(244, 224, 176),
+	Belt = Color3.fromRGB(52, 50, 60),
+	Goo = Color3.fromRGB(124, 198, 90),
+}
+
 -- Shared materials for placed objects so they read as one family
 Style.Object = {
 	Metal = Color3.fromRGB(96, 100, 112),
@@ -1429,9 +1577,9 @@ return Style
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX0A4912A7DA4E4987894F79E94E4D244D">
+  <Item class="ServerScriptService" referent="RBXBE699683ED45483C8AEE7BFFC2B047F5">
     <Properties><string name="Name">ServerScriptService</string></Properties>
-    <Item class="Script" referent="RBXCA777153CEE74DD5812FC13622496790">
+    <Item class="Script" referent="RBX43C6FB9668F143A6AA9E41B6F1165C10">
       <Properties><string name="Name">Main</string><ProtectedString name="Source"><![CDATA[-- Server entry point. Services are plain modules; order matters only here.
 
 local Services = script.Parent.Services
@@ -1451,9 +1599,9 @@ LobbyService.init()
 MatchService.start()
 ]]></ProtectedString></Properties>
     </Item>
-    <Item class="Folder" referent="RBXE779E3C81F4B49DA96F9D8C2D3F6F286">
+    <Item class="Folder" referent="RBX5E4B3B668B824A119F4626708DF5C0D3">
       <Properties><string name="Name">Services</string></Properties>
-      <Item class="ModuleScript" referent="RBXFE4713B453C6421CA32987DF667B698A">
+      <Item class="ModuleScript" referent="RBX1CDD38C2F82541D293A3BE52DDFB9246">
         <Properties><string name="Name">BuildService</string><ProtectedString name="Source"><![CDATA[-- The pick box and the build phase.
 --
 -- Pick: a crate opens with (players + 2) pieces. First click wins a piece;
@@ -1480,6 +1628,7 @@ local PlaceEvent = Net.event("Place")
 local PlaceResult = Net.event("PlaceResult")
 local Explode = Net.event("Explode")
 local Cursor = Net.unreliable("Cursor")
+local PickCursor = Net.unreliable("PickCursor")
 
 local BuildService = {}
 
@@ -1573,6 +1722,28 @@ end
 -- Pick
 --------------------------------------------------------------------------
 
+-- Everyone sees everyone's cursor over the crate (screen position, 0..1)
+local lastPickCursor = {} :: { [Player]: number }
+local function onPickCursor(player: Player, nx: any, ny: any)
+	if not pickOpen or not table.find(pickers, player) then
+		return
+	end
+	if typeof(nx) ~= "number" or typeof(ny) ~= "number" or nx ~= nx or ny ~= ny then
+		return
+	end
+	local now = os.clock()
+	if now - (lastPickCursor[player] or 0) < 0.06 then
+		return
+	end
+	lastPickCursor[player] = now
+	nx, ny = math.clamp(nx, 0, 1), math.clamp(ny, 0, 1)
+	for _, other in pickers do
+		if other ~= player and other.Parent then
+			PickCursor:FireClient(other, player.UserId, nx, ny)
+		end
+	end
+end
+
 local function onPick(player: Player, slot: any)
 	if not pickOpen or picked[player] or not table.find(pickers, player) then
 		return
@@ -1615,6 +1786,11 @@ end
 -- Too slow? You get whatever's left.
 function BuildService.closePick()
 	pickOpen = false
+	for _, p in pickers do
+		if p.Parent then
+			PickCursor:FireClient(p, 0, -1, -1) -- clear all
+		end
+	end
 	for _, p in pickers do
 		if p.Parent and not picked[p] then
 			local free = {}
@@ -1776,6 +1952,7 @@ end
 
 function BuildService.init()
 	PickEvent.OnServerEvent:Connect(onPick)
+	PickCursor.OnServerEvent:Connect(onPickCursor)
 	PlaceEvent.OnServerEvent:Connect(onPlace)
 	Cursor.OnServerEvent:Connect(onCursor)
 	Players.PlayerRemoving:Connect(function(p)
@@ -1789,7 +1966,7 @@ end
 return BuildService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXCD312B0B81E948A7869DC97726D99BA5">
+      <Item class="ModuleScript" referent="RBXB0AC4439D89D4D04BF56677E8ABBD172">
         <Properties><string name="Name">HazardService</string><ProtectedString name="Source"><![CDATA[-- Server-side object behaviour that has to be authoritative:
 -- deadly contact, crumbling ledges, and "you used your own route" tracking.
 -- Knockback/launch effects run on the client (it owns its character's physics),
@@ -1942,7 +2119,7 @@ function HazardService.tick(running: { Player })
 			paths[m] = cache
 		end
 		local c = cache :: { path: { Vector3 }, len: number, at: number }
-		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local age = Objects.age(m, now)
 		local step = Objects.Shooters[id].speed * 0.12
 		for _, shot in Objects.activeShots(id, age, c.len) do
 			local a = Objects.shotPosition(id, c.path, pivot, math.max(shot.dist - step, 0))
@@ -1982,7 +2159,7 @@ function HazardService.tick(running: { Player })
 			table.remove(lasers, i)
 			continue
 		end
-		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		local age = Objects.age(m, now)
 		if Objects.laserState(age) ~= "on" then
 			continue
 		end
@@ -2049,7 +2226,7 @@ end
 return HazardService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX3772CA8F0C5A429CB84DB4AE2AE30C79">
+      <Item class="ModuleScript" referent="RBXFD738339827847D79A5C459012DDDA95">
         <Properties><string name="Name">LevelService</string><ProtectedString name="Source"><![CDATA[-- Builds a layout into the world: playable pieces, start, flag, safe zones,
 -- and a background with just enough life in it (trees, hills, a river, clouds).
 
@@ -2059,6 +2236,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Levels = require(Shared.Levels)
 local Style = require(Shared.Style)
+
+local Worlds = require(script.Parent.Worlds)
 
 local F = Style.Forest
 local LevelService = {}
@@ -2250,7 +2429,16 @@ local function buildFlag(flag: Vector3)
 	local cloth = part(level, "Flag", Vector3.new(3.4, 2.2, 0.12), CFrame.new(flag.X + 1.85, flag.Y + 7.7, -1), Style.UI.Accent)
 	cloth:SetAttribute("Group", "flag")
 
-	local zone = part(level, "GoalZone", Vector3.new(5, 8, 6), CFrame.new(flag.X, flag.Y + 4, 0), Style.UI.Gold)
+	-- checkered finish pad so the target reads at a glance
+	for i = 0, 5 do
+		for j = 0, 1 do
+			local color = if (i + j) % 2 == 0 then Style.UI.Ink else Style.UI.Paper
+			local tile = part(level, "Finish", Vector3.new(1.2, 0.08, 1.4), CFrame.new(flag.X - 3 + i * 1.2 + 0.6, flag.Y + 0.04, -1.4 + j * 1.4 + 0.7), color)
+			tile.CastShadow = false
+		end
+	end
+
+	local zone = part(level, "GoalZone", Vector3.new(7, 9, 6), CFrame.new(flag.X, flag.Y + 4.5, 0), Style.UI.Gold)
 	zone.Transparency = 1
 	zone.CanTouch = true
 	LevelService.goalZone = zone
@@ -2353,11 +2541,21 @@ function LevelService.build(layout: Levels.Layout)
 	level = Instance.new("Folder")
 	level.Name = "Level"
 	level:SetAttribute("Name", layout.name)
+	level:SetAttribute("World", layout.world)
 	level:SetAttribute("BuildMin", Vector3.new(layout.buildMin.X, layout.buildMin.Y, 0))
 	level:SetAttribute("BuildMax", Vector3.new(layout.buildMax.X, layout.buildMax.Y, 0))
 
+	-- Mountain/Factory pieces come from Worlds; Forest (and any piece a world
+	-- doesn't override) uses the builders above
+	local world = Worlds[layout.world]
+	local ctx: Worlds.Ctx = { part = part, solid = solid, blob = blob, level = level, BOTTOM = BOTTOM, UPRIGHT = UPRIGHT }
 	for _, piece in layout.pieces do
-		builders[piece.kind](piece, rng)
+		local custom = world and world.builders[piece.kind]
+		if custom then
+			custom(ctx, piece, rng)
+		else
+			builders[piece.kind](piece, rng)
+		end
 	end
 
 	LevelService.spawn = Vector3.new(layout.spawn.X, layout.spawn.Y, 0)
@@ -2369,7 +2567,16 @@ function LevelService.build(layout: Levels.Layout)
 	buildFlag(LevelService.flag)
 	safeZone(LevelService.spawn)
 	safeZone(LevelService.flag)
-	buildBackground(layout, rng)
+	if world then
+		local decor = Instance.new("Folder")
+		decor.Name = "Decor"
+		decor.Parent = level
+		world.background(ctx, decor, layout, rng)
+		world.lighting()
+	else
+		buildBackground(layout, rng)
+		setupLighting()
+	end
 
 	level.Parent = workspace
 end
@@ -2392,25 +2599,39 @@ function LevelService.objectsFolder(): Folder
 	return f :: Folder
 end
 
+-- A different map every match, and a different world whenever possible
 function LevelService.pick(previous: string?): Levels.Layout
+	local all = Levels.all()
+	local prevWorld: string? = nil
+	for _, l in all do
+		if l.name == previous then
+			prevWorld = l.world
+		end
+	end
 	local pool = {}
-	for _, l in Levels.Forest do
-		if l.name ~= previous then
+	for _, l in all do
+		if l.name ~= previous and l.world ~= prevWorld then
 			table.insert(pool, l)
+		end
+	end
+	if #pool == 0 then
+		for _, l in all do
+			if l.name ~= previous then
+				table.insert(pool, l)
+			end
 		end
 	end
 	return pool[math.random(1, #pool)]
 end
 
 function LevelService.init()
-	setupLighting()
 	LevelService.objectsFolder()
 end
 
 return LevelService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX4508F80F368A49628D269E7C6A19576B">
+      <Item class="ModuleScript" referent="RBX042963260C5D46298B0D776D5C471603">
         <Properties><string name="Name">LobbyService</string><ProtectedString name="Source"><![CDATA[-- Menus, parties and who's actually playing.
 --
 -- Public server : you open the menu, press PLAY, and join the next round.
@@ -2731,7 +2952,7 @@ end
 return LobbyService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX5BFB0F8A4FC44FD0A25E9C181BFD89B2">
+      <Item class="ModuleScript" referent="RBXFDE08AF01F9E464E9BCE29C8629733BD">
         <Properties><string name="Name">MatchService</string><ProtectedString name="Source"><![CDATA[-- The whole match: pick a level, play rounds until someone crosses
 -- PointsToWin (or MaxRounds runs out, last round double), crown a winner.
 -- With bigger maps a round is ~1.5-2 minutes, so a match lands around 10-15.
@@ -2864,7 +3085,7 @@ end
 return MatchService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX29681716B87D48B08FC0B72B22DEAF5A">
+      <Item class="ModuleScript" referent="RBXE7F8481670FF49F3A4B8C0E5BEADB8D5">
         <Properties><string name="Name">PlayerService</string><ProtectedString name="Source"><![CDATA[-- Owns characters: which animal you are, where your body is, whether you can move.
 -- Nobody ever "dies" in the Roblox sense; we park and release characters instead,
 -- which means no respawn delays and no default death screen.
@@ -2899,27 +3120,41 @@ local function pickSpecies(): string
 	return best
 end
 
-local function nameTag(model: Model, player: Player)
+local function nameTag(model: Model, player: Player, species: string)
 	local head = model:FindFirstChild("Head") :: BasePart
+	local s = Characters.ById[species]
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NameTag"
-	gui.Size = UDim2.fromOffset(160, 22)
-	gui.StudsOffset = Vector3.new(0, 2.7, 0)
-	gui.MaxDistance = 140
+	gui.Size = UDim2.fromOffset(200, 26)
+	gui.StudsOffset = Vector3.new(0, 2.9, 0)
+	gui.MaxDistance = 1000 -- readable even from the zoomed-out build camera
+	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.Adornee = head
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.FontFace = Style.Font.Title
-	label.TextSize = 15
-	label.TextColor3 = Style.UI.Paper
-	label.Text = player.DisplayName
+	local pill = Instance.new("TextLabel")
+	pill.AnchorPoint = Vector2.new(0.5, 0.5)
+	pill.Position = UDim2.fromScale(0.5, 0.5)
+	pill.AutomaticSize = Enum.AutomaticSize.X
+	pill.Size = UDim2.fromOffset(0, 24)
+	pill.BackgroundColor3 = if s then s.body else Style.UI.InkSoft
+	pill.FontFace = Style.Font.Title
+	pill.TextSize = 15
+	pill.TextColor3 = Style.UI.Paper
+	pill.Text = player.DisplayName
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = pill
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 10)
+	pad.PaddingRight = UDim.new(0, 10)
+	pad.Parent = pill
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1.6
+	stroke.Thickness = 2
 	stroke.Color = Style.UI.Ink
-	stroke.Parent = label
-	label.Parent = gui
+	stroke.Transparency = 0.6
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = pill
+	pill.Parent = gui
 	gui.Parent = head
 end
 
@@ -2937,7 +3172,7 @@ function PlayerService.spawn(player: Player)
 
 	local model = Characters.build(species)
 	model.Name = player.Name
-	nameTag(model, player)
+	nameTag(model, player, species)
 	local root = model.PrimaryPart :: BasePart
 	root.Anchored = true
 	model:PivotTo(CFrame.new(Config.World.Hold))
@@ -3060,7 +3295,7 @@ end
 return PlayerService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX3DAA0B2192574691BDF93BD3A220B5C5">
+      <Item class="ModuleScript" referent="RBX67BF784AC45C42C6A35DCAF57F17B0FF">
         <Properties><string name="Name">RoundService</string><ProtectedString name="Source"><![CDATA[-- One round = pick from the box -> build -> run. Also owns the phase
 -- broadcast, since every phase change goes through here.
 
@@ -3174,8 +3409,15 @@ local function isRunning(player: Player): boolean
 	return RoundService.phase == "Run" and status[player] == "running"
 end
 
+local SPAWN_PROTECTION = 1
+
 local function fail(player: Player, cause: string, killerId: number?)
 	if not isRunning(player) then
+		return
+	end
+	-- spawn protection: no trap can take you out in the first second
+	-- (falling out of the world still counts)
+	if cause ~= "fall" and os.clock() - runStarted < SPAWN_PROTECTION then
 		return
 	end
 	status[player] = "dead"
@@ -3236,6 +3478,8 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 	task.wait(Config.Match.CountdownTime)
 
 	runStarted = os.clock()
+	-- every timed trap restarts its cycle from here (see Objects.age)
+	workspace:SetAttribute("RunStart", workspace:GetServerTimeNow())
 	for _, p in runners do
 		status[p] = "running"
 	end
@@ -3265,6 +3509,18 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 			end
 		end
 		HazardService.tick(alive)
+		-- Finish by position too, so reaching the flag can never be missed
+		-- (Touched can drop contacts on fast-moving, client-owned characters)
+		local flag = LevelService.flag
+		for _, p in alive do
+			local root = PlayerService.root(p)
+			if root then
+				local d = root.Position - flag
+				if math.abs(d.X) <= 3.5 and d.Y > -1 and d.Y < 9 then
+					finish(p)
+				end
+			end
+		end
 		for _, p in runners do
 			if status[p] == "running" then
 				local root = PlayerService.root(p)
@@ -3316,7 +3572,7 @@ end
 return RoundService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXCF913DBA0FB04C9B8F76F7B30A9C8A5F">
+      <Item class="ModuleScript" referent="RBX99B79078F8A94276915BA2794F98D280">
         <Properties><string name="Name">ScoringService</string><ProtectedString name="Source"><![CDATA[-- Turns what happened in a run into points.
 --
 -- The rules, in one breath:
@@ -3467,22 +3723,355 @@ end
 return ScoringService
 ]]></ProtectedString></Properties>
       </Item>
+      <Item class="ModuleScript" referent="RBX28BD998EE7154498B7F1031591BB3EE0">
+        <Properties><string name="Name">Worlds</string><ProtectedString name="Source"><![CDATA[-- The non-Forest worlds: their playable pieces, backgrounds and lighting.
+-- Forest lives in LevelService itself; every world shares the same rules:
+-- details only behind the lane or under the walking surface.
+--
+-- MOUNTAIN : snow, cliffs, natural ice (keeps your momentum), pines, peaks
+-- FACTORY  : steel floors, girders, pipes, conveyor belts, toxic goo below
+
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Levels = require(Shared.Levels)
+local Style = require(Shared.Style)
+
+local Mo = Style.Mountain
+local Fa = Style.Factory
+
+export type Ctx = {
+	part: (Instance, string, Vector3, CFrame, Color3, Enum.PartType?) -> Part,
+	solid: (Part) -> Part,
+	blob: (Instance, string, Vector3, CFrame, Color3) -> Part,
+	level: Folder,
+	BOTTOM: number,
+	UPRIGHT: CFrame,
+}
+
+export type World = {
+	builders: { [string]: (Ctx, Levels.Piece, Random) -> () },
+	background: (Ctx, Folder, Levels.Layout, Random) -> (),
+	lighting: () -> (),
+}
+
+local Worlds = {} :: { [string]: World }
+
+local function resetLighting()
+	for _, c in Lighting:GetChildren() do
+		if c:IsA("PostEffect") or c:IsA("Atmosphere") or c:IsA("Sky") then
+			c:Destroy()
+		end
+	end
+end
+
+local function atmosphere(density: number, haze: number, color: Color3, decay: Color3)
+	local a = Instance.new("Atmosphere")
+	a.Density = density
+	a.Offset = 0.1
+	a.Haze = haze
+	a.Glare = 0
+	a.Color = color
+	a.Decay = decay
+	a.Parent = Lighting
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Saturation = 0.05
+	cc.Contrast = 0.04
+	cc.Parent = Lighting
+end
+
+-- A triangle silhouette: a block turned 45 degrees, half sunk below `baseY`
+local function peak(c: Ctx, parent: Instance, x: number, baseY: number, z: number, size: number, depth: number, color: Color3): Part
+	local p = c.part(parent, "Peak", Vector3.new(size, size, depth), CFrame.new(x, baseY, z) * CFrame.Angles(0, 0, math.rad(45)), color)
+	p.CastShadow = false
+	return p
+end
+
+--------------------------------------------------------------------------
+-- MOUNTAIN
+--------------------------------------------------------------------------
+
+local mountain: World = {
+	builders = {},
+	background = function() end,
+	lighting = function() end,
+}
+
+local function snowLumps(c: Ctx, p: Levels.Piece, rng: Random)
+	local w = p.x1 - p.x0
+	for _ = 1, math.max(1, math.floor(w / 7)) do
+		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+		c.blob(c.level, "Drift", Vector3.new(rng:NextNumber(1.6, 3), 0.9, 1.4), CFrame.new(x, p.top + 0.15, -3.2), Mo.SnowShade)
+	end
+	for _ = 1, math.max(2, math.floor(w / 4)) do
+		local x = rng:NextNumber(p.x0 + 0.5, p.x1 - 0.5)
+		c.blob(c.level, "SnowLip", Vector3.new(rng:NextNumber(0.8, 1.6), 0.6, 0.5), CFrame.new(x, p.top - 1.1, 4.15), Mo.Snow)
+	end
+end
+
+mountain.builders.ground = function(c, p, rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	c.solid(c.part(c.level, "Snow", Vector3.new(w + 0.6, 1.2, 8.4), CFrame.new(cx, p.top - 0.6, 0), Mo.Snow))
+	local h = p.top - 1.2 - c.BOTTOM
+	c.solid(c.part(c.level, "Rock", Vector3.new(w, h, 8), CFrame.new(cx, c.BOTTOM + h / 2, 0), Mo.Rock))
+	c.part(c.level, "Strata", Vector3.new(w + 0.02, 1, 8.02), CFrame.new(cx, p.top - 4, 0), Mo.RockDark)
+	snowLumps(c, p, rng)
+end
+
+mountain.builders.ice = function(c, p, rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local slab = c.solid(c.part(c.level, "Ice", Vector3.new(w + 0.4, 1.2, 8.2), CFrame.new(cx, p.top - 0.6, 0), Mo.Ice))
+	slab:SetAttribute("Surface", "ice")
+	local h = p.top - 1.2 - c.BOTTOM
+	c.solid(c.part(c.level, "Rock", Vector3.new(w, h, 8), CFrame.new(cx, c.BOTTOM + h / 2, 0), Mo.Rock))
+	for _ = 1, math.max(2, math.floor(w / 5)) do
+		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+		c.part(c.level, "Shine", Vector3.new(0.14, 0.8, 0.05), CFrame.new(x, p.top - 0.6, 4.13) * CFrame.Angles(0, 0, math.rad(-30)), Color3.new(1, 1, 1))
+	end
+end
+
+mountain.builders.ledge = function(c, p, rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	c.solid(c.part(c.level, "Snow", Vector3.new(w + 0.6, 1.2, 7.4), CFrame.new(cx, p.top - 0.6, 0), Mo.Snow))
+	c.solid(c.part(c.level, "Rock", Vector3.new(w, 2.6, 7), CFrame.new(cx, p.top - 2.5, 0), Mo.Rock))
+	c.blob(c.level, "Underside", Vector3.new(w * 0.8, 3.4, 6), CFrame.new(cx, p.top - 3.6, 0), Mo.RockDark)
+	-- icicles hang behind the lane, never in front of a runner
+	for _ = 1, math.max(2, math.floor(w / 3)) do
+		local x = rng:NextNumber(p.x0 + 0.8, p.x1 - 0.8)
+		local len = rng:NextNumber(0.8, 1.8)
+		c.part(c.level, "Icicle", Vector3.new(0.35, len, 0.35), CFrame.new(x, p.top - 3.8 - len / 2, -2) * CFrame.Angles(0, math.rad(45), 0), Mo.Ice)
+	end
+end
+
+mountain.builders.cliff = function(c, p, rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local h = p.top - c.BOTTOM
+	c.solid(c.part(c.level, "Cliff", Vector3.new(w, h, 7), CFrame.new(cx, c.BOTTOM + h / 2, 0), Mo.Rock))
+	c.blob(c.level, "SnowCap", Vector3.new(w + 1, 1.6, 7.4), CFrame.new(cx, p.top - 0.4, 0), Mo.Snow)
+	for i = 1, 2 do
+		local y = p.top - 5 - i * rng:NextNumber(4, 6)
+		c.part(c.level, "Notch", Vector3.new(w * 0.6, 0.6, 0.3), CFrame.new(cx + rng:NextNumber(-0.5, 0.5), y, 3.6), Mo.RockDark)
+	end
+end
+
+mountain.background = function(c, decor, layout, rng)
+	local midX = (layout.buildMin.X + layout.buildMax.X) / 2
+	local mist = c.part(decor, "Mist", Vector3.new(460, 1, 160), CFrame.new(midX, -16, -40), Mo.Mist)
+	mist.Transparency = 0.3
+	mist.CastShadow = false
+
+	for i = 1, 7 do
+		local s = rng:NextNumber(90, 140)
+		local x = midX - 260 + i * 75 + rng:NextNumber(-20, 20)
+		peak(c, decor, x, -20, -175, s, 20, Mo.PeakFar)
+		peak(c, decor, x, -20 + s * 0.707 - s * 0.18 * 0.707 * 2, -174, s * 0.36, 20.5, Mo.Snow)
+	end
+	for i = 1, 5 do
+		local s = rng:NextNumber(70, 105)
+		local x = midX - 200 + i * 80 + rng:NextNumber(-15, 15)
+		peak(c, decor, x, -24, -115, s, 16, Mo.Peak)
+		peak(c, decor, x, -24 + s * 0.707 - s * 0.2 * 0.707 * 2, -114, s * 0.4, 16.5, Mo.Snow)
+	end
+
+	-- pines: trunk + three stacked triangles
+	for _ = 1, 18 do
+		local x = rng:NextNumber(layout.buildMin.X - 40, layout.buildMax.X + 40)
+		local z = rng:NextNumber(-60, -18)
+		local h = rng:NextNumber(14, 26)
+		local base = -14
+		c.part(decor, "Trunk", Vector3.new(h * 0.3, 1.2, 1.2), CFrame.new(x, base + h * 0.15, z) * c.UPRIGHT, Style.Forest.Bark, Enum.PartType.Cylinder)
+		for k = 0, 2 do
+			local size = h * (0.5 - k * 0.12)
+			peak(c, decor, x, base + h * 0.3 + k * h * 0.22, z, size, 3, if k % 2 == 0 then Mo.Pine else Mo.PineDark)
+		end
+	end
+
+	for i = 1, 5 do
+		local cloud = Instance.new("Model")
+		cloud.Name = "Cloud"
+		local x = midX - 150 + i * 65 + rng:NextNumber(-15, 15)
+		local y = rng:NextNumber(62, 88)
+		local s = rng:NextNumber(0.8, 1.3)
+		c.blob(cloud, "Puff", Vector3.new(16, 6, 6) * s, CFrame.new(x, y, -110), Mo.Snow)
+		c.blob(cloud, "Puff", Vector3.new(9, 6, 5) * s, CFrame.new(x - 4 * s, y + 2.2 * s, -110), Mo.Snow)
+		for _, p in cloud:GetChildren() do
+			(p :: BasePart).CastShadow = false
+		end
+		cloud.WorldPivot = CFrame.new(x, y, -110)
+		cloud:SetAttribute("Group", "cloud")
+		cloud.Parent = decor
+	end
+end
+
+mountain.lighting = function()
+	resetLighting()
+	Lighting.ClockTime = 12.8
+	Lighting.Brightness = 2.6
+	Lighting.Ambient = Color3.fromRGB(118, 126, 146)
+	Lighting.OutdoorAmbient = Color3.fromRGB(170, 178, 198)
+	atmosphere(0.3, 1.7, Color3.fromRGB(226, 234, 244), Color3.fromRGB(168, 186, 212))
+end
+
+Worlds.Mountain = mountain
+
+--------------------------------------------------------------------------
+-- FACTORY
+--------------------------------------------------------------------------
+
+local factory: World = {
+	builders = {},
+	background = function() end,
+	lighting = function() end,
+}
+
+local function hazardStripe(c: Ctx, x0: number, x1: number, y: number, front: number)
+	local w = x1 - x0
+	c.part(c.level, "Stripe", Vector3.new(w, 0.45, 0.05), CFrame.new((x0 + x1) / 2, y, front), Fa.Hazard)
+	local n = math.floor(w / 1.4)
+	for i = 0, n - 1 do
+		local p = c.part(c.level, "Chevron", Vector3.new(0.35, 0.6, 0.06), CFrame.new(x0 + 0.7 + i * 1.4, y, front + 0.01) * CFrame.Angles(0, 0, math.rad(40)), Style.UI.Ink)
+		p.CastShadow = false
+	end
+end
+
+factory.builders.ground = function(c, p, _rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	c.solid(c.part(c.level, "Floor", Vector3.new(w + 0.4, 1, 8.2), CFrame.new(cx, p.top - 0.5, 0), Fa.Floor))
+	local h = p.top - 1 - c.BOTTOM
+	c.solid(c.part(c.level, "Concrete", Vector3.new(w, h, 8), CFrame.new(cx, c.BOTTOM + h / 2, 0), Fa.Concrete))
+	hazardStripe(c, p.x0, p.x1, p.top - 1.4, 4.03)
+end
+
+factory.builders.girder = function(c, p, _rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	c.solid(c.part(c.level, "Flange", Vector3.new(w, 0.6, 4), CFrame.new(cx, p.top - 0.3, 0), Fa.Girder))
+	c.part(c.level, "Web", Vector3.new(w, 1.4, 1), CFrame.new(cx, p.top - 1.3, 0), Fa.GirderDark)
+	c.part(c.level, "Flange", Vector3.new(w, 0.5, 3.4), CFrame.new(cx, p.top - 2.2, 0), Fa.Girder)
+	for x = p.x0 + 1, p.x1 - 1, 2 do
+		c.part(c.level, "Rivet", Vector3.new(0.25, 0.25, 0.06), CFrame.new(x, p.top - 1.3, 0.53), Fa.SteelDark)
+	end
+	-- hung on chains from the ceiling (behind the lane)
+	for _, x in { p.x0 + 1.5, p.x1 - 1.5 } do
+		local len = 80 - p.top
+		c.part(c.level, "Chain", Vector3.new(0.2, len, 0.2), CFrame.new(x, p.top + len / 2, -1.5), Fa.SteelDark)
+	end
+end
+
+factory.builders.pipe = function(c, p, _rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local h = p.top - c.BOTTOM
+	c.solid(c.part(c.level, "Pipe", Vector3.new(h, w, w), CFrame.new(cx, c.BOTTOM + h / 2, 0) * c.UPRIGHT, Fa.Pipe, Enum.PartType.Cylinder))
+	c.part(c.level, "Cap", Vector3.new(0.6, w + 0.6, w + 0.6), CFrame.new(cx, p.top - 0.3, 0) * c.UPRIGHT, Fa.SteelDark, Enum.PartType.Cylinder)
+	for y = p.top - 6, c.BOTTOM + 4, -6 do
+		c.part(c.level, "Flange", Vector3.new(0.4, w + 0.4, w + 0.4), CFrame.new(cx, y, 0) * c.UPRIGHT, Fa.SteelDark, Enum.PartType.Cylinder)
+	end
+end
+
+factory.builders.conveyor = function(c, p, _rng)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local speed = p.speed or 10
+	local belt = c.solid(c.part(c.level, "Belt", Vector3.new(w, 1, 4.4), CFrame.new(cx, p.top - 0.5, 0), Fa.Belt))
+	belt:SetAttribute("Conveyor", speed)
+	belt.AssemblyLinearVelocity = Vector3.new(speed, 0, 0)
+	for _, x in { p.x0, p.x1 } do
+		c.part(c.level, "Roller", Vector3.new(4.5, 1.1, 1.1), CFrame.new(x, p.top - 0.5, 0) * CFrame.Angles(0, math.pi / 2, 0), Fa.Steel, Enum.PartType.Cylinder)
+		local h = p.top - 1 - c.BOTTOM
+		c.part(c.level, "Leg", Vector3.new(1, h, 1), CFrame.new(x + (if x == p.x0 then 1.5 else -1.5), c.BOTTOM + h / 2, -1.2), Fa.SteelDark)
+	end
+	-- arrows on the belt face show which way it runs
+	local dir = if speed >= 0 then 1 else -1
+	for x = p.x0 + 2, p.x1 - 2, 3 do
+		c.part(c.level, "Arrow", Vector3.new(0.7, 0.14, 0.05), CFrame.new(x, p.top - 0.35, 2.23) * CFrame.Angles(0, 0, math.rad(-38 * dir)), Fa.Hazard)
+		c.part(c.level, "Arrow", Vector3.new(0.7, 0.14, 0.05), CFrame.new(x, p.top - 0.65, 2.23) * CFrame.Angles(0, 0, math.rad(38 * dir)), Fa.Hazard)
+	end
+end
+
+factory.background = function(c, decor, layout, rng)
+	local midX = (layout.buildMin.X + layout.buildMax.X) / 2
+	local goo = c.part(decor, "Goo", Vector3.new(460, 1, 120), CFrame.new(midX, -14, -20), Fa.Goo)
+	goo.Transparency = 0.08
+	goo.CastShadow = false
+
+	-- the back wall: brick with mortar lines and a row of warm windows
+	local wall = c.part(decor, "Wall", Vector3.new(520, 140, 2), CFrame.new(midX, 50, -40), Fa.Brick)
+	wall.CastShadow = false
+	for y = -10, 110, 7 do
+		c.part(decor, "Mortar", Vector3.new(520, 0.4, 0.1), CFrame.new(midX, y, -38.95), Fa.BrickDark).CastShadow = false
+	end
+	for i = 0, 12 do
+		local x = midX - 240 + i * 40
+		local win = c.part(decor, "Window", Vector3.new(16, 14, 0.2), CFrame.new(x, 58, -38.9), Fa.Window)
+		win.CastShadow = false
+		c.part(decor, "Mullion", Vector3.new(0.5, 14, 0.25), CFrame.new(x, 58, -38.85), Fa.SteelDark).CastShadow = false
+		c.part(decor, "Transom", Vector3.new(16, 0.5, 0.25), CFrame.new(x, 58, -38.85), Fa.SteelDark).CastShadow = false
+	end
+	-- pipes running along the wall
+	for _, y in { 28, 34 } do
+		c.part(decor, "WallPipe", Vector3.new(520, 1.6, 1.6), CFrame.new(midX, y, -37.5), Fa.Pipe, Enum.PartType.Cylinder).CastShadow = false
+	end
+	-- big slow gears (the client turns them)
+	for i = 1, 4 do
+		local gear = Instance.new("Model")
+		gear.Name = "Gear"
+		local x = midX - 150 + i * 70 + rng:NextNumber(-10, 10)
+		local y = rng:NextNumber(4, 20)
+		local r = rng:NextNumber(7, 11)
+		local center = CFrame.new(x, y, -34)
+		c.part(gear, "Disc", Vector3.new(1, r * 2, r * 2), center * CFrame.Angles(0, math.pi / 2, 0), Fa.SteelDark, Enum.PartType.Cylinder)
+		c.part(gear, "Hub", Vector3.new(1.2, r * 0.6, r * 0.6), center * CFrame.Angles(0, math.pi / 2, 0), Fa.Steel, Enum.PartType.Cylinder)
+		for k = 0, 9 do
+			local a = k / 10 * math.pi * 2
+			c.part(gear, "Tooth", Vector3.new(r * 0.28, r * 0.28, 0.9), center * CFrame.Angles(0, 0, a) * CFrame.new(0, r, 0), Fa.SteelDark)
+		end
+		for _, p in gear:GetChildren() do
+			(p :: BasePart).CastShadow = false
+		end
+		gear.WorldPivot = center
+		gear:SetAttribute("Group", "gear")
+		gear:SetAttribute("Spin", if i % 2 == 0 then 0.3 else -0.3)
+		gear.Parent = decor
+	end
+end
+
+factory.lighting = function()
+	resetLighting()
+	Lighting.ClockTime = 17.4
+	Lighting.Brightness = 1.7
+	Lighting.Ambient = Color3.fromRGB(122, 106, 98)
+	Lighting.OutdoorAmbient = Color3.fromRGB(152, 134, 124)
+	atmosphere(0.34, 1, Color3.fromRGB(232, 204, 176), Color3.fromRGB(122, 102, 92))
+end
+
+Worlds.Factory = factory
+
+return Worlds
+]]></ProtectedString></Properties>
+      </Item>
     </Item>
   </Item>
-  <Item class="ServerStorage" referent="RBXCB08EB38FC9246ACA52759F63C083EC4">
+  <Item class="ServerStorage" referent="RBX95F979732FB7485E9B3A1DF58B49F586">
     <Properties><string name="Name">ServerStorage</string></Properties>
   </Item>
-  <Item class="StarterGui" referent="RBX8554F9A3F2864AD684B5D74940F2EB40">
+  <Item class="StarterGui" referent="RBXAD8FDF2FBFF4440FBA8DAB27522AC693">
     <Properties><string name="Name">StarterGui</string></Properties>
   </Item>
-  <Item class="StarterPack" referent="RBXE2C5126E6AD84F2ABD051CABE6E88A67">
+  <Item class="StarterPack" referent="RBX5E31D4CB57AF41EB98A3912C5E087B15">
     <Properties><string name="Name">StarterPack</string></Properties>
   </Item>
-  <Item class="StarterPlayer" referent="RBX1552C9CD94C24102A1B2015EF59B66B9">
+  <Item class="StarterPlayer" referent="RBX6FA75D0E36ED4FE5A96D6ECAE2EB74DB">
     <Properties><string name="Name">StarterPlayer</string></Properties>
-    <Item class="StarterPlayerScripts" referent="RBX63E0F937F12A4B20BF2A9C52A67FB149">
+    <Item class="StarterPlayerScripts" referent="RBX2312E10DD913440BAD401CE0966D92DE">
       <Properties><string name="Name">StarterPlayerScripts</string></Properties>
-      <Item class="LocalScript" referent="RBX3765C3BB0FF94FB1AE7AD1F429AFD3C3">
+      <Item class="LocalScript" referent="RBXA8CEE56556844D05957D38E1D2E6660F">
         <Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Client entry point. Controllers are plain modules; order matters only here.
 
 if not game:IsLoaded() then
@@ -3501,6 +4090,7 @@ local Objects = require(Controllers.ObjectController)
 local Pick = require(Controllers.PickController)
 local Build = require(Controllers.BuildController)
 local Animator = require(Controllers.CharacterAnimator)
+local Cursor = require(Controllers.CursorController)
 local Menu = require(Controllers.MenuController)
 
 State.init() -- first: everyone else reads State
@@ -3513,12 +4103,13 @@ Objects.init()
 Pick.init()
 Build.init()
 Animator.init()
+Cursor.init()
 task.spawn(Menu.init) -- waits for the loading screen to finish
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="Folder" referent="RBXDF283C4695214EBA9BBCFE06219648ED">
+      <Item class="Folder" referent="RBX4C4ECEDF31D04B4C9F17E52AA5EFC418">
         <Properties><string name="Name">Controllers</string></Properties>
-        <Item class="ModuleScript" referent="RBX5DFC448D7FA249608A87ABF61E5ABD16">
+        <Item class="ModuleScript" referent="RBX7B9ACB41268646EBB7BD3C2558CB334D">
           <Properties><string name="Name">BuildController</string><ProtectedString name="Source"><![CDATA[-- Building should take seconds:
 --   pick a card -> a ghost follows your pointer, snapped to the grid,
 --   green if it fits / red if not -> click to drop it. R rotates, right-click goes back.
@@ -3538,6 +4129,7 @@ local Style = require(Shared.Style)
 
 local Camera = require(script.Parent.CameraController)
 local Hud = require(script.Parent.HudController)
+local Portrait = require(script.Parent.Portrait)
 local Sound = require(script.Parent.SoundController)
 local State = require(script.Parent.State)
 
@@ -3737,14 +4329,21 @@ end
 local function nameTag(model: Model, userId: number)
 	local p = Players:GetPlayerByUserId(userId)
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromOffset(140, 20)
-	gui.StudsOffset = Vector3.new(0, 2.5, 0)
+	gui.Size = UDim2.fromOffset(120, 84)
+	gui.StudsOffset = Vector3.new(0, 3.2, 0)
 	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
+	local vp = Portrait.head(State.speciesOf[userId])
+	vp.Size = UDim2.fromOffset(56, 56)
+	vp.AnchorPoint = Vector2.new(0.5, 0)
+	vp.Position = UDim2.fromScale(0.5, 0)
+	vp.Parent = gui
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
+	label.AnchorPoint = Vector2.new(0.5, 0)
+	label.Position = UDim2.new(0.5, 0, 0, 56)
+	label.Size = UDim2.fromOffset(120, 22)
 	label.BackgroundTransparency = 1
-	label.FontFace = Style.Font.Bold
+	label.FontFace = Style.Font.Title
 	label.TextSize = 14
 	label.TextColor3 = Style.UI.Paper
 	label.Text = if p then p.DisplayName else "?"
@@ -3877,7 +4476,7 @@ end
 return Build
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX730950E71FC04B758A5AE8C017DEBA0B">
+        <Item class="ModuleScript" referent="RBXB8BDCA15158F4590A15718281176813E">
           <Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- Side-on camera for a 2.5D game.
 --   menu     : the level drifts slowly by behind the menu
 --   overview : whole level in frame (intro, pick, results)
@@ -4079,7 +4678,7 @@ end
 return Camera
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXE54424B2A68743F1A373C5AB015B9F19">
+        <Item class="ModuleScript" referent="RBX6FC5AA47E6734051B5392C90A92C5222">
           <Properties><string name="Name">CharacterAnimator</string><ProtectedString name="Source"><![CDATA[-- Procedural animation for every character on screen, run locally on each
 -- client from replicated velocity. No animation assets, no network cost.
 --
@@ -4209,6 +4808,42 @@ local function track(model: Model, isLocal: boolean)
 	model.Destroying:Connect(function()
 		rigs[model] = nil
 	end)
+
+	-- Only you see this: a little bouncing marker so you never lose yourself
+	if isLocal then
+		local head = model:WaitForChild("Head", 5) :: BasePart?
+		if head then
+			local gui = Instance.new("BillboardGui")
+			gui.Name = "YouMarker"
+			gui.Size = UDim2.fromOffset(60, 34)
+			gui.StudsOffset = Vector3.new(0, 4.6, 0)
+			gui.MaxDistance = 1000
+			gui.AlwaysOnTop = true
+			gui.LightInfluence = 0
+			gui.Adornee = head
+			local label = Instance.new("TextLabel")
+			label.Name = "Arrow"
+			label.BackgroundTransparency = 1
+			label.Size = UDim2.fromScale(1, 1)
+			label.FontFace = Font.fromEnum(Enum.Font.FredokaOne)
+			label.TextSize = 16
+			label.TextColor3 = Color3.fromRGB(238, 108, 77)
+			label.Text = "YOU\n\u{25BC}"
+			label.LineHeight = 0.8
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(250, 246, 238)
+			stroke.Thickness = 2
+			stroke.Parent = label
+			label.Parent = gui
+			gui.Parent = head
+			task.spawn(function()
+				while gui.Parent do
+					gui.StudsOffset = Vector3.new(0, 4.6 + math.abs(math.sin(os.clock() * 4)) * 0.4, 0)
+					task.wait()
+				end
+			end)
+		end
+	end
 end
 
 local function step(dt: number)
@@ -4516,7 +5151,175 @@ end
 return Animator
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXB32937B9D4D1416FA6E3EF577B50E028">
+        <Item class="ModuleScript" referent="RBXA00C9A85EF1C41E5A622EB47FDE8BDF3">
+          <Properties><string name="Name">CursorController</string><ProtectedString name="Source"><![CDATA[-- While you pick from the box or place a piece, your mouse becomes your
+-- animal's head with your name under it. Over the box you also see everyone
+-- else's cursor drifting around, so you can watch them go for "your" piece.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Net = require(Shared.Net)
+local Style = require(Shared.Style)
+
+local Camera = require(script.Parent.CameraController)
+local Pick = require(script.Parent.PickController)
+local Portrait = require(script.Parent.Portrait)
+local State = require(script.Parent.State)
+local UI = require(script.Parent.UI)
+
+local U = Style.UI
+local player = Players.LocalPlayer
+local PickCursor = Net.unreliable("PickCursor")
+
+local CursorController = {}
+
+type Other = { frame: Frame, target: Vector2, pos: Vector2 }
+
+local gui: ScreenGui
+local mine: Frame? = nil
+local mineSpecies: string? = nil
+local others = {} :: { [number]: Other }
+local hidSystemCursor = false
+local lastSend = 0
+
+local function make(species: string?, name: string): Frame
+	local s = species and Characters.ById[species]
+	local frame = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(120, 92),
+		Interactable = false,
+		ZIndex = 50,
+	})
+	-- the tip sits exactly on the pointer
+	UI.new("Frame", {
+		BackgroundColor3 = U.Paper,
+		Size = UDim2.fromOffset(12, 12),
+		Position = UDim2.fromOffset(-6, -6),
+		Rotation = 45,
+		Interactable = false,
+		ZIndex = 51,
+		Parent = frame,
+	}, { UI.new("UIStroke", { Color = U.Ink, Thickness = 2 }) })
+	local vp = Portrait.head(species)
+	vp.Size = UDim2.fromOffset(58, 58)
+	vp.Position = UDim2.fromOffset(4, 2)
+	vp.ZIndex = 52
+	vp.Parent = frame
+	local tag = UI.label({
+		Text = name,
+		FontFace = Style.Font.Title,
+		TextSize = 13,
+		TextColor3 = U.Paper,
+		BackgroundColor3 = if s then s.body else U.InkSoft,
+		BackgroundTransparency = 0,
+		Position = UDim2.fromOffset(10, 60),
+		Interactable = false,
+		ZIndex = 53,
+		Parent = frame,
+	})
+	UI.corner(99).Parent = tag
+	UI.pad(7, 2).Parent = tag
+	return frame
+end
+
+local function usingMouse(): boolean
+	local t = UserInputService:GetLastInputType()
+	return UserInputService.MouseEnabled
+		and t ~= Enum.UserInputType.Touch
+		and not t.Name:find("Gamepad")
+end
+
+local function update(dt: number)
+	-- my cursor
+	local active = usingMouse()
+		and not Camera.menuOpen
+		and ((State.phase == "Pick" and Pick.isOpen()) or (State.phase == "Build" and Camera.building))
+	local species = State.speciesOf[player.UserId]
+	if mine and species ~= mineSpecies then
+		mine:Destroy()
+		mine = nil
+	end
+	if active then
+		local me = mine
+		if not me then
+			mineSpecies = species
+			me = make(species, player.DisplayName)
+			me.Parent = gui
+			mine = me
+		end
+		local m = UserInputService:GetMouseLocation()
+		me.Visible = true
+		me.Position = UDim2.fromOffset(m.X, m.Y)
+		UserInputService.MouseIconEnabled = false
+		hidSystemCursor = true
+
+		if State.phase == "Pick" and os.clock() - lastSend > 0.08 then
+			lastSend = os.clock()
+			local vp = workspace.CurrentCamera.ViewportSize
+			PickCursor:FireServer(m.X / math.max(vp.X, 1), m.Y / math.max(vp.Y, 1))
+		end
+	else
+		if mine then
+			mine.Visible = false
+		end
+		if hidSystemCursor then
+			UserInputService.MouseIconEnabled = true
+			hidSystemCursor = false
+		end
+	end
+
+	-- everyone else's cursor over the pick box
+	local showOthers = State.phase == "Pick" and Pick.isOpen()
+	local a = 1 - math.exp(-dt * 14)
+	for _, o in others do
+		o.frame.Visible = showOthers
+		o.pos = o.pos:Lerp(o.target, a)
+		o.frame.Position = UDim2.fromScale(o.pos.X, o.pos.Y)
+	end
+end
+
+function CursorController.init()
+	gui = UI.new("ScreenGui", {
+		Name = "Cursors",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 60,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+
+	PickCursor.OnClientEvent:Connect(function(userId: number, nx: number, ny: number)
+		if userId == 0 then
+			for _, o in others do
+				o.frame:Destroy()
+			end
+			table.clear(others)
+			return
+		end
+		local o = others[userId]
+		local target = Vector2.new(nx, ny)
+		if not o then
+			local p = Players:GetPlayerByUserId(userId)
+			local frame = make(State.speciesOf[userId], if p then p.DisplayName else "?")
+			frame.Parent = gui
+			o = { frame = frame, target = target, pos = target }
+			others[userId] = o
+		end
+		(o :: Other).target = target
+	end)
+
+	RunService.RenderStepped:Connect(update)
+end
+
+return CursorController
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBXB0F17A5C5E994ACC858220F13493F219">
           <Properties><string name="Name">FxController</string><ProtectedString name="Source"><![CDATA[-- Small, short-lived effects. Pooled parts, one update loop, nothing glows.
 --   puff     : dust when you jump or land hard
 --   confetti : someone reached the flag
@@ -4666,7 +5469,7 @@ end
 return Fx
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXB0E05A5B9D994008993E8AD332AE2BB6">
+        <Item class="ModuleScript" referent="RBX85F5C7B91F164D93B6DAB6824F7641D7">
           <Properties><string name="Name">HudController</string><ProtectedString name="Source"><![CDATA[-- Everything on screen. Rule of thumb: during a run, only the timer and a
 -- small score list are visible. Big moments get a short centred banner,
 -- then get out of the way.
@@ -5321,7 +6124,7 @@ end
 return Hud
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX0E2B264FF0CD485EB1EF002C42F5FA6D">
+        <Item class="ModuleScript" referent="RBXA237466FEF1744B08AF26E0EB0AFE8C2">
           <Properties><string name="Name">MenuController</string><ProtectedString name="Source"><![CDATA[-- Main menu + party screen. Shown over the live level drifting by behind it.
 --
 -- Public server: PLAY joins the next round. CREATE PARTY makes a private room
@@ -5793,7 +6596,7 @@ end
 return Menu
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX942F129463854C7DABCED902C2919AAF">
+        <Item class="ModuleScript" referent="RBX02A5C9CB46A94235917D2ED01DAD487A">
           <Properties><string name="Name">MovementController</string><ProtectedString name="Source"><![CDATA[-- The feel of the game lives here.
 --
 -- We keep Roblox's own ControlModule (so keyboard, gamepad and the mobile
@@ -5848,6 +6651,8 @@ local iceVX = 0
 local peakFall = 0
 local jetUntil = 0
 local lastFlame = 0
+local nextStep = 0
+local windPlayed = false
 
 local rayParams = RaycastParams.new()
 rayParams.CollisionGroup = "Players" -- skips every character's hitbox
@@ -6057,6 +6862,22 @@ local function physics(dt: number)
 		end
 	end
 
+	-- footsteps: faster stride, faster steps
+	local vxAbs = math.abs(v.X)
+	if onFloor and vxAbs > 4 and now > nextStep then
+		nextStep = now + math.clamp(5.5 / vxAbs, 0.2, 0.45)
+		Sound.play("step", 0.25)
+	end
+	-- a rush of wind once you're really dropping
+	if not onFloor and v.Y < -70 then
+		if not windPlayed then
+			windPlayed = true
+			Sound.play("fallwind", 0.1)
+		end
+	elseif onFloor then
+		windPlayed = false
+	end
+
 	-- Jetpack: holding jump pushes you up toward a steady climb
 	if now < jetUntil and jumpHeld() then
 		local cur = root.AssemblyLinearVelocity
@@ -6065,6 +6886,9 @@ local function physics(dt: number)
 		if now - lastFlame > 0.05 then
 			lastFlame = now
 			Fx.puff(p - Vector3.new(0, 2.2, 0), 1, 0.5, Color3.fromRGB(255, 176, 80))
+			if math.random() < 0.35 then
+				Sound.play("jet", 0.3)
+			end
 		end
 	end
 end
@@ -6151,7 +6975,7 @@ end
 return Movement
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX664E098BAC7B4A26A0720B8E2F4D4FC9">
+        <Item class="ModuleScript" referent="RBXC23FD130048F4A70A1E7C2426A594128">
           <Properties><string name="Name">ObjectController</string><ProtectedString name="Source"><![CDATA[-- Brings placed objects to life on the client.
 --
 -- All motion (saws, fans, hammers, shuttles, cannonballs) is computed from the
@@ -6203,10 +7027,15 @@ type Record = {
 	pathAt: number?,
 	used: boolean?,
 	lastExt: number?,
+	lastShot: number?,
+	lastState: string?,
 }
 
 type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
 local birds = {} :: { Bird }
+local flakes = {} :: { Part }
+local levelConveyors = {} :: { BasePart }
+local conveyorLevel: Instance? = nil
 
 local records = {} :: { [Model]: Record }
 local NONE = {} :: { Animated }
@@ -6417,7 +7246,7 @@ local function visuals(dt: number)
 		if not rec.ready then
 			continue
 		end
-		local age = t - rec.placedAt
+		local age = Objects.age(model, t)
 		local id = rec.id
 
 		if id == "saw" then
@@ -6500,6 +7329,10 @@ local function visuals(dt: number)
 				end
 				local len = rec.maxDist :: number
 				local state = Objects.laserState(age)
+				if state == "on" and rec.lastState ~= "on" then
+					Sound.playAt("laser", beam.part, 0.1)
+				end
+				rec.lastState = state
 				local thick = if state == "on" then 0.4 else 0.1
 				beam.part.Size = Vector3.new(len, thick, thick)
 				beam.part.CFrame = rec.pivot * CFrame.new(1 + len / 2, 0, 0)
@@ -6516,6 +7349,7 @@ local function visuals(dt: number)
 			if open and not rec.used then
 				rec.used = true
 				Fx.puff(rec.pivot.Position - Vector3.new(0, 0.8, 0), 3, 0.7)
+				Sound.playAt("door", model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.15)
 			elseif not open then
 				rec.used = false
 			end
@@ -6574,6 +7408,12 @@ local function visuals(dt: number)
 			for _, s in Objects.activeShots(id, age, rec.pathLen :: number) do
 				local pos, dir = Objects.shotPosition(id, path, rec.pivot, s.dist)
 				shot(id, pos, dir, s.dist * 0.8)
+				if s.k ~= rec.lastShot and s.dist < 4 then
+					rec.lastShot = s.k
+					local where = model:FindFirstChildWhichIsA("BasePart") :: BasePart
+					Sound.playAt(if id == "darts" then "dart" elseif id == "puck" then "puckshot" else "planeshot", where, 0.15)
+					Fx.puff(path[1], 2, 0.5)
+				end
 			end
 		elseif id == "jetpack" then
 			setGroup(rec, "float", CFrame.new(0, math.sin(age * 2.4) * 0.25, 0) * CFrame.Angles(0, math.sin(age * 1.3) * 0.4, 0))
@@ -6621,6 +7461,7 @@ local function visuals(dt: number)
 			if fallen and not rec.used then
 				rec.used = true -- just collapsed: crumbs
 				Fx.burst(rec.pivot.Position, Style.Object.Crumble, 10)
+				Sound.playAt("crumble", model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.2)
 				Fx.puff(rec.pivot.Position, 4, 1)
 			elseif not fallen then
 				rec.used = false
@@ -6657,6 +7498,19 @@ local function visuals(dt: number)
 
 	-- Ambient level life: flag sway, drifting clouds, the odd bird
 	local level = workspace:FindFirstChild("Level")
+	local snowing = level ~= nil and level:GetAttribute("World") == "Mountain"
+	local cam = workspace.CurrentCamera.CFrame.Position
+	for i, f in flakes do
+		if snowing then
+			local seed = i * 37.17
+			local x = cam.X + ((seed * 7 + t * (1 + (i % 3))) % 140) - 70
+			local y = cam.Y + 45 - ((seed * 3 + t * (4 + (i % 4))) % 90)
+			local z = 3 + (i % 9) * 1.3
+			f.CFrame = CFrame.new(x + math.sin(t + seed) * 1.5, y, z)
+		elseif f.Position.Y > -400 then
+			f.CFrame = CFrame.new(0, -500, 0)
+		end
+	end
 	if level then
 		local bmin = level:GetAttribute("BuildMin") :: Vector3?
 		local bmax = level:GetAttribute("BuildMax") :: Vector3?
@@ -6664,7 +7518,7 @@ local function visuals(dt: number)
 			local span = bmax.X - bmin.X + 160
 			for _, b in birds do
 				local x = bmin.X - 80 + ((t * b.speed + b.offset) % (span * 2))
-				local visible = x < bmax.X + 80
+				local visible = x < bmax.X + 80 and level:GetAttribute("World") ~= "Factory" -- no birds indoors
 				local pos = Vector3.new(x, b.y + math.sin(t * 0.8 + b.offset) * 2, b.z)
 				local flap = math.sin(t * 9 + b.offset) * 0.6
 				local cf = if visible then CFrame.new(pos) else CFrame.new(0, -500, 0)
@@ -6687,7 +7541,15 @@ local function visuals(dt: number)
 		local decor = level:FindFirstChild("Decor")
 		if decor then
 			for _, m in decor:GetChildren() do
-				if m:IsA("Model") and m:GetAttribute("Group") == "cloud" then
+				if m:IsA("Model") and m:GetAttribute("Group") == "gear" then
+					local base = m:GetAttribute("Base") :: CFrame?
+					if not base then
+						m:SetAttribute("Base", m:GetPivot())
+						base = m:GetPivot()
+					end
+					local spin = (m:GetAttribute("Spin") :: number?) or 0.3
+					m:PivotTo((base :: CFrame) * CFrame.Angles(0, 0, t * spin))
+				elseif m:IsA("Model") and m:GetAttribute("Group") == "cloud" then
 					local base = m:GetAttribute("Base") :: CFrame?
 					if not base then
 						m:SetAttribute("Base", m:GetPivot())
@@ -6704,6 +7566,21 @@ end
 -- Things that physically carry or push you: run before physics.
 local function physicsStep(dt: number)
 	local t = now()
+	local level = workspace:FindFirstChild("Level")
+	if level ~= conveyorLevel then
+		conveyorLevel = level
+		table.clear(levelConveyors)
+		if level then
+			for _, d in level:GetDescendants() do
+				if d:IsA("BasePart") and d:GetAttribute("Conveyor") then
+					table.insert(levelConveyors, d)
+				end
+			end
+		end
+	end
+	for _, belt in levelConveyors do
+		belt.AssemblyLinearVelocity = Vector3.new(belt:GetAttribute("Conveyor") :: number, 0, 0)
+	end
 	local root = Movement.root()
 	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
 	local windX = 0
@@ -6712,7 +7589,7 @@ local function physicsStep(dt: number)
 		if not model.Parent or not rec.ready then
 			continue
 		end
-		local age = t - rec.placedAt
+		local age = Objects.age(model, t)
 
 		if rec.id == "mover" then
 			local travel = 10
@@ -6784,6 +7661,7 @@ local function physicsStep(dt: number)
 					Fx.ring(from, Style.UI.Cool, 5)
 					Fx.ring(to, Style.UI.Accent, 5)
 					Sound.play("whoosh")
+					Sound.play("portal", 0.1)
 				end
 			end
 		elseif rec.id == "fan" then
@@ -6852,6 +7730,14 @@ function ObjectController.init()
 		p.Parent = ballFolder
 		return p
 	end
+	for _ = 1, 40 do
+		local f = bit(Vector3.new(0.3, 0.3, 0.3))
+		f.Shape = Enum.PartType.Ball
+		f.Color = Style.UI.Paper
+		f.Transparency = 0.15
+		f.CFrame = CFrame.new(0, -500, 0)
+		table.insert(flakes, f)
+	end
 	for i = 1, 3 do
 		table.insert(birds, {
 			body = bit(Vector3.new(0.35, 0.35, 0.35)),
@@ -6901,7 +7787,7 @@ end
 return ObjectController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXABC0F49A7BFD469AA0E1C3D22669A257">
+        <Item class="ModuleScript" referent="RBX89E4193D5CC9495AB8E26A878A7580F2">
           <Properties><string name="Name">PickController</string><ProtectedString name="Source"><![CDATA[-- The pick box. Your whole screen becomes the inside of a wooden crate with
 -- 4-7 pieces tossed in at odd angles. No descriptions: you see the object,
 -- you grab it. First click wins. Whatever someone else grabs gets yanked
@@ -7231,6 +8117,10 @@ local function update(list: { any })
 	end
 end
 
+function Pick.isOpen(): boolean
+	return crate ~= nil
+end
+
 function Pick.init()
 	gui = UI.new("ScreenGui", {
 		Name = "PickBox",
@@ -7274,7 +8164,40 @@ end
 return Pick
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXB7F40963A54E4D5BB548EFC648411667">
+        <Item class="ModuleScript" referent="RBX8836C999290B4572A9F01A34710A9974">
+          <Properties><string name="Name">Portrait</string><ProtectedString name="Source"><![CDATA[-- Little animal-head portraits (ViewportFrames) used for cursors and tags.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Characters = require(ReplicatedStorage.Shared.Characters)
+
+local Portrait = {}
+
+-- A transparent ViewportFrame showing just the head of a species, in a
+-- three-quarter view. Size it however you like.
+function Portrait.head(speciesId: string?): ViewportFrame
+	local vp = Instance.new("ViewportFrame")
+	vp.BackgroundTransparency = 1
+	vp.Ambient = Color3.fromRGB(190, 184, 176)
+	vp.LightColor = Color3.fromRGB(255, 250, 240)
+	vp.LightDirection = Vector3.new(-0.5, -1, 0.4)
+	vp.Interactable = false
+	local model = Characters.build(speciesId or Characters.List[1].id)
+	model.Parent = vp
+	local head = model:FindFirstChild("Head") :: BasePart?
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 34
+	cam.Parent = vp
+	vp.CurrentCamera = cam
+	local target = if head then head.Position + Vector3.new(0, 0.25, -0.2) else Vector3.zero
+	cam.CFrame = CFrame.lookAt(target + Vector3.new(3.2, 0.9, -4.6), target)
+	return vp
+end
+
+return Portrait
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX70590AB662C14C91B940EBB4C4367A79">
           <Properties><string name="Name">ResultsUI</string><ProtectedString name="Source"><![CDATA[-- The score table, full screen. One fat bar per player racing toward the
 -- finish line. Banked points sit in your animal's colour; this round's points
 -- slide in category by category (finish, traps, coin, clutch, own route) for
@@ -7613,12 +8536,17 @@ end
 return ResultsUI
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX8B1866B1C63146A9B5A6AFE9C53A68C7">
+        <Item class="ModuleScript" referent="RBX8B95452B6E894E2B8C9C996DA4BE963F">
           <Properties><string name="Name">SoundController</string><ProtectedString name="Source"><![CDATA[-- Every sound in the game goes through here, so swapping in real audio later
 -- is a matter of editing this one table.
 --
--- PLACEHOLDERS: these are sounds that ship inside the Roblox client.
--- Replace with Creator Store audio ("rbxassetid://123...") before release.
+-- These are sounds that ship inside the Roblox client, pitched and varied so
+-- each action still sounds distinct. To upgrade any of them:
+--   1. In Studio open the Toolbox -> Audio, search e.g. "cartoon boing"
+--   2. Prefer sounds uploaded by Roblox (those are free and always public)
+--   3. Right-click the sound -> Copy Asset ID
+--   4. Paste it below as  id = "rbxassetid://THE_NUMBER"
+-- Nothing else in the game needs to change.
 
 local SoundService = game:GetService("SoundService")
 
@@ -7648,6 +8576,16 @@ local SOUNDS = {
 	crate = { id = "rbxasset://sounds/swoosh.wav", volume = 0.5, pitch = 0.65 },
 	hover = { id = "rbxasset://sounds/clickfast.wav", volume = 0.15, pitch = 2.2 },
 	victory = { id = "rbxasset://sounds/victory.wav", volume = 0.5, pitch = 1 },
+	step = { id = "rbxasset://sounds/action_footsteps_plastic.mp3", volume = 0.18, pitch = 1.25 },
+	fallwind = { id = "rbxasset://sounds/action_falling.mp3", volume = 0.3, pitch = 1 },
+	dart = { id = "rbxasset://sounds/swoosh.wav", volume = 0.35, pitch = 1.9 },
+	puckshot = { id = "rbxasset://sounds/collide.wav", volume = 0.3, pitch = 1.7 },
+	planeshot = { id = "rbxasset://sounds/swoosh.wav", volume = 0.25, pitch = 1.3 },
+	laser = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.3, pitch = 0.45 },
+	door = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 0.6 },
+	crumble = { id = "rbxasset://sounds/collide.wav", volume = 0.4, pitch = 0.7 },
+	jet = { id = "rbxasset://sounds/swoosh.wav", volume = 0.12, pitch = 0.55 },
+	portal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.35, pitch = 0.8 },
 }
 
 local SoundController = {}
@@ -7718,7 +8656,7 @@ end
 return SoundController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX9DB3D726D68148FEA2FA3C3085EAAD51">
+        <Item class="ModuleScript" referent="RBX41F2A9F81B7D4C77951983BCD8BB0A4C">
           <Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side mirror of what the server told us. Read-only for gameplay;
 -- the server is always the source of truth.
 
@@ -7832,7 +8770,7 @@ end
 return State
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXC5141D2EA5F24E00B1330CCBA4BBA5DF">
+        <Item class="ModuleScript" referent="RBX04B284BDF20040AF9CEF53C87E75E1EF">
           <Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- Tiny UI kit so every panel, label and button shares one look:
 -- warm paper cards, ink text, a hard offset shadow (no blur, no gradients).
 
@@ -7970,10 +8908,10 @@ return UI
       </Item>
     </Item>
   </Item>
-  <Item class="Players" referent="RBX84A19AD0B52C42A58D18AF1E549AF7E1">
+  <Item class="Players" referent="RBX37B0FD2596C746E48BAC1366719505DD">
     <Properties><string name="Name">Players</string><bool name="CharacterAutoLoads">false</bool></Properties>
   </Item>
-  <Item class="SoundService" referent="RBXB93D225718F941CF9239E7758274594E">
+  <Item class="SoundService" referent="RBX8980E2E76F4744DE894F43F3FFE5DBF3">
     <Properties><string name="Name">SoundService</string></Properties>
   </Item>
 </roblox>

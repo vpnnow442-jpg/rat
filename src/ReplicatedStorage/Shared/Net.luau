@@ -28,6 +28,7 @@ local FUNCTIONS = {
 
 local UNRELIABLE = {
 	"Cursor", -- C->S->C  live ghost previews of other builders
+	"PickCursor", -- C->S->C  everyone's animal cursor over the pick box
 }
 
 local Net = {}

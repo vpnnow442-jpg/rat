@@ -32,27 +32,41 @@ local function pickSpecies(): string
 	return best
 end
 
-local function nameTag(model: Model, player: Player)
+local function nameTag(model: Model, player: Player, species: string)
 	local head = model:FindFirstChild("Head") :: BasePart
+	local s = Characters.ById[species]
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NameTag"
-	gui.Size = UDim2.fromOffset(160, 22)
-	gui.StudsOffset = Vector3.new(0, 2.7, 0)
-	gui.MaxDistance = 140
+	gui.Size = UDim2.fromOffset(200, 26)
+	gui.StudsOffset = Vector3.new(0, 2.9, 0)
+	gui.MaxDistance = 1000 -- readable even from the zoomed-out build camera
+	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.Adornee = head
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.FontFace = Style.Font.Title
-	label.TextSize = 15
-	label.TextColor3 = Style.UI.Paper
-	label.Text = player.DisplayName
+	local pill = Instance.new("TextLabel")
+	pill.AnchorPoint = Vector2.new(0.5, 0.5)
+	pill.Position = UDim2.fromScale(0.5, 0.5)
+	pill.AutomaticSize = Enum.AutomaticSize.X
+	pill.Size = UDim2.fromOffset(0, 24)
+	pill.BackgroundColor3 = if s then s.body else Style.UI.InkSoft
+	pill.FontFace = Style.Font.Title
+	pill.TextSize = 15
+	pill.TextColor3 = Style.UI.Paper
+	pill.Text = player.DisplayName
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = pill
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0, 10)
+	pad.PaddingRight = UDim.new(0, 10)
+	pad.Parent = pill
 	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 1.6
+	stroke.Thickness = 2
 	stroke.Color = Style.UI.Ink
-	stroke.Parent = label
-	label.Parent = gui
+	stroke.Transparency = 0.6
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = pill
+	pill.Parent = gui
 	gui.Parent = head
 end
 
@@ -70,7 +84,7 @@ function PlayerService.spawn(player: Player)
 
 	local model = Characters.build(species)
 	model.Name = player.Name
-	nameTag(model, player)
+	nameTag(model, player, species)
 	local root = model.PrimaryPart :: BasePart
 	root.Anchored = true
 	model:PivotTo(CFrame.new(Config.World.Hold))

@@ -8,6 +8,8 @@ local Shared = ReplicatedStorage.Shared
 local Levels = require(Shared.Levels)
 local Style = require(Shared.Style)
 
+local Worlds = require(script.Parent.Worlds)
+
 local F = Style.Forest
 local LevelService = {}
 
@@ -198,7 +200,16 @@ local function buildFlag(flag: Vector3)
 	local cloth = part(level, "Flag", Vector3.new(3.4, 2.2, 0.12), CFrame.new(flag.X + 1.85, flag.Y + 7.7, -1), Style.UI.Accent)
 	cloth:SetAttribute("Group", "flag")
 
-	local zone = part(level, "GoalZone", Vector3.new(5, 8, 6), CFrame.new(flag.X, flag.Y + 4, 0), Style.UI.Gold)
+	-- checkered finish pad so the target reads at a glance
+	for i = 0, 5 do
+		for j = 0, 1 do
+			local color = if (i + j) % 2 == 0 then Style.UI.Ink else Style.UI.Paper
+			local tile = part(level, "Finish", Vector3.new(1.2, 0.08, 1.4), CFrame.new(flag.X - 3 + i * 1.2 + 0.6, flag.Y + 0.04, -1.4 + j * 1.4 + 0.7), color)
+			tile.CastShadow = false
+		end
+	end
+
+	local zone = part(level, "GoalZone", Vector3.new(7, 9, 6), CFrame.new(flag.X, flag.Y + 4.5, 0), Style.UI.Gold)
 	zone.Transparency = 1
 	zone.CanTouch = true
 	LevelService.goalZone = zone
@@ -301,11 +312,21 @@ function LevelService.build(layout: Levels.Layout)
 	level = Instance.new("Folder")
 	level.Name = "Level"
 	level:SetAttribute("Name", layout.name)
+	level:SetAttribute("World", layout.world)
 	level:SetAttribute("BuildMin", Vector3.new(layout.buildMin.X, layout.buildMin.Y, 0))
 	level:SetAttribute("BuildMax", Vector3.new(layout.buildMax.X, layout.buildMax.Y, 0))
 
+	-- Mountain/Factory pieces come from Worlds; Forest (and any piece a world
+	-- doesn't override) uses the builders above
+	local world = Worlds[layout.world]
+	local ctx: Worlds.Ctx = { part = part, solid = solid, blob = blob, level = level, BOTTOM = BOTTOM, UPRIGHT = UPRIGHT }
 	for _, piece in layout.pieces do
-		builders[piece.kind](piece, rng)
+		local custom = world and world.builders[piece.kind]
+		if custom then
+			custom(ctx, piece, rng)
+		else
+			builders[piece.kind](piece, rng)
+		end
 	end
 
 	LevelService.spawn = Vector3.new(layout.spawn.X, layout.spawn.Y, 0)
@@ -317,7 +338,16 @@ function LevelService.build(layout: Levels.Layout)
 	buildFlag(LevelService.flag)
 	safeZone(LevelService.spawn)
 	safeZone(LevelService.flag)
-	buildBackground(layout, rng)
+	if world then
+		local decor = Instance.new("Folder")
+		decor.Name = "Decor"
+		decor.Parent = level
+		world.background(ctx, decor, layout, rng)
+		world.lighting()
+	else
+		buildBackground(layout, rng)
+		setupLighting()
+	end
 
 	level.Parent = workspace
 end
@@ -340,18 +370,32 @@ function LevelService.objectsFolder(): Folder
 	return f :: Folder
 end
 
+-- A different map every match, and a different world whenever possible
 function LevelService.pick(previous: string?): Levels.Layout
+	local all = Levels.all()
+	local prevWorld: string? = nil
+	for _, l in all do
+		if l.name == previous then
+			prevWorld = l.world
+		end
+	end
 	local pool = {}
-	for _, l in Levels.Forest do
-		if l.name ~= previous then
+	for _, l in all do
+		if l.name ~= previous and l.world ~= prevWorld then
 			table.insert(pool, l)
+		end
+	end
+	if #pool == 0 then
+		for _, l in all do
+			if l.name ~= previous then
+				table.insert(pool, l)
+			end
 		end
 	end
 	return pool[math.random(1, #pool)]
 end
 
 function LevelService.init()
-	setupLighting()
 	LevelService.objectsFolder()
 end
 

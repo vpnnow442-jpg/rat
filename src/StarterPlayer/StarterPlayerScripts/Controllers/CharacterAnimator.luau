@@ -127,6 +127,42 @@ local function track(model: Model, isLocal: boolean)
 	model.Destroying:Connect(function()
 		rigs[model] = nil
 	end)
+
+	-- Only you see this: a little bouncing marker so you never lose yourself
+	if isLocal then
+		local head = model:WaitForChild("Head", 5) :: BasePart?
+		if head then
+			local gui = Instance.new("BillboardGui")
+			gui.Name = "YouMarker"
+			gui.Size = UDim2.fromOffset(60, 34)
+			gui.StudsOffset = Vector3.new(0, 4.6, 0)
+			gui.MaxDistance = 1000
+			gui.AlwaysOnTop = true
+			gui.LightInfluence = 0
+			gui.Adornee = head
+			local label = Instance.new("TextLabel")
+			label.Name = "Arrow"
+			label.BackgroundTransparency = 1
+			label.Size = UDim2.fromScale(1, 1)
+			label.FontFace = Font.fromEnum(Enum.Font.FredokaOne)
+			label.TextSize = 16
+			label.TextColor3 = Color3.fromRGB(238, 108, 77)
+			label.Text = "YOU\n\u{25BC}"
+			label.LineHeight = 0.8
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(250, 246, 238)
+			stroke.Thickness = 2
+			stroke.Parent = label
+			label.Parent = gui
+			gui.Parent = head
+			task.spawn(function()
+				while gui.Parent do
+					gui.StudsOffset = Vector3.new(0, 4.6 + math.abs(math.sin(os.clock() * 4)) * 0.4, 0)
+					task.wait()
+				end
+			end)
+		end
+	end
 end
 
 local function step(dt: number)
