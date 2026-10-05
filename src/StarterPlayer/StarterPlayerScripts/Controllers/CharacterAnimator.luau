@@ -11,6 +11,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local Fx = require(script.Parent.FxController)
 local Sound = require(script.Parent.SoundController)
 
 local Animator = {}
@@ -95,10 +96,15 @@ local function step(dt: number)
 		local grounded = anchored or (hit ~= nil and v.Y < 8)
 
 		-- events
+		local feet = r.root.Position - Vector3.new(0, 2.2, 0)
 		if r.grounded and not grounded and v.Y > 10 then
 			r.squashVel += 9 -- take-off stretch
+			Fx.puff(feet, 2, 0.7)
 		elseif not r.grounded and grounded and r.lastVY < -20 then
 			r.squashVel -= math.clamp(-r.lastVY / 8, 4, 12) -- landing squash
+			if r.lastVY < -45 then
+				Fx.puff(feet, 4, math.clamp(-r.lastVY / 60, 0.8, 1.6))
+			end
 			if not r.isLocal then
 				Sound.playAt("land", r.root, 0.2)
 			end

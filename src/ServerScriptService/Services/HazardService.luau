@@ -20,6 +20,7 @@ HazardService.onDeadly = function(_player: Player, _model: Model) end
 
 local touchedOwn = {} :: { [Player]: boolean }
 local crumbles = {} :: { Model }
+local lasers = {} :: { Model }
 
 local function playerFromHit(hit: BasePart): Player?
 	if hit.Name ~= "HumanoidRootPart" then
@@ -96,6 +97,45 @@ function HazardService.watch(model: Model)
 
 	if model:FindFirstChild("Slab") and (model:FindFirstChild("Slab") :: BasePart):GetAttribute("Crumble") then
 		table.insert(crumbles, model)
+	end
+	if def and def.id == "laser" then
+		table.insert(lasers, model)
+	end
+end
+
+local function pivotOf(model: Model): CFrame
+	return Objects.cframe(model:GetAttribute("X") :: number, model:GetAttribute("Y") :: number, model:GetAttribute("Rot") :: number)
+end
+
+-- Called ~10x a second during a run. Lasers are checked by geometry instead
+-- of Touched, because their on/off state comes from the clock.
+function HazardService.tick(running: { Player })
+	local now = workspace:GetServerTimeNow()
+	for i = #lasers, 1, -1 do
+		local m = lasers[i]
+		if not m.Parent then
+			table.remove(lasers, i)
+			continue
+		end
+		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		if Objects.laserState(age) ~= "on" then
+			continue
+		end
+		local pivot = pivotOf(m)
+		local a = pivot * Vector3.new(1, 0, 0)
+		local dir = pivot.RightVector
+		local len = Objects.laserLength(m, pivot)
+		for _, player in running do
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local rel = root.Position - a
+				local along = math.clamp(rel:Dot(dir), 0, len)
+				if (rel - dir * along).Magnitude < 1.15 then
+					HazardService.onDeadly(player, m)
+				end
+			end
+		end
 	end
 end
 

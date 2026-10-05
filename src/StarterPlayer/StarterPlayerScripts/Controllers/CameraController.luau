@@ -1,38 +1,52 @@
 -- Side-on camera for a 2.5D game.
---   overview : whole level in frame (intro, build, results)
+--   menu     : the level drifts slowly by behind the menu
+--   overview : whole level in frame (intro, pick, results)
+--   build    : zoomed in; push the cursor to a screen edge to pan, wheel/pinch to zoom
 --   follow   : you, with a little look-ahead in the direction you're moving
---   spectate : once you're out, follow whoever is still running and furthest along
--- Everything eases toward its goal so mode changes read as one smooth move.
+--   spectate : once you're out, whoever is still running and furthest along
+-- Everything eases toward its goal, so mode changes read as one smooth move.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local State = require(script.Parent.State)
 
 local Camera = {}
 
+-- Set by BuildController while you're placing
+Camera.building = false
+Camera.pan = Vector2.zero -- -1..1 per axis, from the cursor sitting at a screen edge
+Camera.menuOpen = false
+
 local FOV = 40
 local FOLLOW_DIST = 46
+local BUILD_MIN, BUILD_DEFAULT = 34, 72
 
 local cam = workspace.CurrentCamera
-local focus = Vector3.new(60, 20, 0)
-local dist = 100
+local focus = Vector3.new(100, 20, 0)
+local dist = 120
 local lookAhead = 0
 local shakeAmp = 0
 local spectating: Player? = nil
 local failHoldUntil = 0
+local buildFocus: Vector3? = nil
+local buildDist = BUILD_DEFAULT
 
 function Camera.shake(amount: number)
 	shakeAmp = math.max(shakeAmp, amount)
 end
 
-local function levelFrame(): (Vector3?, number?)
+local function bounds(): (Vector3?, Vector3?)
 	local level = workspace:FindFirstChild("Level")
 	if not level then
 		return nil, nil
 	end
-	local bmin = level:GetAttribute("BuildMin") :: Vector3?
-	local bmax = level:GetAttribute("BuildMax") :: Vector3?
+	return level:GetAttribute("BuildMin") :: Vector3?, level:GetAttribute("BuildMax") :: Vector3?
+end
+
+local function levelFrame(): (Vector3?, number?)
+	local bmin, bmax = bounds()
 	if not bmin or not bmax then
 		return nil, nil
 	end
@@ -97,6 +111,17 @@ local function update(dt: number)
 		elseif ovFocus then
 			goalFocus, goalDist = ovFocus, ovDist :: number
 		end
+	elseif phase == "Build" and Camera.building and ovFocus then
+		local bmin, bmax = bounds()
+		local bf = buildFocus or focus
+		bf += Vector3.new(Camera.pan.X, Camera.pan.Y, 0) * (40 + buildDist * 0.6) * dt
+		if bmin and bmax then
+			bf = Vector3.new(math.clamp(bf.X, bmin.X, bmax.X), math.clamp(bf.Y, bmin.Y + 8, bmax.Y - 8), 0)
+		end
+		buildFocus = bf
+		buildDist = math.clamp(buildDist, BUILD_MIN, ovDist :: number)
+		goalFocus, goalDist = bf, buildDist
+		sharp = 10
 	elseif phase == "Winner" then
 		local level = workspace:FindFirstChild("Level")
 		local flag = level and level:GetAttribute("Flag") :: Vector3?
@@ -105,6 +130,13 @@ local function update(dt: number)
 			goalDist = 34
 			sharp = 3
 		end
+	elseif (phase == "Waiting" or Camera.menuOpen) and ovFocus then
+		-- slow drift across the level behind the menu
+		local bmin, bmax = bounds()
+		local span = if bmin and bmax then (bmax.X - bmin.X) * 0.3 else 40
+		goalFocus = (ovFocus :: Vector3) + Vector3.new(math.sin(os.clock() * 0.07) * span, -4, 0)
+		goalDist = (ovDist :: number) * 0.5
+		sharp = 1.5
 	elseif ovFocus then
 		goalFocus, goalDist = ovFocus, ovDist :: number
 		sharp = 3
@@ -125,13 +157,35 @@ local function update(dt: number)
 end
 
 function Camera.init()
-	RunService:BindToRenderStep("SprintCamera", Enum.RenderPriority.Camera.Value + 1, update)
+	RunService:BindToRenderStep("ChaosCamera", Enum.RenderPriority.Camera.Value + 1, update)
 	State.meChanged:Connect(function(me)
 		if me == "dead" then
 			failHoldUntil = os.clock() + 1.1 -- watch your own tumble for a beat
 			Camera.shake(0.8)
 		end
 		spectating = nil
+	end)
+	State.phaseChanged:Connect(function(phase)
+		if phase == "Build" then
+			buildDist = BUILD_DEFAULT
+			-- start building near the start line, where the action begins
+			local level = workspace:FindFirstChild("Level")
+			local spawn = level and level:GetAttribute("Spawn") :: Vector3?
+			buildFocus = if spawn then spawn + Vector3.new(30, 8, 0) else nil
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input, processed)
+		if processed or State.phase ~= "Build" then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseWheel then
+			buildDist *= if input.Position.Z > 0 then 0.88 else 1.14
+		end
+	end)
+	UserInputService.TouchPinch:Connect(function(_, scale, _, _, processed)
+		if not processed and State.phase == "Build" then
+			buildDist /= math.clamp(scale, 0.95, 1.05)
+		end
 	end)
 end
 

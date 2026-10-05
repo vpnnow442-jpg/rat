@@ -14,6 +14,8 @@ local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Fx = require(script.Parent.FxController)
+local ResultsUI = require(script.Parent.ResultsUI)
 local State = require(script.Parent.State)
 local Sound = require(script.Parent.SoundController)
 local UI = require(script.Parent.UI)
@@ -35,6 +37,7 @@ Hud.actions = {
 local PHASES = {
 	Waiting = { "WAITING", U.Muted },
 	Intro = { "GET READY", U.InkSoft },
+	Pick = { "PICK", U.Gold },
 	Build = { "BUILD", U.Accent },
 	Countdown = { "READY", U.Gold },
 	Run = { "RUN", U.Good },
@@ -71,7 +74,6 @@ local touchBar: Frame
 local statusLabel: TextLabel
 local toastFrame: Frame
 local toastLabel: TextLabel
-local panel: Frame?
 
 local bannerToken = 0
 local lastTick = -1
@@ -353,164 +355,45 @@ function Hud.setStatus(text: string?)
 end
 
 --------------------------------------------------------------------------
--- Results / winner panels
+-- Results / winner: the score table (see ResultsUI)
 --------------------------------------------------------------------------
 
-local function closePanel()
-	if panel then
-		local p = panel
-		panel = nil
-		UI.tween(p, 0.2, { Position = UDim2.new(0.5, 0, 0.5, 40) })
-		task.delay(0.2, function()
-			p:Destroy()
-		end)
-	end
-end
-
-local function openPanel(height: number): Frame
-	closePanel()
-	local holder, face = UI.card({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 40),
-		Size = UDim2.fromOffset(500, height),
-		Parent = gui,
-	}, 16)
-	panel = holder
-	UI.tween(holder, 0.3, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
-	return face
-end
-
-local VERDICT = {
-	TOO_EASY = { "Too easy!", "Everyone made it, so nobody scores. Build meaner." },
-	TOO_HARD = { "Too hard!", "Nobody made it, so trap points don't count." },
-}
-
 local function showResults(results)
-	local rows = results.rows
-	local face = openPanel(96 + #rows * 46 + 14)
-	local v = results.verdict and VERDICT[results.verdict]
-	UI.label({
-		Text = if v then v[1] else ("Round " .. State.round .. " results"),
-		FontFace = F.Title,
-		TextSize = 28,
-		TextColor3 = if v then U.Bad else U.Ink,
-		Position = UDim2.fromOffset(22, 16),
-		Parent = face,
+	local verdict = results.verdict
+	ResultsUI.show(gui, results.rows, {
+		title = if verdict then "Round " .. State.round else "Round " .. State.round .. " results",
+		subtitle = if verdict == "TOO_EASY" then "Everyone made it, so nobody scores. Build meaner."
+			elseif verdict == "TOO_HARD" then "Nobody made it, so trap points don't count."
+			elseif results.multiplier > 1 then "Last round: double points"
+			else "First to " .. results.target .. " wins",
+		verdict = verdict,
+		target = results.target,
 	})
-	UI.label({
-		Text = if v then v[2] elseif results.multiplier > 1 then "Final round: double points" else "Points this round",
-		TextSize = 14,
-		TextColor3 = U.Muted,
-		Position = UDim2.fromOffset(22, 54),
-		Parent = face,
-	})
-
-	for i, row in rows do
-		local y = 86 + (i - 1) * 46
-		local line = UI.new("Frame", {
-			BackgroundColor3 = if row.userId == player.UserId then U.PaperShade else U.Paper,
-			Size = UDim2.new(1, -28, 0, 40),
-			Position = UDim2.fromOffset(14 + 30, y),
-			BackgroundTransparency = 1,
-			Parent = face,
-		}, { UI.corner(10) })
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.fromOffset(10, 13),
-			Parent = line,
-		}, { UI.corner(7) })
-		UI.label({
-			Text = row.name,
-			FontFace = F.Bold,
-			TextSize = 16,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(130, 40),
-			Position = UDim2.fromOffset(32, 0),
-			Parent = line,
-		})
-		local chips = UI.new("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(220, 40),
-			Position = UDim2.fromOffset(166, 0),
-			Parent = line,
-		}, { UI.list(Enum.FillDirection.Horizontal, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
-		if #row.items == 0 then
-			UI.label({ Text = if row.finished then "made it" else "didn't make it", TextSize = 13, TextColor3 = U.Muted, Parent = chips })
-		end
-		for _, it in row.items do
-			UI.pill(it.label .. " +" .. it.points, U.InkSoft, U.Paper, 12).Parent = chips
-		end
-		local gained = UI.label({
-			Text = "+0",
-			FontFace = F.Title,
-			TextSize = 20,
-			TextColor3 = if row.gained > 0 then U.Accent else U.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(70, 40),
-			Position = UDim2.new(1, -80, 0, 0),
-			Parent = line,
-		})
-
-		-- stagger rows in, then count the points up
-		task.delay(0.15 + i * 0.12, function()
-			if not line.Parent then
-				return
-			end
-			line.BackgroundTransparency = 0
-			UI.tween(line, 0.25, { Position = UDim2.fromOffset(14, y) }, Enum.EasingStyle.Back)
-			if row.gained > 0 then
-				local steps = 12
-				for s = 1, steps do
-					task.wait(0.03)
-					if not gained.Parent then
-						return
-					end
-					gained.Text = "+" .. math.floor(row.gained * s / steps)
-				end
-				Sound.play("points", 0.1)
-			end
-		end)
-	end
 end
 
 local function showWinner(extra)
 	local standings = extra.standings or {}
 	local winners = extra.winners or {}
-	local face = openPanel(110 + #standings * 36 + 14)
-	local title
-	if #winners == 0 then
-		title = "Nobody scored. Rematch?"
-	elseif #winners == 1 then
-		title = winners[1].name .. " wins!"
-	else
-		title = "It's a tie!"
+	local ids = {}
+	for _, w in winners do
+		table.insert(ids, w.userId)
 	end
-	UI.label({ Text = title, FontFace = F.Title, TextSize = 32, TextColor3 = U.Accent, Position = UDim2.fromOffset(22, 18), Parent = face })
-	UI.label({ Text = "Final standings", TextSize = 14, TextColor3 = U.Muted, Position = UDim2.fromOffset(22, 62), Parent = face })
-	for i, row in standings do
-		local y = 92 + (i - 1) * 36
-		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 18, TextColor3 = U.Muted, Position = UDim2.fromOffset(24, y + 6), Parent = face })
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.fromOffset(52, y + 10),
-			Parent = face,
-		}, { UI.corner(7) })
-		UI.label({ Text = row.name, FontFace = F.Bold, TextSize = 16, Position = UDim2.fromOffset(74, y + 6), Parent = face })
-		UI.label({
-			Text = tostring(row.total),
-			FontFace = F.Title,
-			TextSize = 18,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -24, 0, y + 6),
-			Parent = face,
-		})
+	local rows = {}
+	for _, r in standings do
+		table.insert(rows, { userId = r.userId, name = r.name, species = r.species, before = r.total, total = r.total, items = {} })
 	end
+	local title = if #winners == 0 then "Nobody scored. Rematch?"
+		elseif #winners == 1 then winners[1].name .. " wins!"
+		else "It's a tie!"
+	ResultsUI.show(gui, rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
 	Sound.play("victory")
+	for _, w in winners do
+		local p = Players:GetPlayerByUserId(w.userId)
+		local root = p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Fx.confetti(root.Position)
+		end
+	end
 end
 
 --------------------------------------------------------------------------
@@ -525,18 +408,17 @@ local function onPhase(phase: string)
 	lastTick = -1
 
 	if phase ~= "Results" and phase ~= "Winner" then
-		closePanel()
+		ResultsUI.close()
 	end
 	if phase ~= "Build" then
 		Hud.setStatus(nil)
 	end
 
-	if phase == "Waiting" then
-		banner("Waiting for players", nil, 3, 32)
-	elseif phase == "Intro" then
-		banner(State.level, State.rounds .. " rounds. Build it mean, keep it beatable.", 3.4, 46)
+	if phase == "Intro" then
+		local target = State.extra.target or 600
+		banner(State.level, "First to " .. target .. " wins. Build it mean, keep it beatable.", 3.8, 46)
 	elseif phase == "Build" then
-		banner(if State.final then "Final build" else "Build", if State.final then "Double points this round" else "Pick a piece and drop it in", 1.4, 44)
+		banner(if State.final then "Last build" else "Build", if State.final then "Double points this round" else "Drop your piece in", 1.4, 44)
 	elseif phase == "Run" then
 		if State.isRunner(player.UserId) then
 			banner("GO!", nil, 0.6, 64)
@@ -550,7 +432,7 @@ end
 local function tick()
 	local phase = State.phase
 	local left = State.timeLeft()
-	local timed = phase == "Build" or phase == "Run"
+	local timed = phase == "Pick" or phase == "Build" or phase == "Run"
 	timerLabel.Visible = timed
 	if timed then
 		local secs = math.ceil(left)
@@ -607,6 +489,30 @@ local function buildGui()
 	}, { UI.corner(99), UI.pad(10, 3) })
 	phaseText = UI.label({ Text = "", FontFace = F.Title, TextSize = 15, TextColor3 = U.Paper, Parent = phaseChip })
 	timerLabel = UI.label({ Text = "", FontFace = F.Title, TextSize = 20, LayoutOrder = 3, Parent = top })
+
+	local menuButton = UI.new("TextButton", {
+		Text = "Menu",
+		FontFace = F.Bold,
+		TextSize = 14,
+		TextColor3 = U.Ink,
+		BackgroundColor3 = U.Paper,
+		AutoButtonColor = false,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -12),
+		Size = UDim2.fromOffset(72, 30),
+		Parent = gui,
+	}, { UI.corner(99) })
+	UI.pressable(menuButton, function()
+		local ok, res = pcall(function()
+			return Net.func("Lobby"):InvokeServer("menu")
+		end)
+		if ok and typeof(res) == "table" and not res.ok then
+			Hud.toast(res.err or "Not right now", U.Bad)
+		end
+	end)
+	State.lobbyChanged:Connect(function()
+		menuButton.Visible = State.lobby.mode == "public"
+	end)
 
 	scoresFrame = UI.new("Frame", {
 		BackgroundTransparency = 1,
@@ -723,6 +629,10 @@ local function buildGui()
 	toastLabel = UI.label({ Text = "", FontFace = F.Bold, TextSize = 15, TextColor3 = U.Paper, Parent = toastFrame })
 end
 
+function Hud.setVisible(visible: boolean)
+	gui.Enabled = visible
+end
+
 function Hud.init()
 	buildGui()
 	pcall(function()
@@ -768,6 +678,11 @@ function Hud.init()
 	Net.event("Finish").OnClientEvent:Connect(function(userId: number, place: number)
 		local suffix = ({ "1st", "2nd", "3rd" })[place] or (place .. "th")
 		feed(nameOf(userId) .. " reached the flag (" .. suffix .. ")", U.Good)
+		local who = Players:GetPlayerByUserId(userId)
+		local root = who and who.Character and who.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Fx.confetti(root.Position)
+		end
 		if userId == player.UserId then
 			banner("Made it!", suffix, 1.2, 48)
 			Sound.play("victory")

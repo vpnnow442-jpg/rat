@@ -15,6 +15,7 @@ local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Camera = require(script.Parent.CameraController)
 local Hud = require(script.Parent.HudController)
 local Sound = require(script.Parent.SoundController)
 local State = require(script.Parent.State)
@@ -65,6 +66,8 @@ local function clearGhost()
 	end
 	ghost = nil
 	highlight = nil
+	Camera.building = false
+	Camera.pan = Vector2.zero
 end
 
 local function sendCursor(id: string)
@@ -94,6 +97,7 @@ function Build.select(id: string)
 		pointer = cam.ViewportSize / 2
 	end
 	GuiService.SelectedObject = nil
+	Camera.building = true
 	Hud.setTray(false)
 	Hud.setPlacing(true)
 	Sound.play("pick")
@@ -179,6 +183,20 @@ local function update(dt: number)
 	if not pointer then
 		return
 	end
+
+	-- Cursor resting near a screen edge pans the build camera that way
+	local vp = workspace.CurrentCamera.ViewportSize
+	local EDGE = 0.1
+	local function edge(n: number): number
+		if n < EDGE then
+			return -(EDGE - n) / EDGE
+		elseif n > 1 - EDGE then
+			return (n - (1 - EDGE)) / EDGE
+		end
+		return 0
+	end
+	Camera.pan = Vector2.new(edge(pointer.X / vp.X), -edge(pointer.Y / vp.Y))
+
 	local world = worldPoint(pointer)
 	if not world then
 		return
@@ -279,6 +297,14 @@ function Build.init()
 			hand = newHand
 			Hud.showHand(newHand)
 			Hud.setStatus(nil)
+			-- one piece from the box: go straight to placing it
+			if #newHand == 1 then
+				task.delay(0.35, function()
+					if hand == newHand and not selected then
+						Build.select(newHand[1])
+					end
+				end)
+			end
 		else
 			local hadHand = hand ~= nil
 			reset()

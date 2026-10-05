@@ -1,5 +1,6 @@
--- The whole match: pick a level, play N rounds (last one worth double), crown a winner.
--- ~75s per round x 8 rounds keeps a match around 10 minutes.
+-- The whole match: pick a level, play rounds until someone crosses
+-- PointsToWin (or MaxRounds runs out, last round double), crown a winner.
+-- With bigger maps a round is ~1.5-2 minutes, so a match lands around 10-15.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -13,91 +14,113 @@ local LevelService = require(script.Parent.LevelService)
 local BuildService = require(script.Parent.BuildService)
 local RoundService = require(script.Parent.RoundService)
 local ScoringService = require(script.Parent.ScoringService)
+local LobbyService = require(script.Parent.LobbyService)
 
 local RoundResults = Net.event("RoundResults")
 
 local MatchService = {}
 
-local function present(): { Player }
-	return Players:GetPlayers()
+local function leaders(): { any }
+	local standings = ScoringService.standings()
+	local best = standings[1] and standings[1].total or 0
+	local list = {}
+	for _, row in standings do
+		if row.total == best and best > 0 then
+			table.insert(list, row)
+		end
+	end
+	return list
 end
 
-local function playMatch(previousLevel: string?): string
-	local layout = LevelService.pick(previousLevel)
+local function playMatch()
+	local M = Config.Match
 	BuildService.clearObjects()
-	LevelService.build(layout)
 	ScoringService.reset()
-	for _, p in present() do
+	for _, p in LobbyService.participants() do
 		ScoringService.ensure(p)
 		PlayerService.park(p)
 	end
 	ScoringService.broadcast()
+	LobbyService.matchStarted()
 
 	local ctx = RoundService.context
-	ctx.level = layout.name
+	ctx.level = LevelService.layout and LevelService.layout.name or ""
 	ctx.round = 0
 	ctx.final = false
-	RoundService.setPhase("Intro", Config.Match.IntroTime)
-	task.wait(Config.Match.IntroTime)
+	RoundService.setPhase("Intro", M.IntroTime, { target = M.PointsToWin })
+	task.wait(M.IntroTime)
 
-	for round = 1, Config.Match.Rounds do
-		local players = present()
-		if #players < Config.Match.MinPlayers then
-			return layout.name
+	for round = 1, M.MaxRounds do
+		local players = LobbyService.participants()
+		if #players == 0 then
+			break
 		end
-		-- late joiners slot straight into the next round
 		for _, p in players do
-			ScoringService.ensure(p)
+			ScoringService.ensure(p) -- late joiners slot straight in
 		end
 
 		ctx.round = round
-		ctx.final = round == Config.Match.Rounds
+		ctx.final = round == M.MaxRounds
 		RoundService.build(players)
-		local info = RoundService.run(present())
+		local info = RoundService.run(LobbyService.participants())
 
-		local mult = if ctx.final then Config.Match.FinalRoundMultiplier else 1
+		local mult = if ctx.final then M.LastRoundMultiplier else 1
 		local results = ScoringService.score(info, mult)
 		RoundResults:FireAllClients(results)
 		ScoringService.broadcast()
-		RoundService.setPhase("Results", Config.Match.ResultsTime)
-		task.wait(Config.Match.ResultsTime)
-	end
+		RoundService.setPhase("Results", M.ResultsTime)
+		task.wait(M.ResultsTime)
 
-	local standings = ScoringService.standings()
-	local best = standings[1] and standings[1].total or 0
-	local winners = {}
-	for _, row in standings do
-		if row.total == best and best > 0 then
-			table.insert(winners, row)
-			local p = Players:GetPlayerByUserId(row.userId)
-			if p and p.Character then
-				local spot = LevelService.flag + Vector3.new(-2 - #winners * 1.8, 2.3, 0)
-				PlayerService.toStart(p, spot - Vector3.new(0, 2.3, 0), 1)
-				p.Character:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
-			end
+		local top = ScoringService.standings()[1]
+		if top and top.total >= M.PointsToWin then
+			break
 		end
 	end
-	RoundService.setPhase("Winner", Config.Match.WinnerTime, { winners = winners, standings = standings })
-	task.wait(Config.Match.WinnerTime)
-	return layout.name
+
+	local winners = leaders()
+	for i, row in winners do
+		local p = Players:GetPlayerByUserId(row.userId)
+		if p and p.Character then
+			local spot = LevelService.flag + Vector3.new(-2 - i * 1.8, 0, 0)
+			PlayerService.toStart(p, spot, 1)
+			p.Character:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
+		end
+	end
+	RoundService.setPhase("Winner", M.WinnerTime, {
+		winners = winners,
+		standings = ScoringService.standings(),
+		target = M.PointsToWin,
+	})
+	task.wait(M.WinnerTime)
+	for _, p in Players:GetPlayers() do
+		PlayerService.park(p)
+	end
+	LobbyService.matchEnded()
 end
 
 function MatchService.start()
+	LobbyService.isRacing = RoundService.isRacing
 	task.spawn(function()
 		local last: string? = nil
 		while true do
-			if #present() < Config.Match.MinPlayers then
-				RoundService.setPhase("Waiting", 0)
-				repeat
-					task.wait(1)
-				until #present() >= Config.Match.MinPlayers
-			end
-			task.wait(1.5)
-			local ok, result = pcall(playMatch, last)
-			if ok then
-				last = result
-			else
-				warn("[Match] crashed, restarting:", result)
+			-- Fresh level between matches so the menu has something to look at
+			local layout = LevelService.pick(last)
+			last = layout.name
+			BuildService.clearObjects()
+			LevelService.build(layout)
+			RoundService.context.level = layout.name
+			RoundService.context.round = 0
+			RoundService.setPhase("Waiting", 0)
+
+			repeat
+				task.wait(0.5)
+			until LobbyService.ready()
+			task.wait(1)
+
+			local ok, err = pcall(playMatch)
+			if not ok then
+				warn("[Match] crashed, restarting:", err)
+				LobbyService.matchEnded()
 				task.wait(2)
 			end
 		end

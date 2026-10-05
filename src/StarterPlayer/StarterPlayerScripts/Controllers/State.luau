@@ -26,6 +26,25 @@ State.phaseChanged = phaseChanged.Event
 local meChanged = Instance.new("BindableEvent")
 State.meChanged = meChanged.Event
 
+State.lobby = {
+	mode = "public",
+	code = nil :: string?,
+	hostId = nil :: number?,
+	inMatch = false,
+	members = {} :: { any },
+}
+local lobbyChanged = Instance.new("BindableEvent")
+State.lobbyChanged = lobbyChanged.Event
+
+function State.queued(): boolean
+	for _, m in State.lobby.members do
+		if m.userId == Players.LocalPlayer.UserId then
+			return m.queued
+		end
+	end
+	return false
+end
+
 local localId = Players.LocalPlayer.UserId
 
 local function setMe(v: string)
@@ -73,6 +92,13 @@ function State.init()
 		if userId == localId then
 			setMe("done")
 		end
+	end)
+	Net.event("LobbyState").OnClientEvent:Connect(function(lobby)
+		State.lobby = lobby
+		for _, m in lobby.members do
+			State.speciesOf[m.userId] = m.species
+		end
+		lobbyChanged:Fire()
 	end)
 	Net.event("Scores").OnClientEvent:Connect(function(standings)
 		State.standings = standings

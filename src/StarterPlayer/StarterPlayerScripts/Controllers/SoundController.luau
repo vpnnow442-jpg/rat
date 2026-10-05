@@ -21,9 +21,16 @@ local SOUNDS = {
 	go = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.5, pitch = 1.2 },
 	goal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.6, pitch = 1.5 },
 	points = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 2 },
-	boom = { id = "rbxasset://sounds/collide.wav", volume = 0.9, pitch = 0.45 },
-	cannon = { id = "rbxasset://sounds/collide.wav", volume = 0.35, pitch = 0.6 },
+	bar = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.25, pitch = 1.8 },
+	stamp = { id = "rbxasset://sounds/collide.wav", volume = 0.45, pitch = 1.3 },
+	-- no explosion sound on purpose: the bomb is a soft "poof" (whoosh) only
+	poof = { id = "rbxasset://sounds/swoosh.wav", volume = 0.45, pitch = 0.8 },
+	cannon = { id = "rbxasset://sounds/clickfast.wav", volume = 0.35, pitch = 0.5 },
+	bumper = { id = "rbxasset://sounds/action_jump.mp3", volume = 0.5, pitch = 1.8 },
 	whoosh = { id = "rbxasset://sounds/swoosh.wav", volume = 0.4, pitch = 1 },
+	grab = { id = "rbxasset://sounds/clickfast.wav", volume = 0.6, pitch = 1.1 },
+	crate = { id = "rbxasset://sounds/swoosh.wav", volume = 0.5, pitch = 0.65 },
+	hover = { id = "rbxasset://sounds/clickfast.wav", volume = 0.15, pitch = 2.2 },
 	victory = { id = "rbxasset://sounds/victory.wav", volume = 0.5, pitch = 1 },
 }
 
@@ -50,8 +57,8 @@ function SoundController.init()
 	end
 end
 
--- 2D sound (UI, your own actions)
-function SoundController.play(name: string, pitchJitter: number?)
+-- 2D sound (UI, your own actions). pitch multiplies the base pitch.
+function SoundController.play(name: string, pitchJitter: number?, pitch: number?)
 	local t = templates[name]
 	if not t then
 		return
@@ -59,6 +66,9 @@ function SoundController.play(name: string, pitchJitter: number?)
 	local s = t:Clone()
 	if pitchJitter then
 		s.PlaybackSpeed *= 1 + (math.random() - 0.5) * pitchJitter
+	end
+	if pitch then
+		s.PlaybackSpeed *= pitch
 	end
 	s.Parent = SoundService
 	s:Play()

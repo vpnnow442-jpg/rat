@@ -138,6 +138,24 @@ function PlayerService.freeze(player: Player)
 	end
 end
 
+-- Swap animal. Only called when the player isn't mid-race.
+function PlayerService.setSpecies(player: Player, speciesId: string)
+	if PlayerService.species[player] == speciesId then
+		return
+	end
+	PlayerService.species[player] = speciesId
+	local root = PlayerService.root(player)
+	local cf = if root then root.CFrame else CFrame.new(Config.World.Hold)
+	local anchored = if root then root.Anchored else true
+	PlayerService.spawn(player)
+	-- keep them exactly where they were (on the flag after a win, etc.)
+	local newRoot = PlayerService.root(player)
+	if newRoot and player.Character then
+		player.Character:PivotTo(cf)
+		newRoot.Anchored = anchored
+	end
+end
+
 function PlayerService.init()
 	Players.CharacterAutoLoads = false
 	PhysicsService:RegisterCollisionGroup("Players")

@@ -1,5 +1,5 @@
--- One round = build phase + run phase. Also owns the phase broadcast,
--- since every phase change goes through here.
+-- One round = pick from the box -> build -> run. Also owns the phase
+-- broadcast, since every phase change goes through here.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,7 +21,7 @@ local FinishEvent = Net.event("Finish")
 local RoundService = {}
 
 RoundService.phase = "Waiting"
-RoundService.context = { round = 0, rounds = Config.Match.Rounds, final = false, level = "" }
+RoundService.context = { round = 0, rounds = Config.Match.MaxRounds, final = false, level = "" }
 
 local status = {} :: { [Player]: string } -- running | done | dead
 local runners = {} :: { Player }
@@ -70,7 +70,7 @@ local function waitUntil(duration: number, done: () -> boolean)
 end
 
 --------------------------------------------------------------------------
--- Build
+-- Pick + build
 --------------------------------------------------------------------------
 
 function RoundService.build(players: { Player })
@@ -78,13 +78,25 @@ function RoundService.build(players: { Player })
 	for _, p in players do
 		PlayerService.park(p)
 	end
-	BuildService.open(players, RoundService.context.round)
+
+	BuildService.openPick(players, RoundService.context.round)
+	RoundService.setPhase("Pick", Config.Match.PickTime)
+	waitUntil(Config.Match.PickTime, BuildService.everyonePicked)
+	BuildService.closePick()
+	task.wait(1) -- a beat to see who got what
+
+	BuildService.openBuild(players)
 	RoundService.setPhase("Build", Config.Match.BuildTime)
 	waitUntil(Config.Match.BuildTime, function()
 		return BuildService.everyonePlaced(players)
 	end)
-	BuildService.close()
+	BuildService.closeBuild()
 	task.wait(0.6) -- let the last "pop" land before the camera moves
+end
+
+function RoundService.isRacing(player: Player): boolean
+	local s = status[player]
+	return (RoundService.phase == "Countdown" or RoundService.phase == "Run") and (s == "ready" or s == "running")
 end
 
 --------------------------------------------------------------------------
@@ -181,7 +193,14 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 	end
 
 	waitUntil(Config.Match.RunTime, function()
-		-- cheap fall check at 10Hz instead of a Heartbeat loop
+		-- cheap 10Hz checks instead of a Heartbeat loop
+		local alive = {}
+		for _, p in runners do
+			if status[p] == "running" then
+				table.insert(alive, p)
+			end
+		end
+		HazardService.tick(alive)
 		for _, p in runners do
 			if status[p] == "running" then
 				local root = PlayerService.root(p)

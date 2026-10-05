@@ -1,6 +1,7 @@
 -- Turns what happened in a run into points.
 --
 -- The rules, in one breath:
+--   first to Config.Match.PointsToWin wins the match
 --   finish 1st/2nd/3rd/4th+ -> 100/75/50/25
 --   take someone out with your object -> +25 each (max 75 a round)
 --   small bonuses: clutch finish, finishing via a route you built
@@ -85,8 +86,8 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 		end
 		ScoringService.ensure(player)
 		local items = {}
-		local function add(label: string, pts: number)
-			table.insert(items, { label = label, points = pts * multiplier })
+		local function add(cat: string, label: string, pts: number)
+			table.insert(items, { cat = cat, label = label, points = pts * multiplier })
 		end
 
 		local place: number? = nil
@@ -94,12 +95,12 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 			if fin.player == player then
 				place = i
 				if verdict == nil then
-					add(ordinal(i), S.Place[math.min(i, #S.Place)])
+					add("finish", ordinal(i), S.Place[math.min(i, #S.Place)])
 					if fin.timeLeft <= S.ClutchWindow then
-						add("Clutch", S.Clutch)
+						add("clutch", "Clutch", S.Clutch)
 					end
 					if HazardService.usedOwnRoute(player) then
-						add("Own route", S.OwnRoute)
+						add("route", "Own route", S.OwnRoute)
 					end
 				end
 			end
@@ -107,16 +108,18 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 
 		local kills = info.kills[player.UserId] or 0
 		if kills > 0 and verdict == nil then
-			add(kills == 1 and "Trap" or ("Trap x" .. kills), math.min(kills * S.Trap, S.TrapCap))
+			add("trap", if kills == 1 then "Trap" else ("Trap x" .. kills), math.min(kills * S.Trap, S.TrapCap))
 		end
 
 		local gained = 0
 		for _, it in items do
 			gained += it.points
 		end
+		local before = ScoringService.totals[player]
 		ScoringService.totals[player] += gained
 
 		table.insert(rows, {
+			before = before,
 			userId = player.UserId,
 			name = player.DisplayName,
 			species = PlayerService.species[player],
@@ -127,14 +130,15 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 		})
 	end
 
+	-- Sorted by the match standing, so the chart reads like a race
 	table.sort(rows, function(a, b)
-		if a.gained ~= b.gained then
-			return a.gained > b.gained
+		if a.total ~= b.total then
+			return a.total > b.total
 		end
-		return a.total > b.total
+		return a.gained > b.gained
 	end)
 
-	return { verdict = verdict, multiplier = multiplier, rows = rows }
+	return { verdict = verdict, multiplier = multiplier, rows = rows, target = Config.Match.PointsToWin }
 end
 
 return ScoringService

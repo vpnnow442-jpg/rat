@@ -31,6 +31,8 @@ local Objects = {}
 
 Objects.List = {
 	{ id = "plank", name = "Plank", blurb = "A trusty wooden ledge.", kind = "route", size = Vector2.new(6, 1), weight = 3 },
+	{ id = "longplank", name = "Long Plank", blurb = "Bridges a big gap. Or blocks one.", kind = "route", size = Vector2.new(10, 1), weight = 2 },
+	{ id = "pillar", name = "Pillar", blurb = "A tall post. Wall-jump off it.", kind = "route", size = Vector2.new(1, 6), weight = 1 },
 	{ id = "crate", name = "Crate", blurb = "Solid. Stack it, hide behind it.", kind = "route", size = Vector2.new(3, 3), weight = 2 },
 	{ id = "spring", name = "Spring", blurb = "Boing. Tilt it to launch sideways.", kind = "route", size = Vector2.new(3, 2), weight = 2 },
 	{ id = "conveyor", name = "Conveyor", blurb = "Carries you along. Or into things.", kind = "route", size = Vector2.new(8, 1), weight = 2 },
@@ -44,6 +46,9 @@ Objects.List = {
 	{ id = "hammer", name = "Swing Hammer", blurb = "Knocks you flying. Timing matters.", kind = "trap", size = Vector2.new(2, 2), weight = 2 },
 	{ id = "fan", name = "Fan", blurb = "Blows everyone the way it points.", kind = "trap", size = Vector2.new(3, 2), weight = 2 },
 	{ id = "cannon", name = "Cannon", blurb = "Lobs slow cannonballs. Knockback.", kind = "trap", size = Vector2.new(3, 2), weight = 1 },
+	{ id = "trapdoor", name = "Trapdoor", blurb = "Solid... until it drops open.", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
+	{ id = "bumper", name = "Bumper", blurb = "Bounces you away, pinball style.", kind = "trap", size = Vector2.new(3, 3), weight = 1 },
+	{ id = "laser", name = "Laser", blurb = "Blinks on and off. Deadly when on.", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
 	{ id = "bomb", name = "Bomb", blurb = "Clears objects nearby. Fix a ruined level.", kind = "tool", size = Vector2.new(1, 1), weight = 1 },
 } :: { Def }
 
@@ -75,6 +80,57 @@ end
 
 function Objects.cframe(x: number, y: number, rot: number): CFrame
 	return CFrame.new(x, y, 0) * CFrame.Angles(0, 0, math.rad(rot))
+end
+
+--------------------------------------------------------------------------
+-- Timed objects: both server and client compute state from the same clock
+--------------------------------------------------------------------------
+
+Objects.LASER_PERIOD = 3.2
+-- "on" for 1.4s, a short "warn" flicker before it fires again, otherwise "off"
+function Objects.laserState(age: number): string
+	local t = age % Objects.LASER_PERIOD
+	if t < 1.4 then
+		return "on"
+	elseif t > Objects.LASER_PERIOD - 0.5 then
+		return "warn"
+	end
+	return "off"
+end
+
+Objects.TRAPDOOR_PERIOD = 4
+function Objects.trapdoorOpen(age: number): boolean
+	return age % Objects.TRAPDOOR_PERIOD > 2.8
+end
+
+-- How far a laser reaches before something solid stops it
+function Objects.laserLength(model: Model, pivot: CFrame): number
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	local list = {}
+	for _, name in { "Level", "Objects" } do
+		local f = workspace:FindFirstChild(name)
+		if f then
+			table.insert(list, f)
+		end
+	end
+	params.FilterDescendantsInstances = list
+	local dir = pivot.RightVector
+	local origin = pivot * Vector3.new(1, 0, 0)
+	local max = 60
+	local traveled = 0
+	while traveled < max do
+		local hit = workspace:Raycast(origin, dir * (max - traveled), params)
+		if not hit then
+			break
+		end
+		if hit.Instance.CanCollide and not hit.Instance:IsDescendantOf(model) then
+			return traveled + (hit.Position - origin).Magnitude
+		end
+		traveled += (hit.Position - origin).Magnitude + 0.05
+		origin = hit.Position + dir * 0.05
+	end
+	return max
 end
 
 -- Shared by the client ghost (red/green) and the server (final say).
@@ -186,6 +242,51 @@ builders.decoy = function(m)
 			p:SetAttribute("Solid", nil)
 		end
 	end
+end
+
+builders.longplank = function(m)
+	solid(add(m, "Board", Vector3.new(10, 1, DEPTH), CFrame.identity, F.Wood))
+	add(m, "Trim", Vector3.new(10.02, 0.22, DEPTH + 0.02), CFrame.new(0, -0.4, 0), F.WoodDark)
+	for _, x in { -4.3, 0, 4.3 } do
+		add(m, "Nail", Vector3.new(0.28, 0.28, 0.06), CFrame.new(x, 0.12, FRONT), F.WoodDark)
+	end
+end
+
+builders.pillar = function(m)
+	solid(add(m, "Post", Vector3.new(1, 6, DEPTH), CFrame.identity, F.Wood))
+	add(m, "Cap", Vector3.new(1.3, 0.4, DEPTH + 0.2), CFrame.new(0, 2.85, 0), F.WoodDark)
+	add(m, "Foot", Vector3.new(1.3, 0.4, DEPTH + 0.2), CFrame.new(0, -2.85, 0), F.WoodDark)
+end
+
+builders.trapdoor = function(m)
+	add(m, "Frame", Vector3.new(6, 0.3, DEPTH + 0.1), CFrame.new(0, -0.55, 0), O.Metal)
+	for _, side in { -1, 1 } do
+		local door = solid(add(m, "Door", Vector3.new(2.95, 0.8, DEPTH), CFrame.new(side * 1.5, 0, 0), F.Wood))
+		door:SetAttribute("Group", side < 0 and "doorL" or "doorR")
+		local hinge = add(m, "Hinge", Vector3.new(0.35, 0.35, 0.06), CFrame.new(side * 2.7, 0, FRONT), O.MetalLight)
+		hinge:SetAttribute("Group", side < 0 and "doorL" or "doorR")
+	end
+	add(m, "Seam", Vector3.new(0.12, 0.82, 0.05), CFrame.new(0, 0, FRONT), F.WoodDark)
+end
+
+builders.bumper = function(m)
+	local ball = solid(add(m, "Bumper", Vector3.new(3, 3, 3), CFrame.identity, O.Spring, Enum.PartType.Ball))
+	ball:SetAttribute("Group", "bumper")
+	local ring = add(m, "Ring", Vector3.new(0.3, 3.1, 3.1), FACE_CAMERA, Style.UI.Paper, Enum.PartType.Cylinder)
+	ring:SetAttribute("Group", "bumper")
+	local dot = add(m, "Dot", Vector3.new(0.32, 1.2, 1.2), FACE_CAMERA, O.Spring, Enum.PartType.Cylinder)
+	dot:SetAttribute("Group", "bumper")
+end
+
+builders.laser = function(m)
+	solid(add(m, "Emitter", Vector3.new(2, 2, 3), CFrame.identity, O.Metal))
+	add(m, "Lens", Vector3.new(0.3, 1, 1), CFrame.new(1.05, 0, 0), O.Danger, Enum.PartType.Cylinder)
+	add(m, "Vent", Vector3.new(1.4, 0.15, 0.05), CFrame.new(-0.1, 0.4, 1.52), O.MetalLight)
+	add(m, "Vent", Vector3.new(1.4, 0.15, 0.05), CFrame.new(-0.1, 0, 1.52), O.MetalLight)
+	local beam = add(m, "Beam", Vector3.new(4, 0.3, 0.3), CFrame.new(3.1, 0, 0), O.Danger)
+	beam:SetAttribute("Group", "beam")
+	beam.CastShadow = false
+	beam.Transparency = 0.15
 end
 
 builders.crate = function(m)

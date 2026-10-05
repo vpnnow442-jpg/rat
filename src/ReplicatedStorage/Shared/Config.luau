@@ -5,15 +5,17 @@ local Config = {}
 
 Config.Match = {
 	MinPlayers = 1, -- 1 so it can be tested solo in Studio
-	Rounds = 8,
-	FinalRoundMultiplier = 2,
-	IntroTime = 4,
-	BuildTime = 22,
+	PointsToWin = 600, -- first across the line wins...
+	MaxRounds = 12, -- ...or whoever leads after this many rounds
+	LastRoundMultiplier = 2,
+	IntroTime = 5,
+	PickTime = 12,
+	BuildTime = 25,
 	CountdownTime = 3,
-	RunTime = 45,
-	ResultsTime = 7,
+	RunTime = 60,
+	ResultsTime = 8,
 	WinnerTime = 10,
-	HandSize = 3,
+	BoxExtra = 2, -- the pick box holds players + this many pieces
 }
 
 Config.Scoring = {
@@ -52,12 +54,13 @@ Config.Objects = {
 	CrumbleDelay = 0.55,
 	CrumbleRespawn = 3.5,
 	BombRadius = 5,
+	BumperKnock = 70,
 }
 
 -- 2.5D: everything lives on the Z = 0 plane, the camera looks down -Z.
 Config.World = {
 	KillY = -12,
-	Hold = Vector3.new(0, 80, 260), -- behind the camera, where parked characters wait
+	Hold = Vector3.new(0, 80, 420), -- behind the camera, where parked characters wait
 	GoalMinTime = 1.5, -- anti-teleport sanity check
 }
 

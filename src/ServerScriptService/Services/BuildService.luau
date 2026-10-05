@@ -1,5 +1,10 @@
--- Deals cards, validates placement requests, spawns objects.
--- The client only *asks* to place; every rule is re-checked here.
+-- The pick box and the build phase.
+--
+-- Pick: a crate opens with (players + 2) pieces. First click wins a piece;
+-- whoever's too slow gets a leftover. Fighting over the good piece is the point.
+-- Build: everyone places the piece they grabbed.
+--
+-- The client only *asks* to pick or place; every rule is re-checked here.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +17,8 @@ local Objects = require(Shared.Objects)
 local HazardService = require(script.Parent.HazardService)
 local LevelService = require(script.Parent.LevelService)
 
+local BoxEvent = Net.event("Box")
+local PickEvent = Net.event("Pick")
 local HandEvent = Net.event("Hand")
 local PlaceEvent = Net.event("Place")
 local PlaceResult = Net.event("PlaceResult")
@@ -20,10 +27,16 @@ local Cursor = Net.unreliable("Cursor")
 
 local BuildService = {}
 
+type Slot = { id: string, takenBy: number }
+
+local box = {} :: { Slot }
+local pickers = {} :: { Player }
+local picked = {} :: { [Player]: string }
 local hands = {} :: { [Player]: { string } }
 local placed = {} :: { [Player]: boolean }
 local lastCursor = {} :: { [Player]: number }
-local open = false
+local pickOpen = false
+local buildOpen = false
 
 local function weightedPick(pool: { Objects.Def }): Objects.Def
 	local total = 0
@@ -40,37 +53,128 @@ local function weightedPick(pool: { Objects.Def }): Objects.Def
 	return pool[#pool]
 end
 
--- Every hand has at least one route piece, so the level can always grow a way through.
-local function deal(round: number): { string }
-	local hand = {}
-	local function pool(filter: (Objects.Def) -> boolean)
-		local list = {}
+-- Roll the box. Rules: about a third are route pieces so the level can always
+-- grow a way through; at most one bomb, and never in round 1 (nothing to bomb).
+local function roll(count: number, round: number): { string }
+	local items = {}
+	local function from(filter: (Objects.Def) -> boolean): string?
+		local pool = {}
 		for _, d in Objects.List do
-			if filter(d) and not table.find(hand, d.id) and (d.id ~= "bomb" or round > 1) then
-				table.insert(list, d)
+			if filter(d) and (d.id ~= "bomb" or (round > 1 and not table.find(items, "bomb"))) then
+				table.insert(pool, d)
 			end
 		end
-		return list
+		if #pool == 0 then
+			return nil
+		end
+		return weightedPick(pool).id
 	end
-	table.insert(hand, weightedPick(pool(function(d)
-		return d.kind == "route"
-	end)).id)
-	while #hand < Config.Match.HandSize do
-		table.insert(hand, weightedPick(pool(function()
-			return true
-		end)).id)
+	local routes = math.max(1, math.ceil(count / 3))
+	for _ = 1, routes do
+		table.insert(items, from(function(d)
+			return d.kind == "route"
+		end) :: string)
 	end
-	-- shuffle so the route card isn't always first
-	for i = #hand, 2, -1 do
+	while #items < count do
+		-- avoid more than two of the same thing so the box feels varied
+		local id = from(function(d)
+			local n = 0
+			for _, it in items do
+				if it == d.id then
+					n += 1
+				end
+			end
+			return n < 2
+		end)
+		table.insert(items, id :: string)
+	end
+	for i = #items, 2, -1 do
 		local j = math.random(1, i)
-		hand[i], hand[j] = hand[j], hand[i]
+		items[i], items[j] = items[j], items[i]
 	end
-	return hand
+	return items
 end
 
 local function finite(n: any): boolean
 	return typeof(n) == "number" and n == n and math.abs(n) < 1e4
 end
+
+local function sendBox()
+	local payload = {}
+	for i, s in box do
+		payload[i] = { id = s.id, takenBy = s.takenBy }
+	end
+	local ids = {}
+	for _, p in pickers do
+		table.insert(ids, p.UserId)
+	end
+	BoxEvent:FireAllClients(payload, ids)
+end
+
+--------------------------------------------------------------------------
+-- Pick
+--------------------------------------------------------------------------
+
+local function onPick(player: Player, slot: any)
+	if not pickOpen or picked[player] or not table.find(pickers, player) then
+		return
+	end
+	if typeof(slot) ~= "number" or slot ~= slot then
+		return
+	end
+	local s = box[math.floor(slot)]
+	if not s or s.takenBy ~= 0 then
+		return -- someone beat you to it
+	end
+	s.takenBy = player.UserId
+	picked[player] = s.id
+	sendBox()
+end
+
+function BuildService.openPick(players: { Player }, round: number)
+	table.clear(box)
+	table.clear(picked)
+	pickers = table.clone(players)
+	for _, id in roll(#players + Config.Match.BoxExtra, round) do
+		table.insert(box, { id = id, takenBy = 0 })
+	end
+	pickOpen = true
+	sendBox()
+end
+
+function BuildService.everyonePicked(): boolean
+	for _, p in pickers do
+		if p.Parent and not picked[p] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Too slow? You get whatever's left.
+function BuildService.closePick()
+	pickOpen = false
+	for _, p in pickers do
+		if p.Parent and not picked[p] then
+			local free = {}
+			for _, s in box do
+				if s.takenBy == 0 then
+					table.insert(free, s)
+				end
+			end
+			local s = free[math.random(1, #free)]
+			if s then
+				s.takenBy = p.UserId
+				picked[p] = s.id
+			end
+		end
+	end
+	sendBox()
+end
+
+--------------------------------------------------------------------------
+-- Build
+--------------------------------------------------------------------------
 
 local function bomb(pos: Vector3)
 	local r = Config.Objects.BombRadius
@@ -114,7 +218,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 	local function reject(reason: string)
 		PlaceResult:FireClient(player, false, reason)
 	end
-	if not open or placed[player] then
+	if not buildOpen or placed[player] then
 		return reject("Building is closed")
 	end
 	if typeof(id) ~= "string" or not finite(x) or not finite(y) or not finite(rot) then
@@ -127,7 +231,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 	local hand = hands[player]
 	local def = Objects.ById[id]
 	if not hand or not def or not table.find(hand, id) then
-		return reject("That card isn't yours")
+		return reject("That piece isn't yours")
 	end
 
 	local sx, sy = Objects.snap(def, x, y, rot)
@@ -149,7 +253,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 end
 
 local function onCursor(player: Player, id: any, x: any, y: any, rot: any)
-	if not open or placed[player] or not hands[player] then
+	if not buildOpen or placed[player] or not hands[player] then
 		return
 	end
 	local now = os.clock()
@@ -170,18 +274,23 @@ local function onCursor(player: Player, id: any, x: any, y: any, rot: any)
 	end
 end
 
-function BuildService.open(players: { Player }, round: number)
+function BuildService.openBuild(players: { Player })
 	table.clear(hands)
 	table.clear(placed)
 	for _, p in players do
-		hands[p] = deal(round)
-		HandEvent:FireClient(p, hands[p])
+		local id = picked[p]
+		if id and p.Parent then
+			hands[p] = { id }
+			HandEvent:FireClient(p, hands[p])
+		else
+			placed[p] = true -- nothing to place (joined mid-pick)
+		end
 	end
-	open = true
+	buildOpen = true
 end
 
-function BuildService.close()
-	open = false
+function BuildService.closeBuild()
+	buildOpen = false
 	for p in hands do
 		HandEvent:FireClient(p, nil)
 	end
@@ -205,11 +314,13 @@ function BuildService.clearObjects()
 end
 
 function BuildService.init()
+	PickEvent.OnServerEvent:Connect(onPick)
 	PlaceEvent.OnServerEvent:Connect(onPlace)
 	Cursor.OnServerEvent:Connect(onCursor)
 	Players.PlayerRemoving:Connect(function(p)
 		hands[p] = nil
 		placed[p] = nil
+		picked[p] = nil
 		lastCursor[p] = nil
 	end)
 end

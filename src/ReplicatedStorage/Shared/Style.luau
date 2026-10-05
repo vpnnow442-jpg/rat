@@ -13,6 +13,16 @@ Style.UI = {
 	Good = Color3.fromRGB(82, 170, 110),
 	Bad = Color3.fromRGB(214, 76, 76),
 	Gold = Color3.fromRGB(240, 184, 72),
+	Cool = Color3.fromRGB(92, 150, 220),
+}
+
+-- Score categories, in the order they animate into the bar chart
+Style.ScoreOrder = { "finish", "trap", "clutch", "route" }
+Style.ScoreColor = {
+	finish = Style.UI.Good,
+	trap = Style.UI.Bad,
+	clutch = Style.UI.Gold,
+	route = Style.UI.Cool,
 }
 
 Style.Font = {

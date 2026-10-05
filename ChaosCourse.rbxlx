@@ -1,15 +1,211 @@
 <roblox version="4">
-  <Item class="Workspace" referent="RBX02268CB08F39434FAAC91B90D93310AC">
+  <Item class="Workspace" referent="RBXF449D43236234D18A5D185945B06ECE1">
     <Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties>
   </Item>
-  <Item class="Lighting" referent="RBX5721B44103F74F06951A8A9A43895F6B">
+  <Item class="Lighting" referent="RBX560E1A9E98834AC190F8C8AA80C8AEB0">
     <Properties><string name="Name">Lighting</string></Properties>
   </Item>
-  <Item class="ReplicatedStorage" referent="RBXEC572B1CAA154767B57D72913C564291">
+  <Item class="ReplicatedFirst" referent="RBX9B44347AFE6B447994A71CEFCA01B0F3">
+    <Properties><string name="Name">ReplicatedFirst</string></Properties>
+    <Item class="LocalScript" referent="RBX91C916E373964F3D9C7987341C9F6D58">
+      <Properties><string name="Name">Loading</string><ProtectedString name="Source"><![CDATA[-- Loading screen. Runs before anything else, so it can't use the shared
+-- modules yet: colours and fonts are repeated here on purpose.
+-- Tips teach the core rule while you wait.
+
+local ContentProvider = game:GetService("ContentProvider")
+local Players = game:GetService("Players")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local INK = Color3.fromRGB(34, 31, 43)
+local PAPER = Color3.fromRGB(250, 246, 238)
+local SHADE = Color3.fromRGB(232, 225, 212)
+local MUTED = Color3.fromRGB(128, 120, 132)
+local ACCENT = Color3.fromRGB(238, 108, 77)
+local ANIMALS = {
+	Color3.fromRGB(226, 121, 58),
+	Color3.fromRGB(138, 136, 146),
+	Color3.fromRGB(48, 52, 68),
+	Color3.fromRGB(112, 178, 92),
+}
+local TITLE = Font.fromEnum(Enum.Font.FredokaOne)
+local BODY = Font.fromEnum(Enum.Font.BuilderSansBold)
+
+local TIPS = {
+	"If everyone reaches the flag, nobody scores.",
+	"Trap your friends, but keep the course beatable.",
+	"Hold toward a wall in the air, then jump, to wall-jump.",
+	"The Trick Plank has no nails. Learn the tell.",
+	"Too slow at the pick box? You get the leftovers.",
+	"A Bomb clears pieces. Use it to fix a ruined course.",
+}
+
+local player = Players.LocalPlayer
+ReplicatedFirst:RemoveDefaultLoadingScreen()
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "Loading"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.DisplayOrder = 100
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local bg = Instance.new("Frame")
+bg.Size = UDim2.fromScale(1, 1)
+bg.BackgroundColor3 = PAPER
+bg.BorderSizePixel = 0
+bg.Parent = gui
+
+local center = Instance.new("Frame")
+center.AnchorPoint = Vector2.new(0.5, 0.5)
+center.Position = UDim2.fromScale(0.5, 0.46)
+center.Size = UDim2.fromOffset(420, 260)
+center.BackgroundTransparency = 1
+center.Parent = bg
+local scale = Instance.new("UIScale")
+scale.Parent = center
+local function rescale()
+	local vp = workspace.CurrentCamera.ViewportSize
+	scale.Scale = math.clamp(math.min(vp.X / 700, vp.Y / 600), 0.6, 1.3)
+end
+rescale()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+
+local function text(str: string, font: Font, size: number, color: Color3, y: number, transparency: number?): TextLabel
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = 1
+	l.FontFace = font
+	l.TextSize = size
+	l.TextColor3 = color
+	l.TextTransparency = transparency or 0
+	l.Text = str
+	l.AnchorPoint = Vector2.new(0.5, 0)
+	l.Position = UDim2.new(0.5, 0, 0, y)
+	l.Size = UDim2.fromOffset(420, size + 8)
+	l.Parent = center
+	return l
+end
+
+-- Logo with a hard offset shadow
+local logo = Instance.new("Frame")
+logo.BackgroundTransparency = 1
+logo.Size = UDim2.fromScale(1, 1)
+logo.Rotation = -3
+logo.Parent = center
+for _, spec in { { "Chaos Course", INK, 4, 0.85 }, { "Chaos Course", ACCENT, 0, 0 } } do
+	local l = text(spec[1], TITLE, 64, spec[2], 20 + spec[3], spec[4])
+	l.Position += UDim2.fromOffset(spec[3], 0)
+	l.Parent = logo
+end
+
+-- Four animal-coloured dots hopping in a wave
+local dots = {}
+for i, c in ANIMALS do
+	local d = Instance.new("Frame")
+	d.BackgroundColor3 = c
+	d.Size = UDim2.fromOffset(18, 18)
+	d.AnchorPoint = Vector2.new(0.5, 0.5)
+	d.Position = UDim2.new(0.5, (i - 2.5) * 30, 0, 130)
+	d.Parent = center
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = d
+	dots[i] = d
+end
+
+local barBg = Instance.new("Frame")
+barBg.BackgroundColor3 = SHADE
+barBg.BorderSizePixel = 0
+barBg.AnchorPoint = Vector2.new(0.5, 0)
+barBg.Position = UDim2.new(0.5, 0, 0, 168)
+barBg.Size = UDim2.fromOffset(240, 6)
+barBg.Parent = center
+local c1 = Instance.new("UICorner")
+c1.CornerRadius = UDim.new(1, 0)
+c1.Parent = barBg
+local bar = Instance.new("Frame")
+bar.BackgroundColor3 = INK
+bar.BorderSizePixel = 0
+bar.Size = UDim2.fromScale(0, 1)
+bar.Parent = barBg
+local c2 = Instance.new("UICorner")
+c2.CornerRadius = UDim.new(1, 0)
+c2.Parent = bar
+
+local tip = text(TIPS[math.random(1, #TIPS)], BODY, 16, MUTED, 196)
+
+local t0 = os.clock()
+local conn = RunService.RenderStepped:Connect(function()
+	local t = os.clock() - t0
+	for i, d in dots do
+		local hop = math.max(0, math.sin(t * 6 - i * 0.7))
+		d.Position = UDim2.new(0.5, (i - 2.5) * 30, 0, 130 - hop * 16)
+		d.Size = UDim2.fromOffset(18 + hop * 2, 18 - hop * 3)
+	end
+end)
+
+-- Rotate tips while we wait
+task.spawn(function()
+	while gui.Parent do
+		task.wait(3.2)
+		local nextTip = TIPS[math.random(1, #TIPS)]
+		TweenService:Create(tip, TweenInfo.new(0.2), { TextTransparency = 1 }):Play()
+		task.wait(0.2)
+		tip.Text = nextTip
+		TweenService:Create(tip, TweenInfo.new(0.2), { TextTransparency = 0 }):Play()
+	end
+end)
+
+-- Progress: game loaded -> remotes exist -> the level exists; never less than 1.5s
+local steps = 0
+local function step()
+	steps += 1
+	TweenService:Create(bar, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = UDim2.fromScale(steps / 3, 1) }):Play()
+end
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+step()
+ReplicatedStorage:WaitForChild("Remotes", 20)
+step()
+workspace:WaitForChild("Level", 20)
+pcall(function()
+	-- give asset requests a moment, but don't hang on them
+	local deadline = os.clock() + 3
+	while ContentProvider.RequestQueueSize > 0 and os.clock() < deadline do
+		task.wait(0.1)
+	end
+end)
+step()
+while os.clock() - t0 < 1.5 do
+	task.wait(0.05)
+end
+task.wait(0.3)
+
+player:SetAttribute("Loaded", true)
+local fade = TweenInfo.new(0.45, Enum.EasingStyle.Quad)
+TweenService:Create(bg, fade, { BackgroundTransparency = 1 }):Play()
+for _, d in center:GetDescendants() do
+	if d:IsA("TextLabel") then
+		TweenService:Create(d, fade, { TextTransparency = 1 }):Play()
+	elseif d:IsA("Frame") and d.BackgroundTransparency < 1 then
+		TweenService:Create(d, fade, { BackgroundTransparency = 1 }):Play()
+	end
+end
+task.wait(0.5)
+conn:Disconnect()
+gui:Destroy()
+]]></ProtectedString></Properties>
+    </Item>
+  </Item>
+  <Item class="ReplicatedStorage" referent="RBX5407D391B7FD4954B3B53F3678A2CF38">
     <Properties><string name="Name">ReplicatedStorage</string></Properties>
-    <Item class="Folder" referent="RBXE3CC2B9EBB4E4E11A958FC83398B0A95">
+    <Item class="Folder" referent="RBXE9459ED54BEE4EA2BCB13B852B650703">
       <Properties><string name="Name">Shared</string></Properties>
-      <Item class="ModuleScript" referent="RBX4D1B2CCB75E24F299CE4558C2D59DC45">
+      <Item class="ModuleScript" referent="RBXA5152E41D7DE41FB97AD07DDBC428723">
         <Properties><string name="Name">Characters</string><ProtectedString name="Source"><![CDATA[--!strict
 -- The cast. Every animal shares the exact same hitbox (HumanoidRootPart);
 -- everything you see is massless decoration animated by the client.
@@ -220,7 +416,7 @@ end
 return Characters
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX8A6B5C97D4DE4D1CB2B709E9AC0A7ABC">
+      <Item class="ModuleScript" referent="RBX59BBD278F2CB4374BA0B54414A2B7E05">
         <Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Every tuning number lives here so playtesting changes are one-line edits.
 
@@ -228,15 +424,17 @@ local Config = {}
 
 Config.Match = {
 	MinPlayers = 1, -- 1 so it can be tested solo in Studio
-	Rounds = 8,
-	FinalRoundMultiplier = 2,
-	IntroTime = 4,
-	BuildTime = 22,
+	PointsToWin = 600, -- first across the line wins...
+	MaxRounds = 12, -- ...or whoever leads after this many rounds
+	LastRoundMultiplier = 2,
+	IntroTime = 5,
+	PickTime = 12,
+	BuildTime = 25,
 	CountdownTime = 3,
-	RunTime = 45,
-	ResultsTime = 7,
+	RunTime = 60,
+	ResultsTime = 8,
 	WinnerTime = 10,
-	HandSize = 3,
+	BoxExtra = 2, -- the pick box holds players + this many pieces
 }
 
 Config.Scoring = {
@@ -275,30 +473,35 @@ Config.Objects = {
 	CrumbleDelay = 0.55,
 	CrumbleRespawn = 3.5,
 	BombRadius = 5,
+	BumperKnock = 70,
 }
 
 -- 2.5D: everything lives on the Z = 0 plane, the camera looks down -Z.
 Config.World = {
 	KillY = -12,
-	Hold = Vector3.new(0, 80, 260), -- behind the camera, where parked characters wait
+	Hold = Vector3.new(0, 80, 420), -- behind the camera, where parked characters wait
 	GoalMinTime = 1.5, -- anti-teleport sanity check
 }
 
 return Config
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX7C606E1A780247559B82C05E1AF4C22A">
+      <Item class="ModuleScript" referent="RBXF8E2947736CF439E9C1947F7D37E0C57">
         <Properties><string name="Name">Levels</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Hand-authored layouts, stored as plain data.
 -- The same shape will be what community levels save to DataStores later.
 --
 -- Design rules every layout follows:
 --   * start and flag are on solid ground with clear space around them
---   * the bare layout is beatable with a double jump, but not comfortably
---   * there is open air above and between pieces for players to build in
+--   * the bare layout is beatable with double jumps, but never comfortably
+--   * at least two routes somewhere (a high one and a low one), so one
+--     player's trap never blocks the only way through
+--   * big open air between pieces, because that's where players build
+--
+-- Reference: single jump ~7 studs high, double jump ~12, ~18 across.
 
 export type Piece = {
-	kind: "ground" | "stump" | "tree" | "rock" | "log",
+	kind: "ground" | "ledge" | "stump" | "tree" | "rock" | "log",
 	x0: number,
 	x1: number,
 	top: number,
@@ -319,51 +522,70 @@ local Levels = {}
 
 Levels.Forest = {
 	{
+		-- Low meadow path vs. a high ledge route over the middle
 		name = "Mossy Hollow",
 		world = "Forest",
-		spawn = Vector2.new(2, 10),
-		flag = Vector2.new(108, 14),
-		buildMin = Vector2.new(-6, -8),
-		buildMax = Vector2.new(120, 44),
+		spawn = Vector2.new(0, 10),
+		flag = Vector2.new(214, 16),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 64),
 		seed = 11,
 		pieces = {
-			{ kind = "ground", x0 = -8, x1 = 10, top = 10 },
-			{ kind = "ground", x0 = 24, x1 = 36, top = 6 },
-			{ kind = "stump", x0 = 48, x1 = 53, top = 14 },
-			{ kind = "ground", x0 = 64, x1 = 78, top = 8 },
-			{ kind = "ground", x0 = 94, x1 = 122, top = 14 },
+			{ kind = "ground", x0 = -12, x1 = 12, top = 10 },
+			{ kind = "ground", x0 = 26, x1 = 40, top = 6 },
+			{ kind = "stump", x0 = 52, x1 = 57, top = 16 },
+			{ kind = "ledge", x0 = 66, x1 = 80, top = 24 },
+			{ kind = "ground", x0 = 72, x1 = 96, top = 4 },
+			{ kind = "rock", x0 = 108, x1 = 114, top = 12 },
+			{ kind = "ground", x0 = 124, x1 = 152, top = 8 },
+			{ kind = "stump", x0 = 140, x1 = 145, top = 18 },
+			{ kind = "ledge", x0 = 158, x1 = 172, top = 28 },
+			{ kind = "ground", x0 = 168, x1 = 186, top = 10 },
+			{ kind = "ground", x0 = 200, x1 = 232, top = 16 },
 		},
 	},
 	{
+		-- Two long logs, a rocky dip, and an overhang that rewards the brave
 		name = "Fallen Log",
 		world = "Forest",
-		spawn = Vector2.new(0, 12),
-		flag = Vector2.new(106, 10),
-		buildMin = Vector2.new(-6, -8),
-		buildMax = Vector2.new(120, 44),
+		spawn = Vector2.new(-2, 12),
+		flag = Vector2.new(212, 12),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 64),
 		seed = 23,
 		pieces = {
-			{ kind = "ground", x0 = -8, x1 = 8, top = 12 },
-			{ kind = "log", x0 = 20, x1 = 56, top = 6 },
-			{ kind = "rock", x0 = 68, x1 = 75, top = 3 },
-			{ kind = "ground", x0 = 90, x1 = 122, top = 10 },
+			{ kind = "ground", x0 = -12, x1 = 10, top = 12 },
+			{ kind = "log", x0 = 22, x1 = 60, top = 6 },
+			{ kind = "rock", x0 = 70, x1 = 76, top = 2 },
+			{ kind = "ground", x0 = 88, x1 = 110, top = 10 },
+			{ kind = "ledge", x0 = 100, x1 = 116, top = 28 },
+			{ kind = "log", x0 = 124, x1 = 160, top = 14 },
+			{ kind = "rock", x0 = 172, x1 = 177, top = 6 },
+			{ kind = "ledge", x0 = 168, x1 = 182, top = 30 },
+			{ kind = "ground", x0 = 192, x1 = 232, top = 12 },
 		},
 	},
 	{
+		-- Treetop hopping: lots of height changes, lots of places to build
 		name = "Canopy Run",
 		world = "Forest",
-		spawn = Vector2.new(0, 20),
-		flag = Vector2.new(110, 18),
-		buildMin = Vector2.new(-6, -8),
-		buildMax = Vector2.new(120, 48),
+		spawn = Vector2.new(-2, 20),
+		flag = Vector2.new(214, 18),
+		buildMin = Vector2.new(-8, -8),
+		buildMax = Vector2.new(228, 68),
 		seed = 37,
 		pieces = {
-			{ kind = "ground", x0 = -8, x1 = 8, top = 20 },
-			{ kind = "tree", x0 = 22, x1 = 30, top = 14 },
-			{ kind = "tree", x0 = 40, x1 = 46, top = 22 },
-			{ kind = "tree", x0 = 58, x1 = 66, top = 12 },
-			{ kind = "tree", x0 = 78, x1 = 85, top = 20 },
-			{ kind = "ground", x0 = 98, x1 = 122, top = 18 },
+			{ kind = "ground", x0 = -12, x1 = 8, top = 20 },
+			{ kind = "tree", x0 = 20, x1 = 28, top = 14 },
+			{ kind = "tree", x0 = 38, x1 = 44, top = 24 },
+			{ kind = "tree", x0 = 56, x1 = 64, top = 12 },
+			{ kind = "tree", x0 = 76, x1 = 82, top = 22 },
+			{ kind = "tree", x0 = 94, x1 = 102, top = 30 },
+			{ kind = "tree", x0 = 116, x1 = 124, top = 16 },
+			{ kind = "tree", x0 = 136, x1 = 142, top = 26 },
+			{ kind = "tree", x0 = 154, x1 = 162, top = 14 },
+			{ kind = "tree", x0 = 174, x1 = 180, top = 24 },
+			{ kind = "ground", x0 = 194, x1 = 232, top = 18 },
 		},
 	},
 } :: { Layout }
@@ -371,7 +593,7 @@ Levels.Forest = {
 return Levels
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXC744054353544918A90E9FF96FAD06C6">
+      <Item class="ModuleScript" referent="RBXD874BB7FDF3948978CBC4C2F384A1A47">
         <Properties><string name="Name">Net</string><ProtectedString name="Source"><![CDATA[--!strict
 -- All remotes in one place. Server creates them, clients wait for them.
 -- Rule: clients only ever *ask*. The server decides everything that matters.
@@ -382,7 +604,9 @@ local RunService = game:GetService("RunService")
 local RELIABLE = {
 	"MatchState", -- S->C  phase, timers, round
 	"Scores", -- S->C  totals
-	"Hand", -- S->C  your cards for this build phase (nil closes)
+	"Box", -- S->C  the shared pick box: pieces + who grabbed what
+	"Pick", -- C->S  grab a piece from the box
+	"Hand", -- S->C  the piece you'll place this round (nil closes)
 	"Place", -- C->S  request to place a card
 	"PlaceResult", -- S->C  ok / reason
 	"Fail", -- S->C  someone got taken out
@@ -390,6 +614,11 @@ local RELIABLE = {
 	"RoundResults", -- S->C  per-player breakdown
 	"Explode", -- S->C  bomb went off (visual only)
 	"Notify", -- S->C  small toast
+	"LobbyState", -- S->C  menu/party info: mode, code, host, members, queued
+}
+
+local FUNCTIONS = {
+	"Lobby", -- C->S  menu actions: play, create, join, start, leave, species
 }
 
 local UNRELIABLE = {
@@ -407,6 +636,11 @@ if RunService:IsServer() then
 		r.Name = name
 		r.Parent = folder
 	end
+	for _, name in FUNCTIONS do
+		local r = Instance.new("RemoteFunction")
+		r.Name = name
+		r.Parent = folder
+	end
 	for _, name in UNRELIABLE do
 		local r = Instance.new("UnreliableRemoteEvent")
 		r.Name = name
@@ -421,6 +655,10 @@ function Net.event(name: string): RemoteEvent
 	return folder:WaitForChild(name) :: RemoteEvent
 end
 
+function Net.func(name: string): RemoteFunction
+	return folder:WaitForChild(name) :: RemoteFunction
+end
+
 function Net.unreliable(name: string): UnreliableRemoteEvent
 	return folder:WaitForChild(name) :: UnreliableRemoteEvent
 end
@@ -428,7 +666,7 @@ end
 return Net
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX3F8DB816FA284484BC2CBCDD27C6A340">
+      <Item class="ModuleScript" referent="RBX796CD50CD3E34685AAD76C373DC8769F">
         <Properties><string name="Name">Objects</string><ProtectedString name="Source"><![CDATA[--!strict
 -- Placeable object definitions + their models.
 -- The server builds the real thing; the client builds the same model for
@@ -462,6 +700,8 @@ local Objects = {}
 
 Objects.List = {
 	{ id = "plank", name = "Plank", blurb = "A trusty wooden ledge.", kind = "route", size = Vector2.new(6, 1), weight = 3 },
+	{ id = "longplank", name = "Long Plank", blurb = "Bridges a big gap. Or blocks one.", kind = "route", size = Vector2.new(10, 1), weight = 2 },
+	{ id = "pillar", name = "Pillar", blurb = "A tall post. Wall-jump off it.", kind = "route", size = Vector2.new(1, 6), weight = 1 },
 	{ id = "crate", name = "Crate", blurb = "Solid. Stack it, hide behind it.", kind = "route", size = Vector2.new(3, 3), weight = 2 },
 	{ id = "spring", name = "Spring", blurb = "Boing. Tilt it to launch sideways.", kind = "route", size = Vector2.new(3, 2), weight = 2 },
 	{ id = "conveyor", name = "Conveyor", blurb = "Carries you along. Or into things.", kind = "route", size = Vector2.new(8, 1), weight = 2 },
@@ -475,6 +715,9 @@ Objects.List = {
 	{ id = "hammer", name = "Swing Hammer", blurb = "Knocks you flying. Timing matters.", kind = "trap", size = Vector2.new(2, 2), weight = 2 },
 	{ id = "fan", name = "Fan", blurb = "Blows everyone the way it points.", kind = "trap", size = Vector2.new(3, 2), weight = 2 },
 	{ id = "cannon", name = "Cannon", blurb = "Lobs slow cannonballs. Knockback.", kind = "trap", size = Vector2.new(3, 2), weight = 1 },
+	{ id = "trapdoor", name = "Trapdoor", blurb = "Solid... until it drops open.", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
+	{ id = "bumper", name = "Bumper", blurb = "Bounces you away, pinball style.", kind = "trap", size = Vector2.new(3, 3), weight = 1 },
+	{ id = "laser", name = "Laser", blurb = "Blinks on and off. Deadly when on.", kind = "trap", size = Vector2.new(2, 2), weight = 1 },
 	{ id = "bomb", name = "Bomb", blurb = "Clears objects nearby. Fix a ruined level.", kind = "tool", size = Vector2.new(1, 1), weight = 1 },
 } :: { Def }
 
@@ -506,6 +749,57 @@ end
 
 function Objects.cframe(x: number, y: number, rot: number): CFrame
 	return CFrame.new(x, y, 0) * CFrame.Angles(0, 0, math.rad(rot))
+end
+
+--------------------------------------------------------------------------
+-- Timed objects: both server and client compute state from the same clock
+--------------------------------------------------------------------------
+
+Objects.LASER_PERIOD = 3.2
+-- "on" for 1.4s, a short "warn" flicker before it fires again, otherwise "off"
+function Objects.laserState(age: number): string
+	local t = age % Objects.LASER_PERIOD
+	if t < 1.4 then
+		return "on"
+	elseif t > Objects.LASER_PERIOD - 0.5 then
+		return "warn"
+	end
+	return "off"
+end
+
+Objects.TRAPDOOR_PERIOD = 4
+function Objects.trapdoorOpen(age: number): boolean
+	return age % Objects.TRAPDOOR_PERIOD > 2.8
+end
+
+-- How far a laser reaches before something solid stops it
+function Objects.laserLength(model: Model, pivot: CFrame): number
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	local list = {}
+	for _, name in { "Level", "Objects" } do
+		local f = workspace:FindFirstChild(name)
+		if f then
+			table.insert(list, f)
+		end
+	end
+	params.FilterDescendantsInstances = list
+	local dir = pivot.RightVector
+	local origin = pivot * Vector3.new(1, 0, 0)
+	local max = 60
+	local traveled = 0
+	while traveled < max do
+		local hit = workspace:Raycast(origin, dir * (max - traveled), params)
+		if not hit then
+			break
+		end
+		if hit.Instance.CanCollide and not hit.Instance:IsDescendantOf(model) then
+			return traveled + (hit.Position - origin).Magnitude
+		end
+		traveled += (hit.Position - origin).Magnitude + 0.05
+		origin = hit.Position + dir * 0.05
+	end
+	return max
 end
 
 -- Shared by the client ghost (red/green) and the server (final say).
@@ -617,6 +911,51 @@ builders.decoy = function(m)
 			p:SetAttribute("Solid", nil)
 		end
 	end
+end
+
+builders.longplank = function(m)
+	solid(add(m, "Board", Vector3.new(10, 1, DEPTH), CFrame.identity, F.Wood))
+	add(m, "Trim", Vector3.new(10.02, 0.22, DEPTH + 0.02), CFrame.new(0, -0.4, 0), F.WoodDark)
+	for _, x in { -4.3, 0, 4.3 } do
+		add(m, "Nail", Vector3.new(0.28, 0.28, 0.06), CFrame.new(x, 0.12, FRONT), F.WoodDark)
+	end
+end
+
+builders.pillar = function(m)
+	solid(add(m, "Post", Vector3.new(1, 6, DEPTH), CFrame.identity, F.Wood))
+	add(m, "Cap", Vector3.new(1.3, 0.4, DEPTH + 0.2), CFrame.new(0, 2.85, 0), F.WoodDark)
+	add(m, "Foot", Vector3.new(1.3, 0.4, DEPTH + 0.2), CFrame.new(0, -2.85, 0), F.WoodDark)
+end
+
+builders.trapdoor = function(m)
+	add(m, "Frame", Vector3.new(6, 0.3, DEPTH + 0.1), CFrame.new(0, -0.55, 0), O.Metal)
+	for _, side in { -1, 1 } do
+		local door = solid(add(m, "Door", Vector3.new(2.95, 0.8, DEPTH), CFrame.new(side * 1.5, 0, 0), F.Wood))
+		door:SetAttribute("Group", side < 0 and "doorL" or "doorR")
+		local hinge = add(m, "Hinge", Vector3.new(0.35, 0.35, 0.06), CFrame.new(side * 2.7, 0, FRONT), O.MetalLight)
+		hinge:SetAttribute("Group", side < 0 and "doorL" or "doorR")
+	end
+	add(m, "Seam", Vector3.new(0.12, 0.82, 0.05), CFrame.new(0, 0, FRONT), F.WoodDark)
+end
+
+builders.bumper = function(m)
+	local ball = solid(add(m, "Bumper", Vector3.new(3, 3, 3), CFrame.identity, O.Spring, Enum.PartType.Ball))
+	ball:SetAttribute("Group", "bumper")
+	local ring = add(m, "Ring", Vector3.new(0.3, 3.1, 3.1), FACE_CAMERA, Style.UI.Paper, Enum.PartType.Cylinder)
+	ring:SetAttribute("Group", "bumper")
+	local dot = add(m, "Dot", Vector3.new(0.32, 1.2, 1.2), FACE_CAMERA, O.Spring, Enum.PartType.Cylinder)
+	dot:SetAttribute("Group", "bumper")
+end
+
+builders.laser = function(m)
+	solid(add(m, "Emitter", Vector3.new(2, 2, 3), CFrame.identity, O.Metal))
+	add(m, "Lens", Vector3.new(0.3, 1, 1), CFrame.new(1.05, 0, 0), O.Danger, Enum.PartType.Cylinder)
+	add(m, "Vent", Vector3.new(1.4, 0.15, 0.05), CFrame.new(-0.1, 0.4, 1.52), O.MetalLight)
+	add(m, "Vent", Vector3.new(1.4, 0.15, 0.05), CFrame.new(-0.1, 0, 1.52), O.MetalLight)
+	local beam = add(m, "Beam", Vector3.new(4, 0.3, 0.3), CFrame.new(3.1, 0, 0), O.Danger)
+	beam:SetAttribute("Group", "beam")
+	beam.CastShadow = false
+	beam.Transparency = 0.15
 end
 
 builders.crate = function(m)
@@ -771,7 +1110,7 @@ end
 return Objects
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX81143F5C64774E1D936F9C6995992C3A">
+      <Item class="ModuleScript" referent="RBX3C095C0EF9CB412B81D1B092C1D9C0D8">
         <Properties><string name="Name">Style</string><ProtectedString name="Source"><![CDATA[--!strict
 -- One palette for UI and world. Flat colors, no gradients, no neon.
 
@@ -787,6 +1126,16 @@ Style.UI = {
 	Good = Color3.fromRGB(82, 170, 110),
 	Bad = Color3.fromRGB(214, 76, 76),
 	Gold = Color3.fromRGB(240, 184, 72),
+	Cool = Color3.fromRGB(92, 150, 220),
+}
+
+-- Score categories, in the order they animate into the bar chart
+Style.ScoreOrder = { "finish", "trap", "clutch", "route" }
+Style.ScoreColor = {
+	finish = Style.UI.Good,
+	trap = Style.UI.Bad,
+	clutch = Style.UI.Gold,
+	route = Style.UI.Cool,
 }
 
 Style.Font = {
@@ -829,9 +1178,9 @@ return Style
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="RBX308DF2EF2589456F83CC8CAD5709A0A2">
+  <Item class="ServerScriptService" referent="RBX334AB81ECC3A4AA58E51FDA75F5B4644">
     <Properties><string name="Name">ServerScriptService</string></Properties>
-    <Item class="Script" referent="RBXF568168318CC4ECBABC0FE295D46BFDB">
+    <Item class="Script" referent="RBX30688872F43E47A08484F12ABFFDFFBF">
       <Properties><string name="Name">Main</string><ProtectedString name="Source"><![CDATA[-- Server entry point. Services are plain modules; order matters only here.
 
 local Services = script.Parent.Services
@@ -840,20 +1189,27 @@ local PlayerService = require(Services.PlayerService)
 local LevelService = require(Services.LevelService)
 local BuildService = require(Services.BuildService)
 local RoundService = require(Services.RoundService)
+local LobbyService = require(Services.LobbyService)
 local MatchService = require(Services.MatchService)
 
 PlayerService.init()
 LevelService.init()
 BuildService.init()
 RoundService.init()
+LobbyService.init()
 MatchService.start()
 ]]></ProtectedString></Properties>
     </Item>
-    <Item class="Folder" referent="RBXFCA4D778EB044DA5B890B23ABBB4B808">
+    <Item class="Folder" referent="RBXAF76D896A74E41249B32E989DB27FD58">
       <Properties><string name="Name">Services</string></Properties>
-      <Item class="ModuleScript" referent="RBXEFEC8ED41C164068AFD2B413929A9D6C">
-        <Properties><string name="Name">BuildService</string><ProtectedString name="Source"><![CDATA[-- Deals cards, validates placement requests, spawns objects.
--- The client only *asks* to place; every rule is re-checked here.
+      <Item class="ModuleScript" referent="RBXB2B58120A8264D58A31C2E745A01BC5F">
+        <Properties><string name="Name">BuildService</string><ProtectedString name="Source"><![CDATA[-- The pick box and the build phase.
+--
+-- Pick: a crate opens with (players + 2) pieces. First click wins a piece;
+-- whoever's too slow gets a leftover. Fighting over the good piece is the point.
+-- Build: everyone places the piece they grabbed.
+--
+-- The client only *asks* to pick or place; every rule is re-checked here.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -866,6 +1222,8 @@ local Objects = require(Shared.Objects)
 local HazardService = require(script.Parent.HazardService)
 local LevelService = require(script.Parent.LevelService)
 
+local BoxEvent = Net.event("Box")
+local PickEvent = Net.event("Pick")
 local HandEvent = Net.event("Hand")
 local PlaceEvent = Net.event("Place")
 local PlaceResult = Net.event("PlaceResult")
@@ -874,10 +1232,16 @@ local Cursor = Net.unreliable("Cursor")
 
 local BuildService = {}
 
+type Slot = { id: string, takenBy: number }
+
+local box = {} :: { Slot }
+local pickers = {} :: { Player }
+local picked = {} :: { [Player]: string }
 local hands = {} :: { [Player]: { string } }
 local placed = {} :: { [Player]: boolean }
 local lastCursor = {} :: { [Player]: number }
-local open = false
+local pickOpen = false
+local buildOpen = false
 
 local function weightedPick(pool: { Objects.Def }): Objects.Def
 	local total = 0
@@ -894,37 +1258,128 @@ local function weightedPick(pool: { Objects.Def }): Objects.Def
 	return pool[#pool]
 end
 
--- Every hand has at least one route piece, so the level can always grow a way through.
-local function deal(round: number): { string }
-	local hand = {}
-	local function pool(filter: (Objects.Def) -> boolean)
-		local list = {}
+-- Roll the box. Rules: about a third are route pieces so the level can always
+-- grow a way through; at most one bomb, and never in round 1 (nothing to bomb).
+local function roll(count: number, round: number): { string }
+	local items = {}
+	local function from(filter: (Objects.Def) -> boolean): string?
+		local pool = {}
 		for _, d in Objects.List do
-			if filter(d) and not table.find(hand, d.id) and (d.id ~= "bomb" or round > 1) then
-				table.insert(list, d)
+			if filter(d) and (d.id ~= "bomb" or (round > 1 and not table.find(items, "bomb"))) then
+				table.insert(pool, d)
 			end
 		end
-		return list
+		if #pool == 0 then
+			return nil
+		end
+		return weightedPick(pool).id
 	end
-	table.insert(hand, weightedPick(pool(function(d)
-		return d.kind == "route"
-	end)).id)
-	while #hand < Config.Match.HandSize do
-		table.insert(hand, weightedPick(pool(function()
-			return true
-		end)).id)
+	local routes = math.max(1, math.ceil(count / 3))
+	for _ = 1, routes do
+		table.insert(items, from(function(d)
+			return d.kind == "route"
+		end) :: string)
 	end
-	-- shuffle so the route card isn't always first
-	for i = #hand, 2, -1 do
+	while #items < count do
+		-- avoid more than two of the same thing so the box feels varied
+		local id = from(function(d)
+			local n = 0
+			for _, it in items do
+				if it == d.id then
+					n += 1
+				end
+			end
+			return n < 2
+		end)
+		table.insert(items, id :: string)
+	end
+	for i = #items, 2, -1 do
 		local j = math.random(1, i)
-		hand[i], hand[j] = hand[j], hand[i]
+		items[i], items[j] = items[j], items[i]
 	end
-	return hand
+	return items
 end
 
 local function finite(n: any): boolean
 	return typeof(n) == "number" and n == n and math.abs(n) < 1e4
 end
+
+local function sendBox()
+	local payload = {}
+	for i, s in box do
+		payload[i] = { id = s.id, takenBy = s.takenBy }
+	end
+	local ids = {}
+	for _, p in pickers do
+		table.insert(ids, p.UserId)
+	end
+	BoxEvent:FireAllClients(payload, ids)
+end
+
+--------------------------------------------------------------------------
+-- Pick
+--------------------------------------------------------------------------
+
+local function onPick(player: Player, slot: any)
+	if not pickOpen or picked[player] or not table.find(pickers, player) then
+		return
+	end
+	if typeof(slot) ~= "number" or slot ~= slot then
+		return
+	end
+	local s = box[math.floor(slot)]
+	if not s or s.takenBy ~= 0 then
+		return -- someone beat you to it
+	end
+	s.takenBy = player.UserId
+	picked[player] = s.id
+	sendBox()
+end
+
+function BuildService.openPick(players: { Player }, round: number)
+	table.clear(box)
+	table.clear(picked)
+	pickers = table.clone(players)
+	for _, id in roll(#players + Config.Match.BoxExtra, round) do
+		table.insert(box, { id = id, takenBy = 0 })
+	end
+	pickOpen = true
+	sendBox()
+end
+
+function BuildService.everyonePicked(): boolean
+	for _, p in pickers do
+		if p.Parent and not picked[p] then
+			return false
+		end
+	end
+	return true
+end
+
+-- Too slow? You get whatever's left.
+function BuildService.closePick()
+	pickOpen = false
+	for _, p in pickers do
+		if p.Parent and not picked[p] then
+			local free = {}
+			for _, s in box do
+				if s.takenBy == 0 then
+					table.insert(free, s)
+				end
+			end
+			local s = free[math.random(1, #free)]
+			if s then
+				s.takenBy = p.UserId
+				picked[p] = s.id
+			end
+		end
+	end
+	sendBox()
+end
+
+--------------------------------------------------------------------------
+-- Build
+--------------------------------------------------------------------------
 
 local function bomb(pos: Vector3)
 	local r = Config.Objects.BombRadius
@@ -968,7 +1423,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 	local function reject(reason: string)
 		PlaceResult:FireClient(player, false, reason)
 	end
-	if not open or placed[player] then
+	if not buildOpen or placed[player] then
 		return reject("Building is closed")
 	end
 	if typeof(id) ~= "string" or not finite(x) or not finite(y) or not finite(rot) then
@@ -981,7 +1436,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 	local hand = hands[player]
 	local def = Objects.ById[id]
 	if not hand or not def or not table.find(hand, id) then
-		return reject("That card isn't yours")
+		return reject("That piece isn't yours")
 	end
 
 	local sx, sy = Objects.snap(def, x, y, rot)
@@ -1003,7 +1458,7 @@ local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
 end
 
 local function onCursor(player: Player, id: any, x: any, y: any, rot: any)
-	if not open or placed[player] or not hands[player] then
+	if not buildOpen or placed[player] or not hands[player] then
 		return
 	end
 	local now = os.clock()
@@ -1024,18 +1479,23 @@ local function onCursor(player: Player, id: any, x: any, y: any, rot: any)
 	end
 end
 
-function BuildService.open(players: { Player }, round: number)
+function BuildService.openBuild(players: { Player })
 	table.clear(hands)
 	table.clear(placed)
 	for _, p in players do
-		hands[p] = deal(round)
-		HandEvent:FireClient(p, hands[p])
+		local id = picked[p]
+		if id and p.Parent then
+			hands[p] = { id }
+			HandEvent:FireClient(p, hands[p])
+		else
+			placed[p] = true -- nothing to place (joined mid-pick)
+		end
 	end
-	open = true
+	buildOpen = true
 end
 
-function BuildService.close()
-	open = false
+function BuildService.closeBuild()
+	buildOpen = false
 	for p in hands do
 		HandEvent:FireClient(p, nil)
 	end
@@ -1059,11 +1519,13 @@ function BuildService.clearObjects()
 end
 
 function BuildService.init()
+	PickEvent.OnServerEvent:Connect(onPick)
 	PlaceEvent.OnServerEvent:Connect(onPlace)
 	Cursor.OnServerEvent:Connect(onCursor)
 	Players.PlayerRemoving:Connect(function(p)
 		hands[p] = nil
 		placed[p] = nil
+		picked[p] = nil
 		lastCursor[p] = nil
 	end)
 end
@@ -1071,7 +1533,7 @@ end
 return BuildService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXE2263BB423C44657A2424AC59F7B55AB">
+      <Item class="ModuleScript" referent="RBX905475ACBC22425A9F008807C0280AFE">
         <Properties><string name="Name">HazardService</string><ProtectedString name="Source"><![CDATA[-- Server-side object behaviour that has to be authoritative:
 -- deadly contact, crumbling ledges, and "you used your own route" tracking.
 -- Knockback/launch effects run on the client (it owns its character's physics),
@@ -1094,6 +1556,7 @@ HazardService.onDeadly = function(_player: Player, _model: Model) end
 
 local touchedOwn = {} :: { [Player]: boolean }
 local crumbles = {} :: { Model }
+local lasers = {} :: { Model }
 
 local function playerFromHit(hit: BasePart): Player?
 	if hit.Name ~= "HumanoidRootPart" then
@@ -1171,6 +1634,45 @@ function HazardService.watch(model: Model)
 	if model:FindFirstChild("Slab") and (model:FindFirstChild("Slab") :: BasePart):GetAttribute("Crumble") then
 		table.insert(crumbles, model)
 	end
+	if def and def.id == "laser" then
+		table.insert(lasers, model)
+	end
+end
+
+local function pivotOf(model: Model): CFrame
+	return Objects.cframe(model:GetAttribute("X") :: number, model:GetAttribute("Y") :: number, model:GetAttribute("Rot") :: number)
+end
+
+-- Called ~10x a second during a run. Lasers are checked by geometry instead
+-- of Touched, because their on/off state comes from the clock.
+function HazardService.tick(running: { Player })
+	local now = workspace:GetServerTimeNow()
+	for i = #lasers, 1, -1 do
+		local m = lasers[i]
+		if not m.Parent then
+			table.remove(lasers, i)
+			continue
+		end
+		local age = now - (m:GetAttribute("PlacedAt") :: number)
+		if Objects.laserState(age) ~= "on" then
+			continue
+		end
+		local pivot = pivotOf(m)
+		local a = pivot * Vector3.new(1, 0, 0)
+		local dir = pivot.RightVector
+		local len = Objects.laserLength(m, pivot)
+		for _, player in running do
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root then
+				local rel = root.Position - a
+				local along = math.clamp(rel:Dot(dir), 0, len)
+				if (rel - dir * along).Magnitude < 1.15 then
+					HazardService.onDeadly(player, m)
+				end
+			end
+		end
+	end
 end
 
 -- Called at the start of each run so the level is identical for everyone
@@ -1193,7 +1695,7 @@ end
 return HazardService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX98CE9FA9F46C4E7A8D352FA42D590640">
+      <Item class="ModuleScript" referent="RBX656EEB4B15C345EEBA2FFB82D10EF501">
         <Properties><string name="Name">LevelService</string><ProtectedString name="Source"><![CDATA[-- Builds a layout into the world: playable pieces, start, flag, safe zones,
 -- and a background with just enough life in it (trees, hills, a river, clouds).
 
@@ -1268,6 +1770,17 @@ builders.ground = function(p: Levels.Piece, rng: Random)
 		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
 		blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(x, p.top + 0.2, -3.4), F.GrassDark)
 	end
+end
+
+-- A floating grassy chunk: the "high route" piece
+builders.ledge = function(p: Levels.Piece, rng: Random)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	solid(part(level, "Grass", Vector3.new(w + 0.6, 1.2, 7.4), CFrame.new(cx, p.top - 0.6, 0), F.Grass))
+	solid(part(level, "Dirt", Vector3.new(w, 2.6, 7), CFrame.new(cx, p.top - 2.5, 0), F.Dirt))
+	blob(level, "Underside", Vector3.new(w * 0.8, 3.4, 6), CFrame.new(cx, p.top - 3.6, 0), F.DirtDark)
+	blob(level, "Root", Vector3.new(0.6, 2.4, 0.6), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top - 5, 1.6), F.Bark)
+	blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top + 0.2, -3), F.GrassDark)
 end
 
 builders.stump = function(p: Levels.Piece)
@@ -1505,9 +2018,331 @@ end
 return LevelService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX731E7FFC6715463F9545508480B1AD07">
-        <Properties><string name="Name">MatchService</string><ProtectedString name="Source"><![CDATA[-- The whole match: pick a level, play N rounds (last one worth double), crown a winner.
--- ~75s per round x 8 rounds keeps a match around 10 minutes.
+      <Item class="ModuleScript" referent="RBXF8163373C32545428BC11BC516C6C174">
+        <Properties><string name="Name">LobbyService</string><ProtectedString name="Source"><![CDATA[-- Menus, parties and who's actually playing.
+--
+-- Public server : you open the menu, press PLAY, and join the next round.
+--                 Roblox's own server filling keeps public servers topped up.
+-- Party server  : a private (reserved) server with a 5-letter room code.
+--                 Friends join with the code or an in-game invite.
+--                 The host presses START; after a match everyone returns
+--                 to the party screen for a rematch.
+--
+-- Teleports and private servers only work in a PUBLISHED game.
+-- In Studio these return a friendly error instead of failing silently.
+
+local MemoryStoreService = game:GetService("MemoryStoreService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+
+local PlayerService = require(script.Parent.PlayerService)
+
+local LobbyState = Net.event("LobbyState")
+local LobbyFn = Net.func("Lobby")
+
+local LobbyService = {}
+
+LobbyService.mode = "public" -- "public" | "party"
+LobbyService.code = nil :: string?
+LobbyService.hostId = nil :: number?
+LobbyService.inMatch = false
+
+-- Set by MatchService so the lobby knows who is mid-race
+LobbyService.isRacing = function(_player: Player): boolean
+	return false
+end
+
+local queued = {} :: { [Player]: boolean }
+local partyStarted = false
+local joinOrder = {} :: { Player }
+local lastAction = {} :: { [Player]: number }
+
+local CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789" -- no 0/O, 1/I/L
+local CODE_TTL = 6 * 60 * 60
+
+local codes: MemoryStoreSortedMap? = nil
+pcall(function()
+	codes = MemoryStoreService:GetSortedMap("PartyCodes")
+end)
+
+local function isReservedServer(): boolean
+	return game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0
+end
+
+--------------------------------------------------------------------------
+-- State
+--------------------------------------------------------------------------
+
+function LobbyService.participants(): { Player }
+	local list = {}
+	for _, p in Players:GetPlayers() do
+		if LobbyService.mode == "party" or queued[p] then
+			table.insert(list, p)
+		end
+	end
+	return list
+end
+
+function LobbyService.ready(): boolean
+	if LobbyService.mode == "party" then
+		return partyStarted and #Players:GetPlayers() >= 1
+	end
+	return #LobbyService.participants() >= Config.Match.MinPlayers
+end
+
+function LobbyService.broadcast()
+	local members = {}
+	for _, p in joinOrder do
+		if p.Parent then
+			table.insert(members, {
+				userId = p.UserId,
+				name = p.DisplayName,
+				species = PlayerService.species[p],
+				queued = queued[p] == true,
+			})
+		end
+	end
+	LobbyState:FireAllClients({
+		mode = LobbyService.mode,
+		code = LobbyService.code,
+		hostId = LobbyService.hostId,
+		inMatch = LobbyService.inMatch,
+		members = members,
+	})
+end
+
+function LobbyService.matchStarted()
+	LobbyService.inMatch = true
+	LobbyService.broadcast()
+end
+
+function LobbyService.matchEnded()
+	LobbyService.inMatch = false
+	if LobbyService.mode == "party" then
+		partyStarted = false
+	end
+	LobbyService.broadcast()
+end
+
+--------------------------------------------------------------------------
+-- Teleports
+--------------------------------------------------------------------------
+
+local function newCode(): string
+	local chars = {}
+	for i = 1, 5 do
+		local n = math.random(1, #CODE_CHARS)
+		chars[i] = CODE_CHARS:sub(n, n)
+	end
+	return table.concat(chars)
+end
+
+local function teleportTo(player: Player, access: string, code: string, host: number?)
+	local options = Instance.new("TeleportOptions")
+	options.ReservedServerAccessCode = access
+	options:SetTeleportData({ code = code, host = host })
+	TeleportService:TeleportAsync(game.PlaceId, { player }, options)
+end
+
+local NOT_PUBLISHED = "Parties work once the game is published (not in Studio)."
+
+local function createParty(player: Player)
+	if RunService:IsStudio() or game.PlaceId == 0 or not codes then
+		return { ok = false, err = NOT_PUBLISHED }
+	end
+	local ok, err = pcall(function()
+		local store = codes :: MemoryStoreSortedMap
+		local code = newCode()
+		for _ = 1, 5 do
+			if store:GetAsync(code) == nil then
+				break
+			end
+			code = newCode()
+		end
+		local access = TeleportService:ReserveServer(game.PlaceId)
+		store:SetAsync(code, access, CODE_TTL)
+		teleportTo(player, access, code, player.UserId)
+	end)
+	if not ok then
+		warn("[Lobby] create failed:", err)
+		return { ok = false, err = "Couldn't create a party. Try again in a moment." }
+	end
+	return { ok = true }
+end
+
+local function joinParty(player: Player, code: any)
+	if typeof(code) ~= "string" then
+		return { ok = false, err = "Enter a 5-letter code" }
+	end
+	code = code:upper():gsub("[^%w]", "")
+	if #code ~= 5 then
+		return { ok = false, err = "Codes are 5 letters" }
+	end
+	if code == LobbyService.code then
+		return { ok = false, err = "You're already in this party" }
+	end
+	if RunService:IsStudio() or game.PlaceId == 0 or not codes then
+		return { ok = false, err = NOT_PUBLISHED }
+	end
+	local access: string? = nil
+	local ok = pcall(function()
+		access = (codes :: MemoryStoreSortedMap):GetAsync(code)
+	end)
+	if not ok then
+		return { ok = false, err = "Couldn't look up that code. Try again." }
+	end
+	if not access then
+		return { ok = false, err = "No party with that code" }
+	end
+	local tok, terr = pcall(teleportTo, player, access :: string, code, nil)
+	if not tok then
+		warn("[Lobby] join failed:", terr)
+		return { ok = false, err = "Couldn't join. Try again." }
+	end
+	return { ok = true }
+end
+
+local function leaveParty(player: Player)
+	if LobbyService.mode ~= "party" then
+		return { ok = false, err = "You're not in a party" }
+	end
+	local ok = pcall(function()
+		TeleportService:TeleportAsync(game.PlaceId, { player })
+	end)
+	return if ok then { ok = true } else { ok = false, err = "Couldn't leave right now" }
+end
+
+--------------------------------------------------------------------------
+-- Actions from the menu
+--------------------------------------------------------------------------
+
+local function onInvoke(player: Player, action: any, arg: any)
+	local now = os.clock()
+	if now - (lastAction[player] or 0) < 0.4 then
+		return { ok = false, err = "Slow down" }
+	end
+	lastAction[player] = now
+
+	if action == "play" then
+		if LobbyService.mode ~= "public" then
+			return { ok = false, err = "Waiting for the host to start" }
+		end
+		queued[player] = true
+		LobbyService.broadcast()
+		return { ok = true }
+	elseif action == "menu" then
+		if LobbyService.isRacing(player) then
+			return { ok = false, err = "Finish the round first" }
+		end
+		queued[player] = nil
+		LobbyService.broadcast()
+		return { ok = true }
+	elseif action == "create" then
+		if LobbyService.mode == "party" then
+			return { ok = false, err = "You're already in a party" }
+		end
+		return createParty(player)
+	elseif action == "join" then
+		return joinParty(player, arg)
+	elseif action == "leave" then
+		return leaveParty(player)
+	elseif action == "start" then
+		if LobbyService.mode ~= "party" or player.UserId ~= LobbyService.hostId then
+			return { ok = false, err = "Only the host can start" }
+		end
+		if LobbyService.inMatch then
+			return { ok = false, err = "A match is already running" }
+		end
+		partyStarted = true
+		LobbyService.broadcast()
+		return { ok = true }
+	elseif action == "species" then
+		if typeof(arg) ~= "string" or not Characters.ById[arg] then
+			return { ok = false, err = "Unknown animal" }
+		end
+		if LobbyService.isRacing(player) then
+			return { ok = false, err = "Change after this race" }
+		end
+		PlayerService.setSpecies(player, arg)
+		LobbyService.broadcast()
+		return { ok = true }
+	end
+	return { ok = false, err = "Unknown action" }
+end
+
+--------------------------------------------------------------------------
+
+local function onPlayerAdded(player: Player)
+	table.insert(joinOrder, player)
+	local data = player:GetJoinData()
+	local tp = data and data.TeleportData
+	if LobbyService.mode == "party" then
+		if typeof(tp) == "table" then
+			if not LobbyService.code and typeof(tp.code) == "string" then
+				LobbyService.code = tp.code
+			end
+			if tp.host == player.UserId then
+				LobbyService.hostId = player.UserId
+			end
+		end
+		if not LobbyService.hostId then
+			LobbyService.hostId = player.UserId
+		end
+	else
+		-- Accepted an in-game invite to a party? Its code rides along as launch data.
+		local launch = data and data.LaunchData
+		if typeof(launch) == "string" and #launch == 5 then
+			task.delay(2, function()
+				if player.Parent then
+					joinParty(player, launch)
+				end
+			end)
+		end
+	end
+	task.defer(LobbyService.broadcast)
+end
+
+local function onPlayerRemoving(player: Player)
+	queued[player] = nil
+	lastAction[player] = nil
+	local i = table.find(joinOrder, player)
+	if i then
+		table.remove(joinOrder, i)
+	end
+	if player.UserId == LobbyService.hostId then
+		-- hand the crown to whoever's been here longest
+		local nextHost = joinOrder[1]
+		LobbyService.hostId = nextHost and nextHost.UserId
+	end
+	LobbyService.broadcast()
+end
+
+function LobbyService.init()
+	if isReservedServer() then
+		LobbyService.mode = "party"
+	end
+	LobbyFn.OnServerInvoke = onInvoke
+	Players.PlayerAdded:Connect(onPlayerAdded)
+	for _, p in Players:GetPlayers() do
+		task.spawn(onPlayerAdded, p)
+	end
+	Players.PlayerRemoving:Connect(onPlayerRemoving)
+end
+
+return LobbyService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX80935D30492B4FDA8CA5BEAAA667D53F">
+        <Properties><string name="Name">MatchService</string><ProtectedString name="Source"><![CDATA[-- The whole match: pick a level, play rounds until someone crosses
+-- PointsToWin (or MaxRounds runs out, last round double), crown a winner.
+-- With bigger maps a round is ~1.5-2 minutes, so a match lands around 10-15.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1521,91 +2356,113 @@ local LevelService = require(script.Parent.LevelService)
 local BuildService = require(script.Parent.BuildService)
 local RoundService = require(script.Parent.RoundService)
 local ScoringService = require(script.Parent.ScoringService)
+local LobbyService = require(script.Parent.LobbyService)
 
 local RoundResults = Net.event("RoundResults")
 
 local MatchService = {}
 
-local function present(): { Player }
-	return Players:GetPlayers()
+local function leaders(): { any }
+	local standings = ScoringService.standings()
+	local best = standings[1] and standings[1].total or 0
+	local list = {}
+	for _, row in standings do
+		if row.total == best and best > 0 then
+			table.insert(list, row)
+		end
+	end
+	return list
 end
 
-local function playMatch(previousLevel: string?): string
-	local layout = LevelService.pick(previousLevel)
+local function playMatch()
+	local M = Config.Match
 	BuildService.clearObjects()
-	LevelService.build(layout)
 	ScoringService.reset()
-	for _, p in present() do
+	for _, p in LobbyService.participants() do
 		ScoringService.ensure(p)
 		PlayerService.park(p)
 	end
 	ScoringService.broadcast()
+	LobbyService.matchStarted()
 
 	local ctx = RoundService.context
-	ctx.level = layout.name
+	ctx.level = LevelService.layout and LevelService.layout.name or ""
 	ctx.round = 0
 	ctx.final = false
-	RoundService.setPhase("Intro", Config.Match.IntroTime)
-	task.wait(Config.Match.IntroTime)
+	RoundService.setPhase("Intro", M.IntroTime, { target = M.PointsToWin })
+	task.wait(M.IntroTime)
 
-	for round = 1, Config.Match.Rounds do
-		local players = present()
-		if #players < Config.Match.MinPlayers then
-			return layout.name
+	for round = 1, M.MaxRounds do
+		local players = LobbyService.participants()
+		if #players == 0 then
+			break
 		end
-		-- late joiners slot straight into the next round
 		for _, p in players do
-			ScoringService.ensure(p)
+			ScoringService.ensure(p) -- late joiners slot straight in
 		end
 
 		ctx.round = round
-		ctx.final = round == Config.Match.Rounds
+		ctx.final = round == M.MaxRounds
 		RoundService.build(players)
-		local info = RoundService.run(present())
+		local info = RoundService.run(LobbyService.participants())
 
-		local mult = if ctx.final then Config.Match.FinalRoundMultiplier else 1
+		local mult = if ctx.final then M.LastRoundMultiplier else 1
 		local results = ScoringService.score(info, mult)
 		RoundResults:FireAllClients(results)
 		ScoringService.broadcast()
-		RoundService.setPhase("Results", Config.Match.ResultsTime)
-		task.wait(Config.Match.ResultsTime)
-	end
+		RoundService.setPhase("Results", M.ResultsTime)
+		task.wait(M.ResultsTime)
 
-	local standings = ScoringService.standings()
-	local best = standings[1] and standings[1].total or 0
-	local winners = {}
-	for _, row in standings do
-		if row.total == best and best > 0 then
-			table.insert(winners, row)
-			local p = Players:GetPlayerByUserId(row.userId)
-			if p and p.Character then
-				local spot = LevelService.flag + Vector3.new(-2 - #winners * 1.8, 2.3, 0)
-				PlayerService.toStart(p, spot - Vector3.new(0, 2.3, 0), 1)
-				p.Character:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
-			end
+		local top = ScoringService.standings()[1]
+		if top and top.total >= M.PointsToWin then
+			break
 		end
 	end
-	RoundService.setPhase("Winner", Config.Match.WinnerTime, { winners = winners, standings = standings })
-	task.wait(Config.Match.WinnerTime)
-	return layout.name
+
+	local winners = leaders()
+	for i, row in winners do
+		local p = Players:GetPlayerByUserId(row.userId)
+		if p and p.Character then
+			local spot = LevelService.flag + Vector3.new(-2 - i * 1.8, 0, 0)
+			PlayerService.toStart(p, spot, 1)
+			p.Character:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
+		end
+	end
+	RoundService.setPhase("Winner", M.WinnerTime, {
+		winners = winners,
+		standings = ScoringService.standings(),
+		target = M.PointsToWin,
+	})
+	task.wait(M.WinnerTime)
+	for _, p in Players:GetPlayers() do
+		PlayerService.park(p)
+	end
+	LobbyService.matchEnded()
 end
 
 function MatchService.start()
+	LobbyService.isRacing = RoundService.isRacing
 	task.spawn(function()
 		local last: string? = nil
 		while true do
-			if #present() < Config.Match.MinPlayers then
-				RoundService.setPhase("Waiting", 0)
-				repeat
-					task.wait(1)
-				until #present() >= Config.Match.MinPlayers
-			end
-			task.wait(1.5)
-			local ok, result = pcall(playMatch, last)
-			if ok then
-				last = result
-			else
-				warn("[Match] crashed, restarting:", result)
+			-- Fresh level between matches so the menu has something to look at
+			local layout = LevelService.pick(last)
+			last = layout.name
+			BuildService.clearObjects()
+			LevelService.build(layout)
+			RoundService.context.level = layout.name
+			RoundService.context.round = 0
+			RoundService.setPhase("Waiting", 0)
+
+			repeat
+				task.wait(0.5)
+			until LobbyService.ready()
+			task.wait(1)
+
+			local ok, err = pcall(playMatch)
+			if not ok then
+				warn("[Match] crashed, restarting:", err)
+				LobbyService.matchEnded()
 				task.wait(2)
 			end
 		end
@@ -1615,7 +2472,7 @@ end
 return MatchService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXB99FDB12E22D48D2B7F99A7F65594642">
+      <Item class="ModuleScript" referent="RBX1FB61B8F3F3B453DA37C3EF00848CEE2">
         <Properties><string name="Name">PlayerService</string><ProtectedString name="Source"><![CDATA[-- Owns characters: which animal you are, where your body is, whether you can move.
 -- Nobody ever "dies" in the Roblox sense; we park and release characters instead,
 -- which means no respawn delays and no default death screen.
@@ -1756,6 +2613,24 @@ function PlayerService.freeze(player: Player)
 	end
 end
 
+-- Swap animal. Only called when the player isn't mid-race.
+function PlayerService.setSpecies(player: Player, speciesId: string)
+	if PlayerService.species[player] == speciesId then
+		return
+	end
+	PlayerService.species[player] = speciesId
+	local root = PlayerService.root(player)
+	local cf = if root then root.CFrame else CFrame.new(Config.World.Hold)
+	local anchored = if root then root.Anchored else true
+	PlayerService.spawn(player)
+	-- keep them exactly where they were (on the flag after a win, etc.)
+	local newRoot = PlayerService.root(player)
+	if newRoot and player.Character then
+		player.Character:PivotTo(cf)
+		newRoot.Anchored = anchored
+	end
+end
+
 function PlayerService.init()
 	Players.CharacterAutoLoads = false
 	PhysicsService:RegisterCollisionGroup("Players")
@@ -1776,9 +2651,9 @@ end
 return PlayerService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXFA65C32C095E4B45A31F1DCA22D000E2">
-        <Properties><string name="Name">RoundService</string><ProtectedString name="Source"><![CDATA[-- One round = build phase + run phase. Also owns the phase broadcast,
--- since every phase change goes through here.
+      <Item class="ModuleScript" referent="RBXCB7F143C82454970A401FD964DACDE02">
+        <Properties><string name="Name">RoundService</string><ProtectedString name="Source"><![CDATA[-- One round = pick from the box -> build -> run. Also owns the phase
+-- broadcast, since every phase change goes through here.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -1800,7 +2675,7 @@ local FinishEvent = Net.event("Finish")
 local RoundService = {}
 
 RoundService.phase = "Waiting"
-RoundService.context = { round = 0, rounds = Config.Match.Rounds, final = false, level = "" }
+RoundService.context = { round = 0, rounds = Config.Match.MaxRounds, final = false, level = "" }
 
 local status = {} :: { [Player]: string } -- running | done | dead
 local runners = {} :: { Player }
@@ -1849,7 +2724,7 @@ local function waitUntil(duration: number, done: () -> boolean)
 end
 
 --------------------------------------------------------------------------
--- Build
+-- Pick + build
 --------------------------------------------------------------------------
 
 function RoundService.build(players: { Player })
@@ -1857,13 +2732,25 @@ function RoundService.build(players: { Player })
 	for _, p in players do
 		PlayerService.park(p)
 	end
-	BuildService.open(players, RoundService.context.round)
+
+	BuildService.openPick(players, RoundService.context.round)
+	RoundService.setPhase("Pick", Config.Match.PickTime)
+	waitUntil(Config.Match.PickTime, BuildService.everyonePicked)
+	BuildService.closePick()
+	task.wait(1) -- a beat to see who got what
+
+	BuildService.openBuild(players)
 	RoundService.setPhase("Build", Config.Match.BuildTime)
 	waitUntil(Config.Match.BuildTime, function()
 		return BuildService.everyonePlaced(players)
 	end)
-	BuildService.close()
+	BuildService.closeBuild()
 	task.wait(0.6) -- let the last "pop" land before the camera moves
+end
+
+function RoundService.isRacing(player: Player): boolean
+	local s = status[player]
+	return (RoundService.phase == "Countdown" or RoundService.phase == "Run") and (s == "ready" or s == "running")
 end
 
 --------------------------------------------------------------------------
@@ -1960,7 +2847,14 @@ function RoundService.run(players: { Player }): ScoringService.RunInfo
 	end
 
 	waitUntil(Config.Match.RunTime, function()
-		-- cheap fall check at 10Hz instead of a Heartbeat loop
+		-- cheap 10Hz checks instead of a Heartbeat loop
+		local alive = {}
+		for _, p in runners do
+			if status[p] == "running" then
+				table.insert(alive, p)
+			end
+		end
+		HazardService.tick(alive)
 		for _, p in runners do
 			if status[p] == "running" then
 				local root = PlayerService.root(p)
@@ -2012,10 +2906,11 @@ end
 return RoundService
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBXFAB64B8BCF464AF9AB4BA3AB2559C03D">
+      <Item class="ModuleScript" referent="RBXB17279C295964FC8BFB1291D26CEBE8B">
         <Properties><string name="Name">ScoringService</string><ProtectedString name="Source"><![CDATA[-- Turns what happened in a run into points.
 --
 -- The rules, in one breath:
+--   first to Config.Match.PointsToWin wins the match
 --   finish 1st/2nd/3rd/4th+ -> 100/75/50/25
 --   take someone out with your object -> +25 each (max 75 a round)
 --   small bonuses: clutch finish, finishing via a route you built
@@ -2100,8 +2995,8 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 		end
 		ScoringService.ensure(player)
 		local items = {}
-		local function add(label: string, pts: number)
-			table.insert(items, { label = label, points = pts * multiplier })
+		local function add(cat: string, label: string, pts: number)
+			table.insert(items, { cat = cat, label = label, points = pts * multiplier })
 		end
 
 		local place: number? = nil
@@ -2109,12 +3004,12 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 			if fin.player == player then
 				place = i
 				if verdict == nil then
-					add(ordinal(i), S.Place[math.min(i, #S.Place)])
+					add("finish", ordinal(i), S.Place[math.min(i, #S.Place)])
 					if fin.timeLeft <= S.ClutchWindow then
-						add("Clutch", S.Clutch)
+						add("clutch", "Clutch", S.Clutch)
 					end
 					if HazardService.usedOwnRoute(player) then
-						add("Own route", S.OwnRoute)
+						add("route", "Own route", S.OwnRoute)
 					end
 				end
 			end
@@ -2122,16 +3017,18 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 
 		local kills = info.kills[player.UserId] or 0
 		if kills > 0 and verdict == nil then
-			add(kills == 1 and "Trap" or ("Trap x" .. kills), math.min(kills * S.Trap, S.TrapCap))
+			add("trap", if kills == 1 then "Trap" else ("Trap x" .. kills), math.min(kills * S.Trap, S.TrapCap))
 		end
 
 		local gained = 0
 		for _, it in items do
 			gained += it.points
 		end
+		local before = ScoringService.totals[player]
 		ScoringService.totals[player] += gained
 
 		table.insert(rows, {
+			before = before,
 			userId = player.UserId,
 			name = player.DisplayName,
 			species = PlayerService.species[player],
@@ -2142,14 +3039,15 @@ function ScoringService.score(info: RunInfo, multiplier: number)
 		})
 	end
 
+	-- Sorted by the match standing, so the chart reads like a race
 	table.sort(rows, function(a, b)
-		if a.gained ~= b.gained then
-			return a.gained > b.gained
+		if a.total ~= b.total then
+			return a.total > b.total
 		end
-		return a.total > b.total
+		return a.gained > b.gained
 	end)
 
-	return { verdict = verdict, multiplier = multiplier, rows = rows }
+	return { verdict = verdict, multiplier = multiplier, rows = rows, target = Config.Match.PointsToWin }
 end
 
 return ScoringService
@@ -2157,20 +3055,20 @@ return ScoringService
       </Item>
     </Item>
   </Item>
-  <Item class="ServerStorage" referent="RBX9446F269B07C47B98794489173DAF5A6">
+  <Item class="ServerStorage" referent="RBXB816D1BD2DDF40E980B23E21259D0D2E">
     <Properties><string name="Name">ServerStorage</string></Properties>
   </Item>
-  <Item class="StarterGui" referent="RBX0BD929F2FD49439EBB5FCD858FF14251">
+  <Item class="StarterGui" referent="RBX8D820480C5E54EEB9E4F3032CB6AC035">
     <Properties><string name="Name">StarterGui</string></Properties>
   </Item>
-  <Item class="StarterPack" referent="RBXE38D099FAD7A44D792854F5D01BF07DF">
+  <Item class="StarterPack" referent="RBXF620764B46E54B22A51DFD7CD84FADB9">
     <Properties><string name="Name">StarterPack</string></Properties>
   </Item>
-  <Item class="StarterPlayer" referent="RBXE78E2C7E71934A7BB59EDB24FCDE683B">
+  <Item class="StarterPlayer" referent="RBX5959112854B549C7825DB7EF203E581E">
     <Properties><string name="Name">StarterPlayer</string></Properties>
-    <Item class="StarterPlayerScripts" referent="RBXE7E8633E03594703A2F804086FD2C656">
+    <Item class="StarterPlayerScripts" referent="RBX29BF89A3CC014383A7453B7501237C23">
       <Properties><string name="Name">StarterPlayerScripts</string></Properties>
-      <Item class="LocalScript" referent="RBX8382D97F444442078C0B2606595AAD89">
+      <Item class="LocalScript" referent="RBX4D0D54FA9E224A94A4CD04671D6A605C">
         <Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Client entry point. Controllers are plain modules; order matters only here.
 
 if not game:IsLoaded() then
@@ -2181,26 +3079,32 @@ local Controllers = script.Parent:WaitForChild("Controllers")
 
 local State = require(Controllers.State)
 local Sound = require(Controllers.SoundController)
+local Fx = require(Controllers.FxController)
 local Hud = require(Controllers.HudController)
 local Camera = require(Controllers.CameraController)
 local Movement = require(Controllers.MovementController)
 local Objects = require(Controllers.ObjectController)
+local Pick = require(Controllers.PickController)
 local Build = require(Controllers.BuildController)
 local Animator = require(Controllers.CharacterAnimator)
+local Menu = require(Controllers.MenuController)
 
 State.init() -- first: everyone else reads State
 Sound.init()
+Fx.init()
 Hud.init()
 Camera.init()
 Movement.init()
 Objects.init()
+Pick.init()
 Build.init()
 Animator.init()
+task.spawn(Menu.init) -- waits for the loading screen to finish
 ]]></ProtectedString></Properties>
       </Item>
-      <Item class="Folder" referent="RBX2C471778B99E4FE6A426B086B2458FC6">
+      <Item class="Folder" referent="RBX410A4393B25644F59656B1B51CA00CE8">
         <Properties><string name="Name">Controllers</string></Properties>
-        <Item class="ModuleScript" referent="RBXC7ED47EB5E304B21BA796728017F70A9">
+        <Item class="ModuleScript" referent="RBX962CC1EFBADE46169A02F683230348CA">
           <Properties><string name="Name">BuildController</string><ProtectedString name="Source"><![CDATA[-- Building should take seconds:
 --   pick a card -> a ghost follows your pointer, snapped to the grid,
 --   green if it fits / red if not -> click to drop it. R rotates, right-click goes back.
@@ -2218,6 +3122,7 @@ local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Camera = require(script.Parent.CameraController)
 local Hud = require(script.Parent.HudController)
 local Sound = require(script.Parent.SoundController)
 local State = require(script.Parent.State)
@@ -2268,6 +3173,8 @@ local function clearGhost()
 	end
 	ghost = nil
 	highlight = nil
+	Camera.building = false
+	Camera.pan = Vector2.zero
 end
 
 local function sendCursor(id: string)
@@ -2297,6 +3204,7 @@ function Build.select(id: string)
 		pointer = cam.ViewportSize / 2
 	end
 	GuiService.SelectedObject = nil
+	Camera.building = true
 	Hud.setTray(false)
 	Hud.setPlacing(true)
 	Sound.play("pick")
@@ -2382,6 +3290,20 @@ local function update(dt: number)
 	if not pointer then
 		return
 	end
+
+	-- Cursor resting near a screen edge pans the build camera that way
+	local vp = workspace.CurrentCamera.ViewportSize
+	local EDGE = 0.1
+	local function edge(n: number): number
+		if n < EDGE then
+			return -(EDGE - n) / EDGE
+		elseif n > 1 - EDGE then
+			return (n - (1 - EDGE)) / EDGE
+		end
+		return 0
+	end
+	Camera.pan = Vector2.new(edge(pointer.X / vp.X), -edge(pointer.Y / vp.Y))
+
 	local world = worldPoint(pointer)
 	if not world then
 		return
@@ -2482,6 +3404,14 @@ function Build.init()
 			hand = newHand
 			Hud.showHand(newHand)
 			Hud.setStatus(nil)
+			-- one piece from the box: go straight to placing it
+			if #newHand == 1 then
+				task.delay(0.35, function()
+					if hand == newHand and not selected then
+						Build.select(newHand[1])
+					end
+				end)
+			end
 		else
 			local hadHand = hand ~= nil
 			reset()
@@ -2543,42 +3473,56 @@ end
 return Build
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX8954336E16EB49C29EE197026C24DC87">
+        <Item class="ModuleScript" referent="RBXC68E2F79C7364DAC8D63F21430A78925">
           <Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- Side-on camera for a 2.5D game.
---   overview : whole level in frame (intro, build, results)
+--   menu     : the level drifts slowly by behind the menu
+--   overview : whole level in frame (intro, pick, results)
+--   build    : zoomed in; push the cursor to a screen edge to pan, wheel/pinch to zoom
 --   follow   : you, with a little look-ahead in the direction you're moving
---   spectate : once you're out, follow whoever is still running and furthest along
--- Everything eases toward its goal so mode changes read as one smooth move.
+--   spectate : once you're out, whoever is still running and furthest along
+-- Everything eases toward its goal, so mode changes read as one smooth move.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local State = require(script.Parent.State)
 
 local Camera = {}
 
+-- Set by BuildController while you're placing
+Camera.building = false
+Camera.pan = Vector2.zero -- -1..1 per axis, from the cursor sitting at a screen edge
+Camera.menuOpen = false
+
 local FOV = 40
 local FOLLOW_DIST = 46
+local BUILD_MIN, BUILD_DEFAULT = 34, 72
 
 local cam = workspace.CurrentCamera
-local focus = Vector3.new(60, 20, 0)
-local dist = 100
+local focus = Vector3.new(100, 20, 0)
+local dist = 120
 local lookAhead = 0
 local shakeAmp = 0
 local spectating: Player? = nil
 local failHoldUntil = 0
+local buildFocus: Vector3? = nil
+local buildDist = BUILD_DEFAULT
 
 function Camera.shake(amount: number)
 	shakeAmp = math.max(shakeAmp, amount)
 end
 
-local function levelFrame(): (Vector3?, number?)
+local function bounds(): (Vector3?, Vector3?)
 	local level = workspace:FindFirstChild("Level")
 	if not level then
 		return nil, nil
 	end
-	local bmin = level:GetAttribute("BuildMin") :: Vector3?
-	local bmax = level:GetAttribute("BuildMax") :: Vector3?
+	return level:GetAttribute("BuildMin") :: Vector3?, level:GetAttribute("BuildMax") :: Vector3?
+end
+
+local function levelFrame(): (Vector3?, number?)
+	local bmin, bmax = bounds()
 	if not bmin or not bmax then
 		return nil, nil
 	end
@@ -2643,6 +3587,17 @@ local function update(dt: number)
 		elseif ovFocus then
 			goalFocus, goalDist = ovFocus, ovDist :: number
 		end
+	elseif phase == "Build" and Camera.building and ovFocus then
+		local bmin, bmax = bounds()
+		local bf = buildFocus or focus
+		bf += Vector3.new(Camera.pan.X, Camera.pan.Y, 0) * (40 + buildDist * 0.6) * dt
+		if bmin and bmax then
+			bf = Vector3.new(math.clamp(bf.X, bmin.X, bmax.X), math.clamp(bf.Y, bmin.Y + 8, bmax.Y - 8), 0)
+		end
+		buildFocus = bf
+		buildDist = math.clamp(buildDist, BUILD_MIN, ovDist :: number)
+		goalFocus, goalDist = bf, buildDist
+		sharp = 10
 	elseif phase == "Winner" then
 		local level = workspace:FindFirstChild("Level")
 		local flag = level and level:GetAttribute("Flag") :: Vector3?
@@ -2651,6 +3606,13 @@ local function update(dt: number)
 			goalDist = 34
 			sharp = 3
 		end
+	elseif (phase == "Waiting" or Camera.menuOpen) and ovFocus then
+		-- slow drift across the level behind the menu
+		local bmin, bmax = bounds()
+		local span = if bmin and bmax then (bmax.X - bmin.X) * 0.3 else 40
+		goalFocus = (ovFocus :: Vector3) + Vector3.new(math.sin(os.clock() * 0.07) * span, -4, 0)
+		goalDist = (ovDist :: number) * 0.5
+		sharp = 1.5
 	elseif ovFocus then
 		goalFocus, goalDist = ovFocus, ovDist :: number
 		sharp = 3
@@ -2671,7 +3633,7 @@ local function update(dt: number)
 end
 
 function Camera.init()
-	RunService:BindToRenderStep("SprintCamera", Enum.RenderPriority.Camera.Value + 1, update)
+	RunService:BindToRenderStep("ChaosCamera", Enum.RenderPriority.Camera.Value + 1, update)
 	State.meChanged:Connect(function(me)
 		if me == "dead" then
 			failHoldUntil = os.clock() + 1.1 -- watch your own tumble for a beat
@@ -2679,12 +3641,34 @@ function Camera.init()
 		end
 		spectating = nil
 	end)
+	State.phaseChanged:Connect(function(phase)
+		if phase == "Build" then
+			buildDist = BUILD_DEFAULT
+			-- start building near the start line, where the action begins
+			local level = workspace:FindFirstChild("Level")
+			local spawn = level and level:GetAttribute("Spawn") :: Vector3?
+			buildFocus = if spawn then spawn + Vector3.new(30, 8, 0) else nil
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input, processed)
+		if processed or State.phase ~= "Build" then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseWheel then
+			buildDist *= if input.Position.Z > 0 then 0.88 else 1.14
+		end
+	end)
+	UserInputService.TouchPinch:Connect(function(_, scale, _, _, processed)
+		if not processed and State.phase == "Build" then
+			buildDist /= math.clamp(scale, 0.95, 1.05)
+		end
+	end)
 end
 
 return Camera
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX47A0637BF1DF476DA5EE59F648D158BF">
+        <Item class="ModuleScript" referent="RBX0AAF95383F3C44908E8C0B5AA9CBB242">
           <Properties><string name="Name">CharacterAnimator</string><ProtectedString name="Source"><![CDATA[-- Procedural animation for every character on screen, run locally on each
 -- client from replicated velocity. No animation assets, no network cost.
 --
@@ -2698,6 +3682,7 @@ return Camera
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local Fx = require(script.Parent.FxController)
 local Sound = require(script.Parent.SoundController)
 
 local Animator = {}
@@ -2782,10 +3767,15 @@ local function step(dt: number)
 		local grounded = anchored or (hit ~= nil and v.Y < 8)
 
 		-- events
+		local feet = r.root.Position - Vector3.new(0, 2.2, 0)
 		if r.grounded and not grounded and v.Y > 10 then
 			r.squashVel += 9 -- take-off stretch
+			Fx.puff(feet, 2, 0.7)
 		elseif not r.grounded and grounded and r.lastVY < -20 then
 			r.squashVel -= math.clamp(-r.lastVY / 8, 4, 12) -- landing squash
+			if r.lastVY < -45 then
+				Fx.puff(feet, 4, math.clamp(-r.lastVY / 60, 0.8, 1.6))
+			end
 			if not r.isLocal then
 				Sound.playAt("land", r.root, 0.2)
 			end
@@ -2892,7 +3882,127 @@ end
 return Animator
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXF5621AC50A074C34BF52904AFBEB23AE">
+        <Item class="ModuleScript" referent="RBX56EAF1B5461649A181B4D48D36CADE2E">
+          <Properties><string name="Name">FxController</string><ProtectedString name="Source"><![CDATA[-- Small, short-lived effects. Pooled parts, one update loop, nothing glows.
+--   puff     : dust when you jump or land hard
+--   confetti : someone reached the flag
+--   ring     : a flat ring that expands and fades (bumper hits, bomb poof)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Style = require(ReplicatedStorage.Shared.Style)
+
+local Fx = {}
+
+type Particle = {
+	part: Part,
+	vel: Vector3,
+	gravity: number,
+	life: number,
+	age: number,
+	spin: number,
+	from: Vector3,
+	to: Vector3,
+	alpha: number,
+}
+
+local active = {} :: { Particle }
+local pool = {} :: { Part }
+local folder: Folder
+
+local CONFETTI = { Style.UI.Accent, Style.UI.Gold, Style.UI.Good, Style.UI.Cool, Style.UI.Paper }
+local FACE_CAMERA = CFrame.Angles(0, math.pi / 2, 0)
+
+local function get(shape: Enum.PartType): Part
+	local p = table.remove(pool) or Instance.new("Part")
+	p.Shape = shape
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.CastShadow = false
+	p.Material = Enum.Material.SmoothPlastic
+	p.Parent = folder
+	return p
+end
+
+local function spawn(p: Part, cf: CFrame, vel: Vector3, gravity: number, life: number, from: Vector3, to: Vector3, alpha: number, spin: number?)
+	p.CFrame = cf
+	p.Size = from
+	p.Transparency = alpha
+	table.insert(active, {
+		part = p,
+		vel = vel,
+		gravity = gravity,
+		life = life,
+		age = 0,
+		spin = spin or 0,
+		from = from,
+		to = to,
+		alpha = alpha,
+	})
+end
+
+function Fx.puff(pos: Vector3, count: number?, strength: number?)
+	local s = strength or 1
+	for i = 1, count or 3 do
+		local p = get(Enum.PartType.Ball)
+		p.Color = Style.UI.Paper
+		local side = if i % 2 == 0 then 1 else -1
+		local vel = Vector3.new(side * (2 + math.random() * 3) * s, (1 + math.random() * 2) * s, 0)
+		spawn(p, CFrame.new(pos + Vector3.new(side * 0.4, 0.2, 0.6)), vel, 0, 0.35 + math.random() * 0.1, Vector3.one * 0.6, Vector3.one * (1.4 + math.random() * 0.6) * s, 0.25)
+	end
+end
+
+function Fx.confetti(pos: Vector3)
+	for i = 1, 18 do
+		local p = get(Enum.PartType.Block)
+		p.Color = CONFETTI[(i % #CONFETTI) + 1]
+		local vel = Vector3.new((math.random() - 0.5) * 26, 20 + math.random() * 16, 0)
+		local size = Vector3.new(0.35, 0.35, 0.08)
+		local cf = CFrame.new(pos + Vector3.new(0, 1.5, 1)) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
+		spawn(p, cf, vel, 60, 1.4 + math.random() * 0.5, size, size, 0, (math.random() - 0.5) * 16)
+	end
+end
+
+function Fx.ring(pos: Vector3, color: Color3, size: number)
+	local p = get(Enum.PartType.Cylinder)
+	p.Color = color
+	spawn(p, CFrame.new(pos + Vector3.new(0, 0, 1.2)) * FACE_CAMERA, Vector3.zero, 0, 0.3, Vector3.new(0.1, 1, 1), Vector3.new(0.1, size, size), 0.3)
+end
+
+local function step(dt: number)
+	for i = #active, 1, -1 do
+		local a = active[i]
+		a.age += dt
+		local t = a.age / a.life
+		if t >= 1 then
+			a.part.Parent = nil
+			table.insert(pool, a.part)
+			table.remove(active, i)
+			continue
+		end
+		a.vel -= Vector3.new(0, a.gravity * dt, 0)
+		local ease = 1 - (1 - t) * (1 - t)
+		a.part.Size = a.from:Lerp(a.to, ease)
+		a.part.CFrame = (a.part.CFrame + a.vel * dt) * CFrame.Angles(a.spin * dt, a.spin * dt * 0.7, 0)
+		-- fade over the last 40% of life
+		a.part.Transparency = a.alpha + (1 - a.alpha) * math.clamp((t - 0.6) / 0.4, 0, 1)
+	end
+end
+
+function Fx.init()
+	folder = Instance.new("Folder")
+	folder.Name = "Fx"
+	folder.Parent = workspace
+	RunService.RenderStepped:Connect(step)
+end
+
+return Fx
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBXB86F4B8E2AF74E94BDA89F78CDE7D0F9">
           <Properties><string name="Name">HudController</string><ProtectedString name="Source"><![CDATA[-- Everything on screen. Rule of thumb: during a run, only the timer and a
 -- small score list are visible. Big moments get a short centred banner,
 -- then get out of the way.
@@ -2909,6 +4019,8 @@ local Net = require(Shared.Net)
 local Objects = require(Shared.Objects)
 local Style = require(Shared.Style)
 
+local Fx = require(script.Parent.FxController)
+local ResultsUI = require(script.Parent.ResultsUI)
 local State = require(script.Parent.State)
 local Sound = require(script.Parent.SoundController)
 local UI = require(script.Parent.UI)
@@ -2930,6 +4042,7 @@ Hud.actions = {
 local PHASES = {
 	Waiting = { "WAITING", U.Muted },
 	Intro = { "GET READY", U.InkSoft },
+	Pick = { "PICK", U.Gold },
 	Build = { "BUILD", U.Accent },
 	Countdown = { "READY", U.Gold },
 	Run = { "RUN", U.Good },
@@ -2966,7 +4079,6 @@ local touchBar: Frame
 local statusLabel: TextLabel
 local toastFrame: Frame
 local toastLabel: TextLabel
-local panel: Frame?
 
 local bannerToken = 0
 local lastTick = -1
@@ -3248,164 +4360,45 @@ function Hud.setStatus(text: string?)
 end
 
 --------------------------------------------------------------------------
--- Results / winner panels
+-- Results / winner: the score table (see ResultsUI)
 --------------------------------------------------------------------------
 
-local function closePanel()
-	if panel then
-		local p = panel
-		panel = nil
-		UI.tween(p, 0.2, { Position = UDim2.new(0.5, 0, 0.5, 40) })
-		task.delay(0.2, function()
-			p:Destroy()
-		end)
-	end
-end
-
-local function openPanel(height: number): Frame
-	closePanel()
-	local holder, face = UI.card({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 40),
-		Size = UDim2.fromOffset(500, height),
-		Parent = gui,
-	}, 16)
-	panel = holder
-	UI.tween(holder, 0.3, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
-	return face
-end
-
-local VERDICT = {
-	TOO_EASY = { "Too easy!", "Everyone made it, so nobody scores. Build meaner." },
-	TOO_HARD = { "Too hard!", "Nobody made it, so trap points don't count." },
-}
-
 local function showResults(results)
-	local rows = results.rows
-	local face = openPanel(96 + #rows * 46 + 14)
-	local v = results.verdict and VERDICT[results.verdict]
-	UI.label({
-		Text = if v then v[1] else ("Round " .. State.round .. " results"),
-		FontFace = F.Title,
-		TextSize = 28,
-		TextColor3 = if v then U.Bad else U.Ink,
-		Position = UDim2.fromOffset(22, 16),
-		Parent = face,
+	local verdict = results.verdict
+	ResultsUI.show(gui, results.rows, {
+		title = if verdict then "Round " .. State.round else "Round " .. State.round .. " results",
+		subtitle = if verdict == "TOO_EASY" then "Everyone made it, so nobody scores. Build meaner."
+			elseif verdict == "TOO_HARD" then "Nobody made it, so trap points don't count."
+			elseif results.multiplier > 1 then "Last round: double points"
+			else "First to " .. results.target .. " wins",
+		verdict = verdict,
+		target = results.target,
 	})
-	UI.label({
-		Text = if v then v[2] elseif results.multiplier > 1 then "Final round: double points" else "Points this round",
-		TextSize = 14,
-		TextColor3 = U.Muted,
-		Position = UDim2.fromOffset(22, 54),
-		Parent = face,
-	})
-
-	for i, row in rows do
-		local y = 86 + (i - 1) * 46
-		local line = UI.new("Frame", {
-			BackgroundColor3 = if row.userId == player.UserId then U.PaperShade else U.Paper,
-			Size = UDim2.new(1, -28, 0, 40),
-			Position = UDim2.fromOffset(14 + 30, y),
-			BackgroundTransparency = 1,
-			Parent = face,
-		}, { UI.corner(10) })
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.fromOffset(10, 13),
-			Parent = line,
-		}, { UI.corner(7) })
-		UI.label({
-			Text = row.name,
-			FontFace = F.Bold,
-			TextSize = 16,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(130, 40),
-			Position = UDim2.fromOffset(32, 0),
-			Parent = line,
-		})
-		local chips = UI.new("Frame", {
-			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(220, 40),
-			Position = UDim2.fromOffset(166, 0),
-			Parent = line,
-		}, { UI.list(Enum.FillDirection.Horizontal, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
-		if #row.items == 0 then
-			UI.label({ Text = if row.finished then "made it" else "didn't make it", TextSize = 13, TextColor3 = U.Muted, Parent = chips })
-		end
-		for _, it in row.items do
-			UI.pill(it.label .. " +" .. it.points, U.InkSoft, U.Paper, 12).Parent = chips
-		end
-		local gained = UI.label({
-			Text = "+0",
-			FontFace = F.Title,
-			TextSize = 20,
-			TextColor3 = if row.gained > 0 then U.Accent else U.Muted,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.fromOffset(70, 40),
-			Position = UDim2.new(1, -80, 0, 0),
-			Parent = line,
-		})
-
-		-- stagger rows in, then count the points up
-		task.delay(0.15 + i * 0.12, function()
-			if not line.Parent then
-				return
-			end
-			line.BackgroundTransparency = 0
-			UI.tween(line, 0.25, { Position = UDim2.fromOffset(14, y) }, Enum.EasingStyle.Back)
-			if row.gained > 0 then
-				local steps = 12
-				for s = 1, steps do
-					task.wait(0.03)
-					if not gained.Parent then
-						return
-					end
-					gained.Text = "+" .. math.floor(row.gained * s / steps)
-				end
-				Sound.play("points", 0.1)
-			end
-		end)
-	end
 end
 
 local function showWinner(extra)
 	local standings = extra.standings or {}
 	local winners = extra.winners or {}
-	local face = openPanel(110 + #standings * 36 + 14)
-	local title
-	if #winners == 0 then
-		title = "Nobody scored. Rematch?"
-	elseif #winners == 1 then
-		title = winners[1].name .. " wins!"
-	else
-		title = "It's a tie!"
+	local ids = {}
+	for _, w in winners do
+		table.insert(ids, w.userId)
 	end
-	UI.label({ Text = title, FontFace = F.Title, TextSize = 32, TextColor3 = U.Accent, Position = UDim2.fromOffset(22, 18), Parent = face })
-	UI.label({ Text = "Final standings", TextSize = 14, TextColor3 = U.Muted, Position = UDim2.fromOffset(22, 62), Parent = face })
-	for i, row in standings do
-		local y = 92 + (i - 1) * 36
-		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 18, TextColor3 = U.Muted, Position = UDim2.fromOffset(24, y + 6), Parent = face })
-		UI.new("Frame", {
-			BackgroundColor3 = speciesColor(row.species),
-			Size = UDim2.fromOffset(14, 14),
-			Position = UDim2.fromOffset(52, y + 10),
-			Parent = face,
-		}, { UI.corner(7) })
-		UI.label({ Text = row.name, FontFace = F.Bold, TextSize = 16, Position = UDim2.fromOffset(74, y + 6), Parent = face })
-		UI.label({
-			Text = tostring(row.total),
-			FontFace = F.Title,
-			TextSize = 18,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -24, 0, y + 6),
-			Parent = face,
-		})
+	local rows = {}
+	for _, r in standings do
+		table.insert(rows, { userId = r.userId, name = r.name, species = r.species, before = r.total, total = r.total, items = {} })
 	end
+	local title = if #winners == 0 then "Nobody scored. Rematch?"
+		elseif #winners == 1 then winners[1].name .. " wins!"
+		else "It's a tie!"
+	ResultsUI.show(gui, rows, { title = title, subtitle = "Final standings", target = extra.target or 600, winners = ids })
 	Sound.play("victory")
+	for _, w in winners do
+		local p = Players:GetPlayerByUserId(w.userId)
+		local root = p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Fx.confetti(root.Position)
+		end
+	end
 end
 
 --------------------------------------------------------------------------
@@ -3420,18 +4413,17 @@ local function onPhase(phase: string)
 	lastTick = -1
 
 	if phase ~= "Results" and phase ~= "Winner" then
-		closePanel()
+		ResultsUI.close()
 	end
 	if phase ~= "Build" then
 		Hud.setStatus(nil)
 	end
 
-	if phase == "Waiting" then
-		banner("Waiting for players", nil, 3, 32)
-	elseif phase == "Intro" then
-		banner(State.level, State.rounds .. " rounds. Build it mean, keep it beatable.", 3.4, 46)
+	if phase == "Intro" then
+		local target = State.extra.target or 600
+		banner(State.level, "First to " .. target .. " wins. Build it mean, keep it beatable.", 3.8, 46)
 	elseif phase == "Build" then
-		banner(if State.final then "Final build" else "Build", if State.final then "Double points this round" else "Pick a piece and drop it in", 1.4, 44)
+		banner(if State.final then "Last build" else "Build", if State.final then "Double points this round" else "Drop your piece in", 1.4, 44)
 	elseif phase == "Run" then
 		if State.isRunner(player.UserId) then
 			banner("GO!", nil, 0.6, 64)
@@ -3445,7 +4437,7 @@ end
 local function tick()
 	local phase = State.phase
 	local left = State.timeLeft()
-	local timed = phase == "Build" or phase == "Run"
+	local timed = phase == "Pick" or phase == "Build" or phase == "Run"
 	timerLabel.Visible = timed
 	if timed then
 		local secs = math.ceil(left)
@@ -3502,6 +4494,30 @@ local function buildGui()
 	}, { UI.corner(99), UI.pad(10, 3) })
 	phaseText = UI.label({ Text = "", FontFace = F.Title, TextSize = 15, TextColor3 = U.Paper, Parent = phaseChip })
 	timerLabel = UI.label({ Text = "", FontFace = F.Title, TextSize = 20, LayoutOrder = 3, Parent = top })
+
+	local menuButton = UI.new("TextButton", {
+		Text = "Menu",
+		FontFace = F.Bold,
+		TextSize = 14,
+		TextColor3 = U.Ink,
+		BackgroundColor3 = U.Paper,
+		AutoButtonColor = false,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -12, 1, -12),
+		Size = UDim2.fromOffset(72, 30),
+		Parent = gui,
+	}, { UI.corner(99) })
+	UI.pressable(menuButton, function()
+		local ok, res = pcall(function()
+			return Net.func("Lobby"):InvokeServer("menu")
+		end)
+		if ok and typeof(res) == "table" and not res.ok then
+			Hud.toast(res.err or "Not right now", U.Bad)
+		end
+	end)
+	State.lobbyChanged:Connect(function()
+		menuButton.Visible = State.lobby.mode == "public"
+	end)
 
 	scoresFrame = UI.new("Frame", {
 		BackgroundTransparency = 1,
@@ -3618,6 +4634,10 @@ local function buildGui()
 	toastLabel = UI.label({ Text = "", FontFace = F.Bold, TextSize = 15, TextColor3 = U.Paper, Parent = toastFrame })
 end
 
+function Hud.setVisible(visible: boolean)
+	gui.Enabled = visible
+end
+
 function Hud.init()
 	buildGui()
 	pcall(function()
@@ -3663,6 +4683,11 @@ function Hud.init()
 	Net.event("Finish").OnClientEvent:Connect(function(userId: number, place: number)
 		local suffix = ({ "1st", "2nd", "3rd" })[place] or (place .. "th")
 		feed(nameOf(userId) .. " reached the flag (" .. suffix .. ")", U.Good)
+		local who = Players:GetPlayerByUserId(userId)
+		local root = who and who.Character and who.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if root then
+			Fx.confetti(root.Position)
+		end
 		if userId == player.UserId then
 			banner("Made it!", suffix, 1.2, 48)
 			Sound.play("victory")
@@ -3677,7 +4702,479 @@ end
 return Hud
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBXE9869A25DAE74E8C93E976DD61346D03">
+        <Item class="ModuleScript" referent="RBX21F777849FDD4929B5F87CCD8D19B392">
+          <Properties><string name="Name">MenuController</string><ProtectedString name="Source"><![CDATA[-- Main menu + party screen. Shown over the live level drifting by behind it.
+--
+-- Public server: PLAY joins the next round. CREATE PARTY makes a private room
+-- with a 5-letter code. JOIN WITH CODE hops into a friend's room.
+-- Party server : the code, who's here, INVITE, and START (host only).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SocialService = game:GetService("SocialService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Net = require(Shared.Net)
+local Style = require(Shared.Style)
+
+local Camera = require(script.Parent.CameraController)
+local Hud = require(script.Parent.HudController)
+local Sound = require(script.Parent.SoundController)
+local State = require(script.Parent.State)
+local UI = require(script.Parent.UI)
+
+local U = Style.UI
+local F = Style.Font
+local LobbyFn = Net.func("Lobby")
+local player = Players.LocalPlayer
+
+local Menu = {}
+
+local gui: ScreenGui
+local column: Frame
+local content: Frame
+local message: TextLabel
+local visible = false
+local busy = false
+local renderedKey = ""
+
+local function call(action: string, arg: any?): boolean
+	if busy then
+		return false
+	end
+	busy = true
+	local ok, result = pcall(function()
+		return LobbyFn:InvokeServer(action, arg)
+	end)
+	busy = false
+	if not ok or typeof(result) ~= "table" then
+		Menu.say("Something went wrong. Try again.", true)
+		return false
+	end
+	if not result.ok then
+		Menu.say(result.err or "Couldn't do that", true)
+		Sound.play("error")
+		return false
+	end
+	return true
+end
+
+function Menu.say(text: string, bad: boolean?)
+	message.Text = text
+	message.TextColor3 = if bad then U.Bad else U.InkSoft
+	message.TextTransparency = 0
+	local t = os.clock()
+	message:SetAttribute("T", t)
+	task.delay(3.5, function()
+		if message:GetAttribute("T") == t then
+			UI.tween(message, 0.3, { TextTransparency = 1 })
+		end
+	end)
+end
+
+--------------------------------------------------------------------------
+-- Building blocks
+--------------------------------------------------------------------------
+
+local function button(text: string, sub: string?, primary: boolean, order: number, onClick: () -> ()): TextButton
+	local b = UI.new("TextButton", {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = if primary then U.Accent else U.Paper,
+		Size = UDim2.new(1, -8, 0, if sub then 58 else 48),
+		LayoutOrder = order,
+		Parent = content,
+	}, { UI.corner(14) })
+	if not primary then
+		UI.new("UIStroke", { Color = U.Ink, Transparency = 0.8, Thickness = 2, Parent = b })
+	end
+	UI.label({
+		Text = text,
+		FontFace = F.Title,
+		TextSize = if primary then 24 else 19,
+		TextColor3 = if primary then U.Paper else U.Ink,
+		Position = UDim2.fromOffset(18, if sub then 8 else 12),
+		Parent = b,
+	})
+	if sub then
+		UI.label({
+			Text = sub,
+			TextSize = 13,
+			TextColor3 = if primary then U.Paper else U.Muted,
+			TextTransparency = if primary then 0.15 else 0,
+			Position = UDim2.fromOffset(18, 34),
+			Parent = b,
+		})
+	end
+	UI.pressable(b, function()
+		Sound.play("pick")
+		onClick()
+	end)
+	return b
+end
+
+local function heading(text: string, order: number)
+	UI.label({ Text = text, FontFace = F.Bold, TextSize = 13, TextColor3 = U.Muted, LayoutOrder = order, Parent = content })
+end
+
+local function animalPicker(order: number)
+	heading("YOUR ANIMAL", order)
+	local row = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 74),
+		LayoutOrder = order + 1,
+		Parent = content,
+	}, { UI.list(Enum.FillDirection.Horizontal, 8) })
+	local mine = State.speciesOf[player.UserId]
+	for i, s in Characters.List do
+		local tile = UI.new("TextButton", {
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundColor3 = U.PaperShade,
+			Size = UDim2.fromOffset(70, 74),
+			LayoutOrder = i,
+			Parent = row,
+		}, { UI.corner(12) })
+		local stroke = UI.new("UIStroke", { Color = U.Accent, Thickness = if s.id == mine then 3 else 0, Parent = tile })
+		local vp = UI.new("ViewportFrame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 1, -16),
+			Ambient = Color3.fromRGB(180, 176, 170),
+			LightColor = Color3.fromRGB(255, 250, 240),
+			LightDirection = Vector3.new(-0.5, -1, 0.4),
+			Parent = tile,
+		})
+		local model = Characters.build(s.id)
+		model.Parent = vp
+		local cam = Instance.new("Camera")
+		cam.FieldOfView = 30
+		cam.Parent = vp
+		vp.CurrentCamera = cam
+		local cf = (model.PrimaryPart :: BasePart).CFrame
+		-- three-quarter view of the face (faces point toward local -Z)
+		cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(6, 2.2, -8), cf.Position + Vector3.new(0, 0.2, 0))
+		UI.label({
+			Text = s.name,
+			FontFace = F.Bold,
+			TextSize = 12,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -3),
+			Parent = tile,
+		})
+		UI.pressable(tile, function()
+			Sound.play("pick")
+			if call("species", s.id) then
+				stroke.Thickness = 3
+			end
+		end)
+	end
+end
+
+local function codeEntry(order: number)
+	local row = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 48),
+		LayoutOrder = order,
+		Parent = content,
+	})
+	local box = UI.new("TextBox", {
+		Text = "",
+		PlaceholderText = "ROOM CODE",
+		ClearTextOnFocus = false,
+		FontFace = F.Title,
+		TextSize = 22,
+		TextColor3 = U.Ink,
+		PlaceholderColor3 = U.Muted,
+		BackgroundColor3 = U.Paper,
+		Size = UDim2.new(1, -86, 1, 0),
+		Parent = row,
+	}, { UI.corner(14), UI.new("UIStroke", { Color = U.Ink, Transparency = 0.8, Thickness = 2 }) })
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		local clean = box.Text:upper():gsub("[^%w]", ""):sub(1, 5)
+		if clean ~= box.Text then
+			box.Text = clean
+		end
+	end)
+	local go = UI.new("TextButton", {
+		Text = "Join",
+		FontFace = F.Title,
+		TextSize = 19,
+		TextColor3 = U.Paper,
+		BackgroundColor3 = U.InkSoft,
+		AutoButtonColor = false,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.new(0, 78, 1, 0),
+		Parent = row,
+	}, { UI.corner(14) })
+	local function submit()
+		if #box.Text ~= 5 then
+			Menu.say("Codes are 5 letters", true)
+			return
+		end
+		Menu.say("Joining " .. box.Text .. "...")
+		call("join", box.Text)
+	end
+	UI.pressable(go, submit)
+	box.FocusLost:Connect(function(enter)
+		if enter then
+			submit()
+		end
+	end)
+end
+
+--------------------------------------------------------------------------
+-- Screens
+--------------------------------------------------------------------------
+
+local function clear()
+	for _, c in content:GetChildren() do
+		if not c:IsA("UIListLayout") then
+			c:Destroy()
+		end
+	end
+end
+
+local function publicScreen()
+	clear()
+	button("Play", "Jump into the next round", true, 1, function()
+		if call("play") then
+			Sound.play("go")
+		end
+	end)
+	button("Create party", "Private room with a code for friends", false, 2, function()
+		Menu.say("Creating your party...")
+		call("create")
+	end)
+	heading("HAVE A CODE?", 3)
+	codeEntry(4)
+	animalPicker(5)
+end
+
+local function partyScreen()
+	clear()
+	local L = State.lobby
+	local isHost = L.hostId == player.UserId
+
+	heading("PARTY CODE", 1)
+	UI.label({
+		Text = (L.code or "-----"):gsub(".", "%0 "):sub(1, -2),
+		FontFace = F.Title,
+		TextSize = 44,
+		TextColor3 = U.Accent,
+		LayoutOrder = 2,
+		Parent = content,
+	})
+	UI.label({ Text = "Friends type this in to join you", TextSize = 13, TextColor3 = U.Muted, LayoutOrder = 3, Parent = content })
+
+	heading("IN THE PARTY (" .. #L.members .. ")", 4)
+	local list = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		Size = UDim2.new(1, 0, 0, 0),
+		LayoutOrder = 5,
+		Parent = content,
+	}, { UI.list(Enum.FillDirection.Vertical, 4) })
+	for i, m in L.members do
+		local row = UI.new("Frame", {
+			BackgroundColor3 = U.PaperShade,
+			Size = UDim2.new(1, 0, 0, 32),
+			LayoutOrder = i,
+			Parent = list,
+		}, { UI.corner(9) })
+		local s = m.species and Characters.ById[m.species]
+		UI.new("Frame", {
+			BackgroundColor3 = if s then s.body else U.Muted,
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(10, 9),
+			Parent = row,
+		}, { UI.corner(7) })
+		UI.label({ Text = m.name, FontFace = F.Bold, TextSize = 15, Position = UDim2.fromOffset(32, 6), Parent = row })
+		if m.userId == L.hostId then
+			local tag = UI.pill("HOST", U.Gold, U.Ink, 11)
+			tag.AnchorPoint = Vector2.new(1, 0.5)
+			tag.Position = UDim2.new(1, -8, 0.5, 0)
+			tag.Parent = row
+		end
+	end
+
+	if isHost then
+		button("Start match", "Everyone here plays", true, 6, function()
+			if call("start") then
+				Sound.play("go")
+			end
+		end)
+	else
+		UI.label({ Text = "Waiting for the host to start...", FontFace = F.Bold, TextSize = 15, TextColor3 = U.InkSoft, LayoutOrder = 6, Parent = content })
+	end
+	button("Invite friends", nil, false, 7, function()
+		local ok = pcall(function()
+			if not SocialService:CanSendGameInviteAsync(player) then
+				error("can't invite")
+			end
+			local options = Instance.new("ExperienceInviteOptions")
+			options.PromptMessage = "Join my Chaos Course party!"
+			options.LaunchData = L.code or ""
+			SocialService:PromptGameInvite(player, options)
+		end)
+		if not ok then
+			Menu.say("Invites aren't available here. Share the code instead!", true)
+		end
+	end)
+	animalPicker(8)
+	local leave = button("Leave party", nil, false, 10, function()
+		Menu.say("Heading back...")
+		call("leave")
+	end)
+	leave.Size = UDim2.new(1, 0, 0, 40)
+end
+
+--------------------------------------------------------------------------
+
+local function shouldShow(): boolean
+	local L = State.lobby
+	if L.mode == "party" then
+		return not L.inMatch
+	end
+	return not State.queued()
+end
+
+local function refresh()
+	local show = shouldShow()
+	local L = State.lobby
+	-- only rebuild when something visible actually changed
+	local key = L.mode .. tostring(L.code) .. tostring(L.hostId) .. #L.members .. tostring(State.speciesOf[player.UserId])
+	for _, m in L.members do
+		key ..= m.name .. tostring(m.species)
+	end
+	if show and key ~= renderedKey then
+		renderedKey = key
+		if L.mode == "party" then
+			partyScreen()
+		else
+			publicScreen()
+		end
+	end
+
+	if show ~= visible then
+		visible = show
+		Camera.menuOpen = show
+		Hud.setVisible(not show)
+		if show then
+			gui.Enabled = true
+			column.Position = UDim2.new(0, -460, 0.5, 0)
+			UI.tween(column, 0.45, { Position = UDim2.new(0, 48, 0.5, 0) }, Enum.EasingStyle.Back)
+		else
+			UI.tween(column, 0.3, { Position = UDim2.new(0, -460, 0.5, 0) }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+			task.delay(0.3, function()
+				if not visible then
+					gui.Enabled = false
+				end
+			end)
+		end
+	end
+end
+
+local function buildGui()
+	gui = UI.new("ScreenGui", {
+		Name = "Menu",
+		ResetOnSpawn = false,
+		DisplayOrder = 10,
+		IgnoreGuiInset = true,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Enabled = false,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	local scale = UI.new("UIScale", { Parent = gui })
+	local function rescale()
+		local vp = workspace.CurrentCamera.ViewportSize
+		scale.Scale = math.clamp(vp.Y / 860, 0.6, 1.15)
+	end
+	rescale()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+
+	local holder, face = UI.card({
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -460, 0.5, 0),
+		Size = UDim2.fromOffset(400, 680),
+		Parent = gui,
+	}, 22)
+	column = holder
+
+	-- Logo: two words, slight tilt, hard shadow. No gradients, no glow.
+	local logo = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(340, 120),
+		Position = UDim2.fromOffset(30, 22),
+		Rotation = -3,
+		Parent = face,
+	})
+	for _, spec in { { "Chaos", U.Accent, 0 }, { "Course", U.Ink, 54 } } do
+		UI.label({ Text = spec[1], FontFace = F.Title, TextSize = 60, TextColor3 = U.Ink, TextTransparency = 0.85, Position = UDim2.fromOffset(3, spec[3] + 4), Parent = logo })
+		UI.label({ Text = spec[1], FontFace = F.Title, TextSize = 60, TextColor3 = spec[2], Position = UDim2.fromOffset(0, spec[3]), Parent = logo })
+	end
+	local dots = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(200, 14),
+		Position = UDim2.fromOffset(34, 150),
+		Parent = face,
+	}, { UI.list(Enum.FillDirection.Horizontal, 6) })
+	for _, s in Characters.List do
+		UI.new("Frame", { BackgroundColor3 = s.body, Size = UDim2.fromOffset(14, 14), Parent = dots }, { UI.corner(7) })
+	end
+	UI.label({
+		Text = "Build the course. Ruin it for your friends. Race it.",
+		TextSize = 14,
+		TextColor3 = U.Muted,
+		TextWrapped = true,
+		AutomaticSize = Enum.AutomaticSize.None,
+		Size = UDim2.fromOffset(340, 20),
+		Position = UDim2.fromOffset(32, 172),
+		Parent = face,
+	})
+
+	content = UI.new("ScrollingFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Position = UDim2.fromOffset(30, 206),
+		Size = UDim2.new(1, -52, 1, -250),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 4,
+		ScrollBarImageColor3 = U.Muted,
+		Parent = face,
+	}, { UI.list(Enum.FillDirection.Vertical, 10), UI.pad(2, 4) })
+
+	message = UI.label({
+		Text = "",
+		FontFace = F.Bold,
+		TextSize = 14,
+		TextWrapped = true,
+		AutomaticSize = Enum.AutomaticSize.None,
+		Size = UDim2.new(1, -60, 0, 32),
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 30, 1, -12),
+		Parent = face,
+	})
+end
+
+function Menu.init()
+	buildGui()
+	-- wait for the loading screen to finish (or give up after a while)
+	local waited = 0
+	while not player:GetAttribute("Loaded") and waited < 12 do
+		waited += task.wait(0.1)
+	end
+	State.lobbyChanged:Connect(refresh)
+	refresh()
+end
+
+return Menu
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX037DEF5081FB40AF9AFA0D6639F10039">
           <Properties><string name="Name">MovementController</string><ProtectedString name="Source"><![CDATA[-- The feel of the game lives here.
 --
 -- We keep Roblox's own ControlModule (so keyboard, gamepad and the mobile
@@ -3965,7 +5462,7 @@ end
 return Movement
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX6B7A1870264C46FEA408DCC8E3CA644D">
+        <Item class="ModuleScript" referent="RBXDE331F2960FA47EBBFDAD508C9BE0B29">
           <Properties><string name="Name">ObjectController</string><ProtectedString name="Source"><![CDATA[-- Brings placed objects to life on the client.
 --
 -- All motion (saws, fans, hammers, shuttles, cannonballs) is computed from the
@@ -3989,6 +5486,7 @@ local Style = require(Shared.Style)
 local Movement = require(script.Parent.MovementController)
 local Camera = require(script.Parent.CameraController)
 local Sound = require(script.Parent.SoundController)
+local Fx = require(script.Parent.FxController)
 
 local C = Config.Objects
 local TAU = math.pi * 2
@@ -4011,7 +5509,11 @@ type Record = {
 	consumed: { [number]: boolean }?,
 }
 
+type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
+local birds = {} :: { Bird }
+
 local records = {} :: { [Model]: Record }
+local NONE = {} :: { Animated }
 local balls = {} :: { BasePart }
 local ballFolder: Folder
 
@@ -4048,6 +5550,9 @@ local function register(model: Model)
 		end
 	end
 	records[model] = rec
+	for _, a in rec.groups.bumper or NONE do
+		a.part:SetAttribute("BaseSize", a.part.Size)
+	end
 
 	-- Placement pop: quick overshoot so it feels like the object "lands"
 	Sound.playAt("place", model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.15)
@@ -4173,7 +5678,7 @@ local function visuals(dt: number)
 			setGroup(rec, "arm", CFrame.Angles(0, 0, angle))
 			if canAffect and root then
 				local head: Animated? = nil
-				for _, a in rec.groups.arm or {} do
+				for _, a in rec.groups.arm or NONE do
 					if a.part.Name == "Head" then
 						head = a
 					end
@@ -4223,6 +5728,52 @@ local function visuals(dt: number)
 					end
 				end
 			end
+		elseif id == "laser" then
+			local g = rec.groups.beam
+			local beam = g and g[1]
+			if beam then
+				-- re-measure now and then; pieces can be bombed away mid-match
+				if not rec.maxDist or (rec.cooldown or 0) < os.clock() then
+					rec.maxDist = Objects.laserLength(model, rec.pivot)
+					rec.cooldown = os.clock() + 0.5
+				end
+				local len = rec.maxDist :: number
+				local state = Objects.laserState(age)
+				local thick = if state == "on" then 0.4 else 0.1
+				beam.part.Size = Vector3.new(len, thick, thick)
+				beam.part.CFrame = rec.pivot * CFrame.new(1 + len / 2, 0, 0)
+				if state == "on" then
+					beam.part.Transparency = 0.05
+				elseif state == "warn" then
+					beam.part.Transparency = if math.floor(age * 16) % 2 == 0 then 0.4 else 0.85
+				else
+					beam.part.Transparency = 1
+				end
+			end
+		elseif id == "trapdoor" then
+			local open = Objects.trapdoorOpen(age)
+			-- doors swing down on their outer hinges
+			local angle = if open then math.rad(85) else 0
+			-- (negative Z rotation drops the left door's inner edge, positive drops the right's)
+			setGroup(rec, "doorL", CFrame.new(-2.95, 0, 0) * CFrame.Angles(0, 0, -angle) * CFrame.new(2.95, 0, 0))
+			setGroup(rec, "doorR", CFrame.new(2.95, 0, 0) * CFrame.Angles(0, 0, angle) * CFrame.new(-2.95, 0, 0))
+			for _, gname in { "doorL", "doorR" } do
+				for _, a in rec.groups[gname] or NONE do
+					if a.part:GetAttribute("Solid") then
+						a.part.CanCollide = not open
+					end
+				end
+			end
+		elseif id == "bumper" then
+			local push = rec.padPush or 0
+			if push > 0 then
+				rec.padPush = math.max(0, push - dt * 5)
+				local s = 1 + 0.25 * math.sin(push * math.pi)
+				for _, a in rec.groups.bumper or NONE do
+					a.part.CFrame = rec.pivot * a.rel
+					a.part.Size = (a.part:GetAttribute("BaseSize") :: Vector3? or a.part.Size) * s
+				end
+			end
 		elseif id == "spring" then
 			local push = rec.padPush or 0
 			if push > 0 then
@@ -4250,9 +5801,25 @@ local function visuals(dt: number)
 		balls[i].Transparency = 1
 	end
 
-	-- Ambient level life: flag sway, drifting clouds
+	-- Ambient level life: flag sway, drifting clouds, the odd bird
 	local level = workspace:FindFirstChild("Level")
 	if level then
+		local bmin = level:GetAttribute("BuildMin") :: Vector3?
+		local bmax = level:GetAttribute("BuildMax") :: Vector3?
+		if bmin and bmax then
+			local span = bmax.X - bmin.X + 160
+			for _, b in birds do
+				local x = bmin.X - 80 + ((t * b.speed + b.offset) % (span * 2))
+				local visible = x < bmax.X + 80
+				local pos = Vector3.new(x, b.y + math.sin(t * 0.8 + b.offset) * 2, b.z)
+				local flap = math.sin(t * 9 + b.offset) * 0.6
+				local cf = if visible then CFrame.new(pos) else CFrame.new(0, -500, 0)
+				b.body.CFrame = cf
+				-- a "V" silhouette that flaps in the plane the camera sees
+				b.left.CFrame = cf * CFrame.Angles(0, 0, -(0.45 + flap)) * CFrame.new(-0.55, 0, 0)
+				b.right.CFrame = cf * CFrame.Angles(0, 0, 0.45 + flap) * CFrame.new(0.55, 0, 0)
+			end
+		end
 		local flag = level:FindFirstChild("Flag") :: BasePart?
 		if flag then
 			local base = flag:GetAttribute("Base") :: CFrame?
@@ -4325,6 +5892,19 @@ local function physicsStep(dt: number)
 				end
 				Sound.play("spring", 0.1)
 			end
+		elseif rec.id == "bumper" then
+			local center = rec.pivot.Position
+			local off = r.Position - center
+			if off.Magnitude < 1.5 + 1.6 and os.clock() > (rec.cooldown or 0) then
+				rec.cooldown = os.clock() + 0.35
+				rec.padPush = 1
+				local dir = if off.Magnitude > 0.01 then off.Unit else Vector3.yAxis
+				local v = dir * C.BumperKnock + Vector3.new(0, 18, 0)
+				Movement.launch(v, 0.3)
+				Sound.play("bumper", 0.15)
+				Fx.ring(center, Style.UI.Paper, 6)
+				Camera.shake(0.6)
+			end
 		elseif rec.id == "fan" then
 			local rel = rec.pivot:PointToObjectSpace(r.Position)
 			if math.abs(rel.X) < 1.5 + 0.9 and rel.Y > 0 and rel.Y < 16.5 then
@@ -4367,14 +5947,41 @@ local function explode(pos: Vector3)
 		p:Destroy()
 	end)
 	tween:Play()
-	Sound.play("boom", 0.1)
-	Camera.shake(2)
+	Fx.ring(pos, Style.UI.Paper, d)
+	Fx.puff(pos, 6, 2)
+	Sound.play("poof", 0.1)
+	Camera.shake(0.8)
 end
 
 function ObjectController.init()
 	ballFolder = Instance.new("Folder")
 	ballFolder.Name = "ClientFx"
 	ballFolder.Parent = workspace
+
+	local function bit(size: Vector3): Part
+		local p = Instance.new("Part")
+		p.Size = size
+		p.Color = Style.UI.InkSoft
+		p.Material = Enum.Material.SmoothPlastic
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Parent = ballFolder
+		return p
+	end
+	for i = 1, 3 do
+		table.insert(birds, {
+			body = bit(Vector3.new(0.35, 0.35, 0.35)),
+			left = bit(Vector3.new(1.2, 0.14, 0.1)),
+			right = bit(Vector3.new(1.2, 0.14, 0.1)),
+			speed = 6 + i * 1.5,
+			offset = i * 97,
+			y = 44 + i * 6,
+			z = -45 - i * 8,
+		})
+	end
 
 	local function watch(folder: Instance)
 		for _, m in folder:GetChildren() do
@@ -4402,7 +6009,671 @@ end
 return ObjectController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX471FC2AB681445D18E18ACD0B957E3EB">
+        <Item class="ModuleScript" referent="RBX2B8635F51B3B43629EE3E9DBA2339581">
+          <Properties><string name="Name">PickController</string><ProtectedString name="Source"><![CDATA[-- The pick box: a crate drops in, pieces pop out onto the table, and
+-- everyone grabs one. First click wins. Taken pieces get the grabber's
+-- colour and name stamped on them, so you see who snatched what.
+
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Net = require(Shared.Net)
+local Objects = require(Shared.Objects)
+local Style = require(Shared.Style)
+
+local Hud = require(script.Parent.HudController)
+local Sound = require(script.Parent.SoundController)
+local State = require(script.Parent.State)
+local UI = require(script.Parent.UI)
+
+local U = Style.UI
+local F = Style.Font
+local W = Style.Forest
+local PickEvent = Net.event("Pick")
+local player = Players.LocalPlayer
+
+local Pick = {}
+
+type Tile = { button: TextButton, face: Frame, stamp: Frame, stampLabel: TextLabel, stroke: UIStroke, scale: UIScale, taken: number }
+
+local gui: ScreenGui
+local crate: Frame?
+local tiles = {} :: { Tile }
+local myPick: string? = nil
+
+local KIND_COLOR = { route = U.Good, trap = U.Bad, tool = U.Gold }
+
+local function speciesColor(userId: number): Color3
+	local s = State.speciesOf[userId]
+	local def = s and Characters.ById[s]
+	return if def then def.body else U.Muted
+end
+
+local function nameOf(userId: number): string
+	local p = Players:GetPlayerByUserId(userId)
+	return if p then p.DisplayName else "?"
+end
+
+local function viewport(parent: Instance, id: string)
+	local vp = UI.new("ViewportFrame", {
+		BackgroundColor3 = U.PaperShade,
+		Size = UDim2.new(1, -12, 0, 78),
+		Position = UDim2.fromOffset(6, 6),
+		Ambient = Color3.fromRGB(170, 166, 160),
+		LightColor = Color3.fromRGB(255, 250, 240),
+		LightDirection = Vector3.new(-0.4, -1, -0.6),
+		ZIndex = 3,
+		Parent = parent,
+	}, { UI.corner(8) })
+	local model = Objects.build(id)
+	model.Parent = vp
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 30
+	cam.Parent = vp
+	vp.CurrentCamera = cam
+	local cf, size = model:GetBoundingBox()
+	local extent = math.max(size.X, size.Y * 1.3)
+	local d = extent / 2 / math.tan(math.rad(15)) * 1.15 + size.Z / 2
+	cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, size.Y * 0.15, d), cf.Position)
+end
+
+local function close()
+	if not crate then
+		return
+	end
+	local c = crate
+	crate = nil
+	table.clear(tiles)
+	UI.tween(c, 0.3, { Position = UDim2.new(0.5, 0, -0.6, 0) }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	task.delay(0.35, function()
+		c:Destroy()
+	end)
+end
+
+local function open(items: { any })
+	close()
+	myPick = nil
+	local count = #items
+	local cols = math.min(count, 5)
+	local rows = math.ceil(count / cols)
+	local tileW, tileH, gap = 116, 132, 12
+	local width = cols * tileW + (cols - 1) * gap + 48
+	local height = rows * tileH + (rows - 1) * gap + 96
+
+	-- The crate: a wooden frame with a darker rim
+	local holder = UI.new("Frame", {
+		BackgroundColor3 = W.Wood,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, -0.6, 0),
+		Size = UDim2.fromOffset(width, height),
+		Parent = gui,
+	}, { UI.corner(18), UI.new("UIStroke", { Color = W.WoodDark, Thickness = 5 }) })
+	crate = holder
+	UI.new("Frame", {
+		Name = "Shadow",
+		BackgroundColor3 = U.Ink,
+		BackgroundTransparency = 0.8,
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, 8),
+		ZIndex = 0,
+		Parent = holder,
+	}, { UI.corner(18) })
+	-- plank lines on the crate face
+	for i = 1, 3 do
+		UI.new("Frame", {
+			BackgroundColor3 = W.WoodDark,
+			BackgroundTransparency = 0.6,
+			BorderSizePixel = 0,
+			Size = UDim2.new(1, 0, 0, 2),
+			Position = UDim2.new(0, 0, i / 4, 0),
+			ZIndex = 1,
+			Parent = holder,
+		})
+	end
+	UI.label({
+		Text = "Grab a piece!",
+		FontFace = F.Title,
+		TextSize = 26,
+		TextColor3 = U.Paper,
+		Position = UDim2.fromOffset(24, 16),
+		ZIndex = 2,
+		Parent = holder,
+	})
+	UI.new("UIStroke", { Color = W.WoodDark, Thickness = 2, Parent = holder:FindFirstChildOfClass("TextLabel") })
+	UI.label({
+		Text = "First come, first served",
+		FontFace = F.Bold,
+		TextSize = 14,
+		TextColor3 = U.Paper,
+		TextTransparency = 0.15,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -24, 0, 24),
+		ZIndex = 2,
+		Parent = holder,
+	})
+
+	local grid = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(24, 68),
+		Size = UDim2.new(1, -48, 1, -88),
+		ZIndex = 2,
+		Parent = holder,
+	}, {
+		UI.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(tileW, tileH),
+			CellPadding = UDim2.fromOffset(gap, gap),
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+
+	for i, item in items do
+		local def = Objects.ById[item.id]
+		local button = UI.new("TextButton", {
+			Text = "",
+			AutoButtonColor = false,
+			BackgroundTransparency = 1,
+			LayoutOrder = i,
+			Selectable = true,
+			ZIndex = 2,
+			Parent = grid,
+		})
+		local scale = UI.new("UIScale", { Scale = 0, Parent = button })
+		local face = UI.new("Frame", {
+			BackgroundColor3 = U.Paper,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 2,
+			Parent = button,
+		}, { UI.corner(12) })
+		local stroke = UI.new("UIStroke", { Color = U.Accent, Thickness = 0, Parent = face })
+		viewport(face, item.id)
+		UI.new("Frame", {
+			BackgroundColor3 = KIND_COLOR[def.kind],
+			Size = UDim2.fromOffset(10, 10),
+			Position = UDim2.fromOffset(10, 94),
+			ZIndex = 3,
+			Parent = face,
+		}, { UI.corner(5) })
+		UI.label({
+			Text = def.name,
+			FontFace = F.Title,
+			TextSize = 15,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.new(1, -30, 0, 20),
+			Position = UDim2.fromOffset(24, 89),
+			ZIndex = 3,
+			Parent = face,
+		})
+		UI.label({
+			Text = def.blurb,
+			TextSize = 11,
+			TextColor3 = U.Muted,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.new(1, -16, 0, 16),
+			Position = UDim2.fromOffset(8, 110),
+			ZIndex = 3,
+			Parent = face,
+		})
+
+		-- "Taken" stamp, hidden until someone grabs it
+		local stamp = UI.new("Frame", {
+			BackgroundColor3 = U.Ink,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 5,
+			Parent = face,
+		}, { UI.corner(12) })
+		local stampLabel = UI.label({
+			Text = "",
+			FontFace = F.Title,
+			TextSize = 15,
+			TextColor3 = U.Paper,
+			BackgroundColor3 = U.Ink,
+			BackgroundTransparency = 1,
+			TextTransparency = 1,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.42),
+			Rotation = -8,
+			ZIndex = 6,
+			Parent = stamp,
+		})
+		UI.corner(8).Parent = stampLabel
+		UI.pad(10, 4).Parent = stampLabel
+
+		local tile: Tile = { button = button, face = face, stamp = stamp, stampLabel = stampLabel, stroke = stroke, scale = scale, taken = 0 }
+		tiles[i] = tile
+
+		button.MouseEnter:Connect(function()
+			if tile.taken == 0 and not myPick then
+				UI.tween(scale, 0.12, { Scale = 1.06 })
+				UI.tween(stroke, 0.12, { Thickness = 3 })
+				Sound.play("hover")
+			end
+		end)
+		button.MouseLeave:Connect(function()
+			UI.tween(scale, 0.12, { Scale = 1 })
+			UI.tween(stroke, 0.12, { Thickness = 0 })
+		end)
+		button.Activated:Connect(function()
+			if tile.taken ~= 0 or myPick then
+				Sound.play("error")
+				return
+			end
+			UI.tween(scale, 0.06, { Scale = 0.92 })
+			PickEvent:FireServer(i)
+		end)
+
+		-- pop out of the crate one by one
+		task.delay(0.25 + i * 0.07, function()
+			UI.tween(scale, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)
+			Sound.play("hover")
+		end)
+	end
+
+	UI.tween(holder, 0.45, { Position = UDim2.fromScale(0.5, 0.52) }, Enum.EasingStyle.Back)
+	Sound.play("crate")
+	if UserInputService.GamepadEnabled and tiles[1] then
+		task.delay(0.6, function()
+			if tiles[1] then
+				GuiService.SelectedObject = tiles[1].button
+			end
+		end)
+	end
+end
+
+local function update(items: { any })
+	for i, item in items do
+		local tile = tiles[i]
+		if not tile or tile.taken == item.takenBy then
+			continue
+		end
+		tile.taken = item.takenBy
+		if item.takenBy == 0 then
+			continue
+		end
+		local mine = item.takenBy == player.UserId
+		local color = speciesColor(item.takenBy)
+		tile.stamp.BackgroundTransparency = if mine then 0.75 else 0.45
+		tile.stampLabel.Text = if mine then "YOURS" else nameOf(item.takenBy)
+		tile.stampLabel.BackgroundColor3 = if mine then U.Accent else color
+		tile.stampLabel.BackgroundTransparency = 0
+		tile.stampLabel.TextTransparency = 0
+		tile.stroke.Color = if mine then U.Accent else color
+		tile.stroke.Thickness = 3
+		-- stamp slams down
+		local s = UI.new("UIScale", { Scale = 1.8, Parent = tile.stampLabel })
+		UI.tween(s, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+		UI.tween(tile.scale, 0.1, { Scale = 1 })
+		if mine then
+			myPick = items[i].id
+			Sound.play("grab")
+		else
+			Sound.play("pick", 0.2)
+		end
+	end
+end
+
+function Pick.init()
+	gui = UI.new("ScreenGui", {
+		Name = "PickBox",
+		ResetOnSpawn = false,
+		DisplayOrder = 5,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	local scale = UI.new("UIScale", { Parent = gui })
+	local function rescale()
+		local vp = workspace.CurrentCamera.ViewportSize
+		scale.Scale = math.clamp(math.min(vp.Y / 820, vp.X / 900), 0.55, 1.1)
+	end
+	rescale()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+
+	-- The box arrives just before the "Pick" phase is announced, so open on
+	-- the first message and treat every later one as an update.
+	Net.event("Box").OnClientEvent:Connect(function(items, pickers: { number })
+		if not crate then
+			-- only people in this round pick; menu-sitters just watch
+			if not table.find(pickers or {}, player.UserId) then
+				return
+			end
+			open(items)
+		end
+		update(items)
+	end)
+
+	State.phaseChanged:Connect(function(phase)
+		if phase == "Build" then
+			if myPick then
+				local def = Objects.ById[myPick]
+				Hud.toast("You grabbed: " .. (if def then def.name else myPick))
+			end
+			close()
+		elseif phase ~= "Pick" then
+			close()
+		end
+	end)
+end
+
+return Pick
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX8D6906EAB98A4709A3CD2335103B4680">
+          <Properties><string name="Name">ResultsUI</string><ProtectedString name="Source"><![CDATA[-- The score table: one bar per player racing toward the finish line.
+-- Banked points sit in your animal's colour; this round's points slide in
+-- category by category (finish, traps, clutch, own route) for everyone at
+-- once, each with a rising note. Readable at a glance, satisfying to watch.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Style = require(Shared.Style)
+
+local Sound = require(script.Parent.SoundController)
+local UI = require(script.Parent.UI)
+
+local U = Style.UI
+local F = Style.Font
+
+local ResultsUI = {}
+
+local LABELS = { finish = "Finish", trap = "Trap", clutch = "Clutch", route = "Own route" }
+local WIDTH = 720
+local TRACK_X = 196
+local TRACK_W = 430
+local ROW_H = 46
+local BAR_H = 24
+
+local panel: Frame? = nil
+local token = 0
+
+local function speciesColor(species: string?): Color3
+	local s = species and Characters.ById[species]
+	return if s then s.body else U.Muted
+end
+
+function ResultsUI.close()
+	token += 1
+	if panel then
+		local p = panel
+		panel = nil
+		UI.tween(p, 0.2, { Position = UDim2.new(0.5, 0, 0.5, 40) })
+		task.delay(0.2, function()
+			p:Destroy()
+		end)
+	end
+end
+
+export type Options = {
+	title: string,
+	subtitle: string,
+	verdict: string?,
+	target: number,
+	winners: { number }?,
+}
+
+-- rows: { userId, name, species, before, items = {{cat,label,points}}, total }
+function ResultsUI.show(parent: Instance, rows: { any }, opts: Options)
+	ResultsUI.close()
+	token += 1
+	local myToken = token
+
+	local height = 132 + #rows * ROW_H + 26
+	local holder, face = UI.card({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 40),
+		Size = UDim2.fromOffset(WIDTH, height),
+		Parent = parent,
+	}, 18)
+	panel = holder
+	UI.tween(holder, 0.32, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
+
+	UI.label({ Text = opts.title, FontFace = F.Title, TextSize = 30, Position = UDim2.fromOffset(26, 18), Parent = face })
+	UI.label({ Text = opts.subtitle, TextSize = 14, TextColor3 = U.Muted, Position = UDim2.fromOffset(26, 58), Parent = face })
+
+	-- Legend, top right
+	local legend = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -24, 0, 26),
+		Size = UDim2.fromOffset(330, 20),
+		Parent = face,
+	}, { UI.list(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Center) })
+	for i, cat in Style.ScoreOrder do
+		local item = UI.new("Frame", { BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.XY, Size = UDim2.new(), LayoutOrder = i, Parent = legend }, {
+			UI.list(Enum.FillDirection.Horizontal, 5, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center),
+		})
+		UI.new("Frame", { BackgroundColor3 = Style.ScoreColor[cat], Size = UDim2.fromOffset(10, 10), Parent = item }, { UI.corner(3) })
+		UI.label({ Text = LABELS[cat], TextSize = 12, TextColor3 = U.InkSoft, FontFace = F.Bold, Parent = item })
+	end
+
+	local top = 100
+	local target = math.max(opts.target, 1)
+	local function px(points: number): number
+		return math.clamp(points / target, 0, 1) * TRACK_W
+	end
+
+	-- Finish line across all rows, with a little flag tag
+	local lineH = #rows * ROW_H
+	UI.new("Frame", {
+		BackgroundColor3 = U.Ink,
+		BorderSizePixel = 0,
+		Size = UDim2.fromOffset(3, lineH + 6),
+		Position = UDim2.fromOffset(TRACK_X + TRACK_W, top - 4),
+		ZIndex = 4,
+		Parent = face,
+	})
+	local tag = UI.pill("FINISH " .. target, U.Ink, U.Paper, 11)
+	tag.AnchorPoint = Vector2.new(0.5, 1)
+	tag.Position = UDim2.fromOffset(TRACK_X + TRACK_W + 1, top - 6)
+	tag.ZIndex = 4
+	tag.Parent = face
+
+	type RowUI = { offset: number, segs: Frame, total: TextLabel, gainedLabel: TextLabel, data: any, line: Frame }
+	local rowUIs = {} :: { RowUI }
+
+	for i, row in rows do
+		local y = top + (i - 1) * ROW_H
+		local mine = row.userId == Players.LocalPlayer.UserId
+		local isWinner = opts.winners and table.find(opts.winners, row.userId) ~= nil
+		local line = UI.new("Frame", {
+			BackgroundColor3 = U.PaperShade,
+			BackgroundTransparency = if mine then 0 else 1,
+			Size = UDim2.new(1, -24, 0, ROW_H - 6),
+			Position = UDim2.fromOffset(12, y),
+			Parent = face,
+		}, { UI.corner(10) })
+		if isWinner then
+			UI.new("UIStroke", { Color = U.Gold, Thickness = 3, Parent = line })
+		end
+
+		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 16, TextColor3 = U.Muted, Position = UDim2.fromOffset(12, 10), Parent = line })
+		UI.new("Frame", {
+			BackgroundColor3 = speciesColor(row.species),
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(34, 13),
+			Parent = line,
+		}, { UI.corner(7) })
+		UI.label({
+			Text = row.name,
+			FontFace = F.Bold,
+			TextSize = 15,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(120, ROW_H - 6),
+			Position = UDim2.fromOffset(56, 0),
+			Parent = line,
+		})
+
+		-- Track + 100-point ticks
+		local track = UI.new("Frame", {
+			BackgroundColor3 = U.Paper,
+			Size = UDim2.fromOffset(TRACK_W, BAR_H),
+			Position = UDim2.fromOffset(TRACK_X - 12, (ROW_H - 6 - BAR_H) / 2),
+			ClipsDescendants = true,
+			Parent = line,
+		}, { UI.corner(7), UI.new("UIStroke", { Color = U.Ink, Transparency = 0.85, Thickness = 1 }) })
+		for p = 100, target - 1, 100 do
+			UI.new("Frame", {
+				BackgroundColor3 = U.Ink,
+				BackgroundTransparency = 0.9,
+				BorderSizePixel = 0,
+				Size = UDim2.fromOffset(1, BAR_H),
+				Position = UDim2.fromOffset(px(p), 0),
+				ZIndex = 3,
+				Parent = track,
+			})
+		end
+		local segs = UI.new("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 2, Parent = track })
+		local banked = px(row.before or 0)
+		if banked > 0 then
+			UI.new("Frame", {
+				BackgroundColor3 = speciesColor(row.species),
+				BorderSizePixel = 0,
+				Size = UDim2.fromOffset(banked, BAR_H),
+				ZIndex = 2,
+				Parent = segs,
+			})
+		end
+
+		local total = UI.label({
+			Text = tostring(row.before or row.total),
+			FontFace = F.Title,
+			TextSize = 18,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(52, ROW_H - 6),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -10, 0, 0),
+			Parent = line,
+		})
+		local gainedLabel = UI.label({
+			Text = "",
+			FontFace = F.Title,
+			TextSize = 14,
+			TextColor3 = U.Accent,
+			TextTransparency = 1,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -66, 0.5, 0),
+			Parent = line,
+		})
+		rowUIs[i] = { offset = banked, segs = segs, total = total, gainedLabel = gainedLabel, data = row, line = line }
+	end
+
+	-- Verdict stamp, slammed across the middle
+	local function stamp(text: string)
+		local s = UI.label({
+			Text = text,
+			FontFace = F.Title,
+			TextSize = 54,
+			TextColor3 = U.Bad,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0, top + lineH / 2),
+			Rotation = -8,
+			ZIndex = 10,
+			Parent = face,
+		})
+		UI.new("UIStroke", { Color = U.Paper, Thickness = 4, Parent = s })
+		local sc = UI.new("UIScale", { Scale = 2.6, Parent = s })
+		UI.tween(sc, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
+		Sound.play("stamp")
+	end
+
+	task.spawn(function()
+		task.wait(0.45)
+		if opts.verdict == "TOO_EASY" then
+			stamp("TOO EASY!")
+		elseif opts.verdict == "TOO_HARD" then
+			stamp("TOO HARD!")
+		end
+
+		local pitch = 1
+		for _, cat in Style.ScoreOrder do
+			local any = false
+			for _, r in rowUIs do
+				local pts, label = 0, nil
+				for _, it in r.data.items or {} do
+					if it.cat == cat then
+						pts += it.points
+						label = it.label
+					end
+				end
+				if pts > 0 then
+					any = true
+					local w = math.max(px(pts), 3)
+					local seg = UI.new("Frame", {
+						BackgroundColor3 = Style.ScoreColor[cat],
+						BorderSizePixel = 0,
+						Size = UDim2.fromOffset(0, BAR_H),
+						Position = UDim2.fromOffset(r.offset, 0),
+						ClipsDescendants = true,
+						ZIndex = 2,
+						Parent = r.segs,
+					})
+					if w > 44 and label then
+						UI.label({
+							Text = label,
+							FontFace = F.Bold,
+							TextSize = 12,
+							TextColor3 = U.Paper,
+							Position = UDim2.fromOffset(6, 4),
+							ZIndex = 3,
+							Parent = seg,
+						})
+					end
+					UI.tween(seg, 0.35, { Size = UDim2.fromOffset(w, BAR_H) }, Enum.EasingStyle.Back)
+					r.offset += w
+				end
+			end
+			if any then
+				Sound.play("bar", 0, pitch)
+				pitch *= 1.12
+				task.wait(0.55)
+				if myToken ~= token then
+					return
+				end
+			end
+		end
+
+		-- Count totals up and flash what each player gained
+		for _, r in rowUIs do
+			local from = r.data.before or r.data.total
+			local to = r.data.total
+			local gained = to - from
+			if gained > 0 then
+				r.gainedLabel.Text = "+" .. gained
+				UI.tween(r.gainedLabel, 0.2, { TextTransparency = 0 })
+				task.spawn(function()
+					for s = 1, 10 do
+						task.wait(0.03)
+						if not r.total.Parent then
+							return
+						end
+						r.total.Text = tostring(math.floor(from + gained * s / 10))
+					end
+				end)
+			end
+			if to >= target then
+				UI.new("UIStroke", { Color = U.Gold, Thickness = 3, Parent = r.line })
+			end
+		end
+		Sound.play("points")
+	end)
+end
+
+return ResultsUI
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX34D5A68E77BF4F3680ABAD2B433602AF">
           <Properties><string name="Name">SoundController</string><ProtectedString name="Source"><![CDATA[-- Every sound in the game goes through here, so swapping in real audio later
 -- is a matter of editing this one table.
 --
@@ -4426,9 +6697,16 @@ local SOUNDS = {
 	go = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.5, pitch = 1.2 },
 	goal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.6, pitch = 1.5 },
 	points = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 2 },
-	boom = { id = "rbxasset://sounds/collide.wav", volume = 0.9, pitch = 0.45 },
-	cannon = { id = "rbxasset://sounds/collide.wav", volume = 0.35, pitch = 0.6 },
+	bar = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.25, pitch = 1.8 },
+	stamp = { id = "rbxasset://sounds/collide.wav", volume = 0.45, pitch = 1.3 },
+	-- no explosion sound on purpose: the bomb is a soft "poof" (whoosh) only
+	poof = { id = "rbxasset://sounds/swoosh.wav", volume = 0.45, pitch = 0.8 },
+	cannon = { id = "rbxasset://sounds/clickfast.wav", volume = 0.35, pitch = 0.5 },
+	bumper = { id = "rbxasset://sounds/action_jump.mp3", volume = 0.5, pitch = 1.8 },
 	whoosh = { id = "rbxasset://sounds/swoosh.wav", volume = 0.4, pitch = 1 },
+	grab = { id = "rbxasset://sounds/clickfast.wav", volume = 0.6, pitch = 1.1 },
+	crate = { id = "rbxasset://sounds/swoosh.wav", volume = 0.5, pitch = 0.65 },
+	hover = { id = "rbxasset://sounds/clickfast.wav", volume = 0.15, pitch = 2.2 },
 	victory = { id = "rbxasset://sounds/victory.wav", volume = 0.5, pitch = 1 },
 }
 
@@ -4455,8 +6733,8 @@ function SoundController.init()
 	end
 end
 
--- 2D sound (UI, your own actions)
-function SoundController.play(name: string, pitchJitter: number?)
+-- 2D sound (UI, your own actions). pitch multiplies the base pitch.
+function SoundController.play(name: string, pitchJitter: number?, pitch: number?)
 	local t = templates[name]
 	if not t then
 		return
@@ -4464,6 +6742,9 @@ function SoundController.play(name: string, pitchJitter: number?)
 	local s = t:Clone()
 	if pitchJitter then
 		s.PlaybackSpeed *= 1 + (math.random() - 0.5) * pitchJitter
+	end
+	if pitch then
+		s.PlaybackSpeed *= pitch
 	end
 	s.Parent = SoundService
 	s:Play()
@@ -4497,7 +6778,7 @@ end
 return SoundController
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX5CCD8893AFBA448AB54E84444BC61DED">
+        <Item class="ModuleScript" referent="RBX42C8C189B06E4E44B3DEF84D298FCA59">
           <Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side mirror of what the server told us. Read-only for gameplay;
 -- the server is always the source of truth.
 
@@ -4525,6 +6806,25 @@ State.phaseChanged = phaseChanged.Event
 
 local meChanged = Instance.new("BindableEvent")
 State.meChanged = meChanged.Event
+
+State.lobby = {
+	mode = "public",
+	code = nil :: string?,
+	hostId = nil :: number?,
+	inMatch = false,
+	members = {} :: { any },
+}
+local lobbyChanged = Instance.new("BindableEvent")
+State.lobbyChanged = lobbyChanged.Event
+
+function State.queued(): boolean
+	for _, m in State.lobby.members do
+		if m.userId == Players.LocalPlayer.UserId then
+			return m.queued
+		end
+	end
+	return false
+end
 
 local localId = Players.LocalPlayer.UserId
 
@@ -4574,6 +6874,13 @@ function State.init()
 			setMe("done")
 		end
 	end)
+	Net.event("LobbyState").OnClientEvent:Connect(function(lobby)
+		State.lobby = lobby
+		for _, m in lobby.members do
+			State.speciesOf[m.userId] = m.species
+		end
+		lobbyChanged:Fire()
+	end)
 	Net.event("Scores").OnClientEvent:Connect(function(standings)
 		State.standings = standings
 		for _, row in standings do
@@ -4585,7 +6892,7 @@ end
 return State
 ]]></ProtectedString></Properties>
         </Item>
-        <Item class="ModuleScript" referent="RBX9EC9A67384974D9284CF30D706639100">
+        <Item class="ModuleScript" referent="RBXCF042630CFD440B0B2A69EF9FF556246">
           <Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- Tiny UI kit so every panel, label and button shares one look:
 -- warm paper cards, ink text, a hard offset shadow (no blur, no gradients).
 
@@ -4723,10 +7030,10 @@ return UI
       </Item>
     </Item>
   </Item>
-  <Item class="Players" referent="RBXC513C3AB48AF4E4E8059E879AC1993AB">
+  <Item class="Players" referent="RBXE5A5B18EE42349AE86CC0D09ACC6814A">
     <Properties><string name="Name">Players</string><bool name="CharacterAutoLoads">false</bool></Properties>
   </Item>
-  <Item class="SoundService" referent="RBX4386096CDAAC4DD09E2D9D897015B2AD">
+  <Item class="SoundService" referent="RBX71BF6695F3AC4304AB019418EA756EAE">
     <Properties><string name="Name">SoundService</string></Properties>
   </Item>
 </roblox>

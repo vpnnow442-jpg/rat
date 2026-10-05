@@ -74,6 +74,17 @@ builders.ground = function(p: Levels.Piece, rng: Random)
 	end
 end
 
+-- A floating grassy chunk: the "high route" piece
+builders.ledge = function(p: Levels.Piece, rng: Random)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	solid(part(level, "Grass", Vector3.new(w + 0.6, 1.2, 7.4), CFrame.new(cx, p.top - 0.6, 0), F.Grass))
+	solid(part(level, "Dirt", Vector3.new(w, 2.6, 7), CFrame.new(cx, p.top - 2.5, 0), F.Dirt))
+	blob(level, "Underside", Vector3.new(w * 0.8, 3.4, 6), CFrame.new(cx, p.top - 3.6, 0), F.DirtDark)
+	blob(level, "Root", Vector3.new(0.6, 2.4, 0.6), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top - 5, 1.6), F.Bark)
+	blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(cx + rng:NextNumber(-w / 3, w / 3), p.top + 0.2, -3), F.GrassDark)
+end
+
 builders.stump = function(p: Levels.Piece)
 	local w = p.x1 - p.x0
 	local cx = (p.x0 + p.x1) / 2

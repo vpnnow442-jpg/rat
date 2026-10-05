@@ -21,6 +21,7 @@ local Style = require(Shared.Style)
 local Movement = require(script.Parent.MovementController)
 local Camera = require(script.Parent.CameraController)
 local Sound = require(script.Parent.SoundController)
+local Fx = require(script.Parent.FxController)
 
 local C = Config.Objects
 local TAU = math.pi * 2
@@ -43,7 +44,11 @@ type Record = {
 	consumed: { [number]: boolean }?,
 }
 
+type Bird = { body: Part, left: Part, right: Part, speed: number, offset: number, y: number, z: number }
+local birds = {} :: { Bird }
+
 local records = {} :: { [Model]: Record }
+local NONE = {} :: { Animated }
 local balls = {} :: { BasePart }
 local ballFolder: Folder
 
@@ -80,6 +85,9 @@ local function register(model: Model)
 		end
 	end
 	records[model] = rec
+	for _, a in rec.groups.bumper or NONE do
+		a.part:SetAttribute("BaseSize", a.part.Size)
+	end
 
 	-- Placement pop: quick overshoot so it feels like the object "lands"
 	Sound.playAt("place", model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.15)
@@ -205,7 +213,7 @@ local function visuals(dt: number)
 			setGroup(rec, "arm", CFrame.Angles(0, 0, angle))
 			if canAffect and root then
 				local head: Animated? = nil
-				for _, a in rec.groups.arm or {} do
+				for _, a in rec.groups.arm or NONE do
 					if a.part.Name == "Head" then
 						head = a
 					end
@@ -255,6 +263,52 @@ local function visuals(dt: number)
 					end
 				end
 			end
+		elseif id == "laser" then
+			local g = rec.groups.beam
+			local beam = g and g[1]
+			if beam then
+				-- re-measure now and then; pieces can be bombed away mid-match
+				if not rec.maxDist or (rec.cooldown or 0) < os.clock() then
+					rec.maxDist = Objects.laserLength(model, rec.pivot)
+					rec.cooldown = os.clock() + 0.5
+				end
+				local len = rec.maxDist :: number
+				local state = Objects.laserState(age)
+				local thick = if state == "on" then 0.4 else 0.1
+				beam.part.Size = Vector3.new(len, thick, thick)
+				beam.part.CFrame = rec.pivot * CFrame.new(1 + len / 2, 0, 0)
+				if state == "on" then
+					beam.part.Transparency = 0.05
+				elseif state == "warn" then
+					beam.part.Transparency = if math.floor(age * 16) % 2 == 0 then 0.4 else 0.85
+				else
+					beam.part.Transparency = 1
+				end
+			end
+		elseif id == "trapdoor" then
+			local open = Objects.trapdoorOpen(age)
+			-- doors swing down on their outer hinges
+			local angle = if open then math.rad(85) else 0
+			-- (negative Z rotation drops the left door's inner edge, positive drops the right's)
+			setGroup(rec, "doorL", CFrame.new(-2.95, 0, 0) * CFrame.Angles(0, 0, -angle) * CFrame.new(2.95, 0, 0))
+			setGroup(rec, "doorR", CFrame.new(2.95, 0, 0) * CFrame.Angles(0, 0, angle) * CFrame.new(-2.95, 0, 0))
+			for _, gname in { "doorL", "doorR" } do
+				for _, a in rec.groups[gname] or NONE do
+					if a.part:GetAttribute("Solid") then
+						a.part.CanCollide = not open
+					end
+				end
+			end
+		elseif id == "bumper" then
+			local push = rec.padPush or 0
+			if push > 0 then
+				rec.padPush = math.max(0, push - dt * 5)
+				local s = 1 + 0.25 * math.sin(push * math.pi)
+				for _, a in rec.groups.bumper or NONE do
+					a.part.CFrame = rec.pivot * a.rel
+					a.part.Size = (a.part:GetAttribute("BaseSize") :: Vector3? or a.part.Size) * s
+				end
+			end
 		elseif id == "spring" then
 			local push = rec.padPush or 0
 			if push > 0 then
@@ -282,9 +336,25 @@ local function visuals(dt: number)
 		balls[i].Transparency = 1
 	end
 
-	-- Ambient level life: flag sway, drifting clouds
+	-- Ambient level life: flag sway, drifting clouds, the odd bird
 	local level = workspace:FindFirstChild("Level")
 	if level then
+		local bmin = level:GetAttribute("BuildMin") :: Vector3?
+		local bmax = level:GetAttribute("BuildMax") :: Vector3?
+		if bmin and bmax then
+			local span = bmax.X - bmin.X + 160
+			for _, b in birds do
+				local x = bmin.X - 80 + ((t * b.speed + b.offset) % (span * 2))
+				local visible = x < bmax.X + 80
+				local pos = Vector3.new(x, b.y + math.sin(t * 0.8 + b.offset) * 2, b.z)
+				local flap = math.sin(t * 9 + b.offset) * 0.6
+				local cf = if visible then CFrame.new(pos) else CFrame.new(0, -500, 0)
+				b.body.CFrame = cf
+				-- a "V" silhouette that flaps in the plane the camera sees
+				b.left.CFrame = cf * CFrame.Angles(0, 0, -(0.45 + flap)) * CFrame.new(-0.55, 0, 0)
+				b.right.CFrame = cf * CFrame.Angles(0, 0, 0.45 + flap) * CFrame.new(0.55, 0, 0)
+			end
+		end
 		local flag = level:FindFirstChild("Flag") :: BasePart?
 		if flag then
 			local base = flag:GetAttribute("Base") :: CFrame?
@@ -357,6 +427,19 @@ local function physicsStep(dt: number)
 				end
 				Sound.play("spring", 0.1)
 			end
+		elseif rec.id == "bumper" then
+			local center = rec.pivot.Position
+			local off = r.Position - center
+			if off.Magnitude < 1.5 + 1.6 and os.clock() > (rec.cooldown or 0) then
+				rec.cooldown = os.clock() + 0.35
+				rec.padPush = 1
+				local dir = if off.Magnitude > 0.01 then off.Unit else Vector3.yAxis
+				local v = dir * C.BumperKnock + Vector3.new(0, 18, 0)
+				Movement.launch(v, 0.3)
+				Sound.play("bumper", 0.15)
+				Fx.ring(center, Style.UI.Paper, 6)
+				Camera.shake(0.6)
+			end
 		elseif rec.id == "fan" then
 			local rel = rec.pivot:PointToObjectSpace(r.Position)
 			if math.abs(rel.X) < 1.5 + 0.9 and rel.Y > 0 and rel.Y < 16.5 then
@@ -399,14 +482,41 @@ local function explode(pos: Vector3)
 		p:Destroy()
 	end)
 	tween:Play()
-	Sound.play("boom", 0.1)
-	Camera.shake(2)
+	Fx.ring(pos, Style.UI.Paper, d)
+	Fx.puff(pos, 6, 2)
+	Sound.play("poof", 0.1)
+	Camera.shake(0.8)
 end
 
 function ObjectController.init()
 	ballFolder = Instance.new("Folder")
 	ballFolder.Name = "ClientFx"
 	ballFolder.Parent = workspace
+
+	local function bit(size: Vector3): Part
+		local p = Instance.new("Part")
+		p.Size = size
+		p.Color = Style.UI.InkSoft
+		p.Material = Enum.Material.SmoothPlastic
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.CastShadow = false
+		p.Parent = ballFolder
+		return p
+	end
+	for i = 1, 3 do
+		table.insert(birds, {
+			body = bit(Vector3.new(0.35, 0.35, 0.35)),
+			left = bit(Vector3.new(1.2, 0.14, 0.1)),
+			right = bit(Vector3.new(1.2, 0.14, 0.1)),
+			speed = 6 + i * 1.5,
+			offset = i * 97,
+			y = 44 + i * 6,
+			z = -45 - i * 8,
+		})
+	end
 
 	local function watch(folder: Instance)
 		for _, m in folder:GetChildren() do

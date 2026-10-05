@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bundle src/ into a Roblox place file you can open straight in Studio.
 
-    python3 build.py            -> SabotageSprint.rbxlx + sourcemap.json
+    python3 build.py            -> ChaosCourse.rbxlx + sourcemap.json
 
 File naming follows the Rojo convention, so the same src/ also works with Rojo:
     Foo.server.luau -> Script      Foo.client.luau -> LocalScript
@@ -15,10 +15,11 @@ from xml.sax.saxutils import escape
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, "src")
-OUT = os.path.join(ROOT, "SabotageSprint.rbxlx")
+OUT = os.path.join(ROOT, "ChaosCourse.rbxlx")
 
 # (place path, src dir) - where each src folder lands in the game tree
 MOUNTS = [
+    (["ReplicatedFirst"], "ReplicatedFirst"),
     (["ReplicatedStorage"], "ReplicatedStorage"),
     (["ServerScriptService"], "ServerScriptService"),
     (["StarterPlayer", "StarterPlayerScripts"], "StarterPlayer/StarterPlayerScripts"),
@@ -29,7 +30,7 @@ SERVICE_PROPS = {
     "Players": '<bool name="CharacterAutoLoads">false</bool>',
 }
 
-SERVICES = ["Workspace", "Lighting", "ReplicatedStorage", "ServerScriptService",
+SERVICES = ["Workspace", "Lighting", "ReplicatedFirst", "ReplicatedStorage", "ServerScriptService",
             "ServerStorage", "StarterGui", "StarterPack", "StarterPlayer", "Players",
             "SoundService"]
 
