@@ -1,0 +1,4732 @@
+<roblox version="4">
+  <Item class="Workspace" referent="RBX02268CB08F39434FAAC91B90D93310AC">
+    <Properties><string name="Name">Workspace</string><bool name="StreamingEnabled">false</bool></Properties>
+  </Item>
+  <Item class="Lighting" referent="RBX5721B44103F74F06951A8A9A43895F6B">
+    <Properties><string name="Name">Lighting</string></Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="RBXEC572B1CAA154767B57D72913C564291">
+    <Properties><string name="Name">ReplicatedStorage</string></Properties>
+    <Item class="Folder" referent="RBXE3CC2B9EBB4E4E11A958FC83398B0A95">
+      <Properties><string name="Name">Shared</string></Properties>
+      <Item class="ModuleScript" referent="RBX4D1B2CCB75E24F299CE4558C2D59DC45">
+        <Properties><string name="Name">Characters</string><ProtectedString name="Source"><![CDATA[--!strict
+-- The cast. Every animal shares the exact same hitbox (HumanoidRootPart);
+-- everything you see is massless decoration animated by the client.
+
+local Config = require(script.Parent.Config)
+
+export type Species = {
+	id: string,
+	name: string,
+	body: Color3,
+	belly: Color3,
+	feet: Color3,
+	ears: ("pointy" | "round")?,
+	earColor: Color3?,
+	earTip: Color3?,
+	snout: ("long" | "short" | "beak")?,
+	snoutColor: Color3?,
+	mask: Color3?,
+	bulgyEyes: boolean?,
+	flippers: boolean?,
+	tail: ("bushy" | "ringed")?,
+	tailTip: Color3?,
+}
+
+local Characters = {}
+
+local NOSE = Color3.fromRGB(40, 34, 38)
+local EYE = Color3.fromRGB(28, 24, 30)
+
+Characters.List = {
+	{
+		id = "fox", name = "Fox",
+		body = Color3.fromRGB(226, 121, 58), belly = Color3.fromRGB(250, 240, 228), feet = Color3.fromRGB(70, 52, 48),
+		ears = "pointy", earTip = Color3.fromRGB(70, 52, 48),
+		snout = "long", snoutColor = Color3.fromRGB(250, 240, 228),
+		tail = "bushy", tailTip = Color3.fromRGB(250, 240, 228),
+	},
+	{
+		id = "raccoon", name = "Raccoon",
+		body = Color3.fromRGB(138, 136, 146), belly = Color3.fromRGB(212, 208, 204), feet = Color3.fromRGB(60, 58, 66),
+		ears = "round", earColor = Color3.fromRGB(110, 108, 118),
+		snout = "short", snoutColor = Color3.fromRGB(212, 208, 204),
+		mask = Color3.fromRGB(56, 54, 64),
+		tail = "ringed", tailTip = Color3.fromRGB(56, 54, 64),
+	},
+	{
+		id = "penguin", name = "Penguin",
+		body = Color3.fromRGB(48, 52, 68), belly = Color3.fromRGB(248, 246, 240), feet = Color3.fromRGB(240, 160, 60),
+		snout = "beak", snoutColor = Color3.fromRGB(240, 160, 60),
+		flippers = true,
+	},
+	{
+		id = "frog", name = "Frog",
+		body = Color3.fromRGB(112, 178, 92), belly = Color3.fromRGB(214, 230, 164), feet = Color3.fromRGB(92, 150, 76),
+		bulgyEyes = true,
+	},
+} :: { Species }
+
+Characters.ById = {} :: { [string]: Species }
+for _, s in Characters.List do
+	Characters.ById[s.id] = s
+end
+
+local function piece(model: Model, name: string, size: Vector3, color: Color3, ball: boolean?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Size = size
+	p.Color = color
+	p.Material = Enum.Material.SmoothPlastic
+	p.Massless = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if ball then
+		p.Shape = Enum.PartType.Ball
+	else
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = p
+	end
+	p.Parent = model
+	return p
+end
+
+local function weld(p0: BasePart, p1: BasePart, c0: CFrame)
+	local w = Instance.new("Weld")
+	w.Part0 = p0
+	w.Part1 = p1
+	w.C0 = c0
+	w.Parent = p1
+end
+
+local function motor(name: string, p0: BasePart, p1: BasePart, c0: CFrame, c1: CFrame?): Motor6D
+	local m = Instance.new("Motor6D")
+	m.Name = name
+	m.Part0 = p0
+	m.Part1 = p1
+	m.C0 = c0
+	m.C1 = c1 or CFrame.identity
+	m.Parent = p0
+	return m
+end
+
+-- Builds a ready-to-use character model. Local -Z is "forward".
+function Characters.build(speciesId: string): Model
+	local s = Characters.ById[speciesId] or Characters.List[1]
+	local model = Instance.new("Model")
+	model.Name = s.name
+
+	local root = Instance.new("Part")
+	root.Name = "HumanoidRootPart"
+	root.Size = Vector3.new(1.8, 2.4, 1.8)
+	root.Transparency = 1
+	root.CanCollide = true
+	root.CanQuery = false
+	root.CanTouch = true
+	root.CollisionGroup = "Players"
+	root.Parent = model
+	model.PrimaryPart = root
+
+	local hum = Instance.new("Humanoid")
+	hum.RigType = Enum.HumanoidRigType.R15
+	hum.HipHeight = 1
+	hum.RequiresNeck = false
+	hum.BreakJointsOnDeath = false
+	hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	hum.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+	hum.UseJumpPower = true
+	hum.JumpPower = Config.Movement.JumpPower
+	hum.WalkSpeed = Config.Movement.WalkSpeed
+	hum.Parent = model
+
+	local body = piece(model, "Body", Vector3.new(2.4, 2.4, 2.4), s.body)
+	motor("BodyJoint", root, body, CFrame.new(0, -0.7, 0))
+
+	local head = piece(model, "Head", Vector3.new(2, 1.9, 1.9), s.body)
+	motor("Neck", body, head, CFrame.new(0, 1.45, -0.45))
+
+	-- Belly patch
+	if s.flippers then
+		weld(body, piece(model, "Belly", Vector3.new(1.9, 2, 1.2), s.belly), CFrame.new(0, -0.1, -0.62))
+	else
+		weld(body, piece(model, "Belly", Vector3.new(1.5, 1.6, 0.9), s.belly), CFrame.new(0, -0.15, -0.8))
+	end
+
+	-- Feet (animated)
+	for i, x in { -0.45, 0.45 } do
+		local foot = piece(model, i == 1 and "FootL" or "FootR", Vector3.new(0.5, 0.4, 0.8), s.feet)
+		motor(i == 1 and "HipL" or "HipR", body, foot, CFrame.new(x, -1.25, -0.15))
+	end
+
+	-- Face
+	if s.mask then
+		weld(head, piece(model, "Mask", Vector3.new(1.9, 0.5, 1.5), s.mask), CFrame.new(0, 0.2, -0.35))
+	end
+	for _, side in { -1, 1 } do
+		if s.bulgyEyes then
+			local white = piece(model, "EyeWhite", Vector3.new(0.8, 0.8, 0.8), Color3.new(1, 1, 1), true)
+			weld(head, white, CFrame.new(side * 0.5, 0.85, -0.35))
+			weld(head, piece(model, "Eye", Vector3.new(0.12, 0.4, 0.34), EYE), CFrame.new(side * 0.88, 0.9, -0.45))
+		else
+			weld(head, piece(model, "Eye", Vector3.new(0.12, 0.42, 0.3), EYE), CFrame.new(side * 0.95, 0.2, -0.45))
+			weld(head, piece(model, "Shine", Vector3.new(0.1, 0.1, 0.1), Color3.new(1, 1, 1), true), CFrame.new(side * 1.0, 0.3, -0.5))
+		end
+	end
+
+	if s.snout == "long" then
+		weld(head, piece(model, "Snout", Vector3.new(0.8, 0.7, 1.2), s.snoutColor or s.belly), CFrame.new(0, -0.2, -0.95))
+		weld(head, piece(model, "Nose", Vector3.new(0.32, 0.32, 0.32), NOSE, true), CFrame.new(0, -0.05, -1.55))
+	elseif s.snout == "short" then
+		weld(head, piece(model, "Snout", Vector3.new(0.8, 0.6, 0.8), s.snoutColor or s.belly), CFrame.new(0, -0.25, -0.8))
+		weld(head, piece(model, "Nose", Vector3.new(0.28, 0.28, 0.28), NOSE, true), CFrame.new(0, -0.1, -1.18))
+	elseif s.snout == "beak" then
+		weld(head, piece(model, "Beak", Vector3.new(0.5, 0.35, 0.9), s.snoutColor or s.feet), CFrame.new(0, -0.15, -1.0))
+	end
+
+	-- Ears
+	for _, side in { -1, 1 } do
+		if s.ears == "pointy" then
+			local ear = piece(model, "Ear", Vector3.new(0.35, 1.1, 0.7), s.earColor or s.body)
+			weld(head, ear, CFrame.new(side * 0.45, 1.0, 0.1) * CFrame.Angles(0, 0, math.rad(-side * 15)))
+			weld(ear, piece(model, "EarTip", Vector3.new(0.37, 0.45, 0.5), s.earTip or s.body), CFrame.new(0, 0.38, 0))
+		elseif s.ears == "round" then
+			weld(head, piece(model, "Ear", Vector3.new(0.3, 0.7, 0.7), s.earColor or s.body), CFrame.new(side * 0.55, 0.85, 0.1))
+		end
+		if s.flippers then
+			local flipper = piece(model, "Flipper", Vector3.new(0.3, 1.2, 0.6), s.body)
+			motor(side < 0 and "FlipL" or "FlipR", body, flipper, CFrame.new(side * 1.15, -0.1, 0) * CFrame.Angles(0, 0, math.rad(side * 20)))
+		end
+	end
+
+	-- Tail (animated)
+	if s.tail then
+		local tail = piece(model, "Tail", Vector3.new(0.9, 0.9, 2), s.body)
+		motor("TailJoint", body, tail, CFrame.new(0, -0.2, 1.0) * CFrame.Angles(math.rad(35), 0, 0), CFrame.new(0, 0, -0.9))
+		weld(tail, piece(model, "TailTip", Vector3.new(0.78, 0.78, 0.7), s.tailTip or s.belly), CFrame.new(0, 0, 0.75))
+		if s.tail == "ringed" then
+			weld(tail, piece(model, "Ring", Vector3.new(0.96, 0.96, 0.25), s.tailTip or s.belly), CFrame.new(0, 0, -0.15))
+		end
+	end
+
+	model:SetAttribute("Species", s.id)
+	return model
+end
+
+return Characters
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX8A6B5C97D4DE4D1CB2B709E9AC0A7ABC">
+        <Properties><string name="Name">Config</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Every tuning number lives here so playtesting changes are one-line edits.
+
+local Config = {}
+
+Config.Match = {
+	MinPlayers = 1, -- 1 so it can be tested solo in Studio
+	Rounds = 8,
+	FinalRoundMultiplier = 2,
+	IntroTime = 4,
+	BuildTime = 22,
+	CountdownTime = 3,
+	RunTime = 45,
+	ResultsTime = 7,
+	WinnerTime = 10,
+	HandSize = 3,
+}
+
+Config.Scoring = {
+	Place = { 100, 75, 50, 25 }, -- 5th and lower get the last value
+	Trap = 25, -- per opponent your object takes out
+	TrapCap = 75, -- per round, so one trap can't decide the whole match
+	Clutch = 15, -- finish with under ClutchWindow seconds left
+	ClutchWindow = 5,
+	OwnRoute = 15, -- finish after touching a route piece you placed
+}
+
+Config.Movement = {
+	WalkSpeed = 22,
+	JumpPower = 54,
+	AirJumpPower = 46,
+	AirJumps = 1,
+	CoyoteTime = 0.1,
+	JumpBuffer = 0.12,
+	WallSlideSpeed = 9,
+	WallJumpPower = Vector3.new(26, 50, 0),
+	WallJumpLock = 0.18,
+	IceAccel = 2.2, -- lower = slipperier
+	HoneySpeed = 0.45,
+	HoneyJump = 0.6,
+}
+
+Config.Objects = {
+	SpringPower = 92,
+	FanAccel = 150,
+	FanMaxSpeed = 55,
+	ConveyorSpeed = 14,
+	HammerKnock = Vector3.new(62, 34, 0),
+	CannonSpeed = 24,
+	CannonInterval = 2.6,
+	CannonKnock = Vector3.new(58, 30, 0),
+	CrumbleDelay = 0.55,
+	CrumbleRespawn = 3.5,
+	BombRadius = 5,
+}
+
+-- 2.5D: everything lives on the Z = 0 plane, the camera looks down -Z.
+Config.World = {
+	KillY = -12,
+	Hold = Vector3.new(0, 80, 260), -- behind the camera, where parked characters wait
+	GoalMinTime = 1.5, -- anti-teleport sanity check
+}
+
+return Config
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX7C606E1A780247559B82C05E1AF4C22A">
+        <Properties><string name="Name">Levels</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Hand-authored layouts, stored as plain data.
+-- The same shape will be what community levels save to DataStores later.
+--
+-- Design rules every layout follows:
+--   * start and flag are on solid ground with clear space around them
+--   * the bare layout is beatable with a double jump, but not comfortably
+--   * there is open air above and between pieces for players to build in
+
+export type Piece = {
+	kind: "ground" | "stump" | "tree" | "rock" | "log",
+	x0: number,
+	x1: number,
+	top: number,
+}
+
+export type Layout = {
+	name: string,
+	world: string,
+	spawn: Vector2, -- point on the start ledge surface
+	flag: Vector2, -- point on the goal ledge surface
+	buildMin: Vector2,
+	buildMax: Vector2,
+	pieces: { Piece },
+	seed: number,
+}
+
+local Levels = {}
+
+Levels.Forest = {
+	{
+		name = "Mossy Hollow",
+		world = "Forest",
+		spawn = Vector2.new(2, 10),
+		flag = Vector2.new(108, 14),
+		buildMin = Vector2.new(-6, -8),
+		buildMax = Vector2.new(120, 44),
+		seed = 11,
+		pieces = {
+			{ kind = "ground", x0 = -8, x1 = 10, top = 10 },
+			{ kind = "ground", x0 = 24, x1 = 36, top = 6 },
+			{ kind = "stump", x0 = 48, x1 = 53, top = 14 },
+			{ kind = "ground", x0 = 64, x1 = 78, top = 8 },
+			{ kind = "ground", x0 = 94, x1 = 122, top = 14 },
+		},
+	},
+	{
+		name = "Fallen Log",
+		world = "Forest",
+		spawn = Vector2.new(0, 12),
+		flag = Vector2.new(106, 10),
+		buildMin = Vector2.new(-6, -8),
+		buildMax = Vector2.new(120, 44),
+		seed = 23,
+		pieces = {
+			{ kind = "ground", x0 = -8, x1 = 8, top = 12 },
+			{ kind = "log", x0 = 20, x1 = 56, top = 6 },
+			{ kind = "rock", x0 = 68, x1 = 75, top = 3 },
+			{ kind = "ground", x0 = 90, x1 = 122, top = 10 },
+		},
+	},
+	{
+		name = "Canopy Run",
+		world = "Forest",
+		spawn = Vector2.new(0, 20),
+		flag = Vector2.new(110, 18),
+		buildMin = Vector2.new(-6, -8),
+		buildMax = Vector2.new(120, 48),
+		seed = 37,
+		pieces = {
+			{ kind = "ground", x0 = -8, x1 = 8, top = 20 },
+			{ kind = "tree", x0 = 22, x1 = 30, top = 14 },
+			{ kind = "tree", x0 = 40, x1 = 46, top = 22 },
+			{ kind = "tree", x0 = 58, x1 = 66, top = 12 },
+			{ kind = "tree", x0 = 78, x1 = 85, top = 20 },
+			{ kind = "ground", x0 = 98, x1 = 122, top = 18 },
+		},
+	},
+} :: { Layout }
+
+return Levels
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBXC744054353544918A90E9FF96FAD06C6">
+        <Properties><string name="Name">Net</string><ProtectedString name="Source"><![CDATA[--!strict
+-- All remotes in one place. Server creates them, clients wait for them.
+-- Rule: clients only ever *ask*. The server decides everything that matters.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local RELIABLE = {
+	"MatchState", -- S->C  phase, timers, round
+	"Scores", -- S->C  totals
+	"Hand", -- S->C  your cards for this build phase (nil closes)
+	"Place", -- C->S  request to place a card
+	"PlaceResult", -- S->C  ok / reason
+	"Fail", -- S->C  someone got taken out
+	"Finish", -- S->C  someone reached the flag
+	"RoundResults", -- S->C  per-player breakdown
+	"Explode", -- S->C  bomb went off (visual only)
+	"Notify", -- S->C  small toast
+}
+
+local UNRELIABLE = {
+	"Cursor", -- C->S->C  live ghost previews of other builders
+}
+
+local Net = {}
+
+local folder: Folder
+if RunService:IsServer() then
+	folder = Instance.new("Folder")
+	folder.Name = "Remotes"
+	for _, name in RELIABLE do
+		local r = Instance.new("RemoteEvent")
+		r.Name = name
+		r.Parent = folder
+	end
+	for _, name in UNRELIABLE do
+		local r = Instance.new("UnreliableRemoteEvent")
+		r.Name = name
+		r.Parent = folder
+	end
+	folder.Parent = ReplicatedStorage
+else
+	folder = ReplicatedStorage:WaitForChild("Remotes") :: Folder
+end
+
+function Net.event(name: string): RemoteEvent
+	return folder:WaitForChild(name) :: RemoteEvent
+end
+
+function Net.unreliable(name: string): UnreliableRemoteEvent
+	return folder:WaitForChild(name) :: UnreliableRemoteEvent
+end
+
+return Net
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX3F8DB816FA284484BC2CBCDD27C6A340">
+        <Properties><string name="Name">Objects</string><ProtectedString name="Source"><![CDATA[--!strict
+-- Placeable object definitions + their models.
+-- The server builds the real thing; the client builds the same model for
+-- ghost previews and card icons, so what you see is exactly what you get.
+--
+-- Model conventions (read by server services and client controllers):
+--   part attribute Solid   -> you can stand on it
+--   part attribute Deadly  -> touching it with your hitbox takes you out
+--   part attribute Surface -> "ice" | "honey"
+--   part attribute Group   -> client animates it: "spin" | "fan" | "arm" | "mover" | "wind" | "pad"
+
+local Style = require(script.Parent.Style)
+local Config = require(script.Parent.Config)
+
+local O = Style.Object
+local F = Style.Forest
+local DEPTH = 4
+local FRONT = DEPTH / 2 + 0.02
+
+export type Def = {
+	id: string,
+	name: string,
+	blurb: string,
+	kind: "route" | "trap" | "tool",
+	size: Vector2, -- footprint at rotation 0
+	weight: number,
+	travel: number?,
+}
+
+local Objects = {}
+
+Objects.List = {
+	{ id = "plank", name = "Plank", blurb = "A trusty wooden ledge.", kind = "route", size = Vector2.new(6, 1), weight = 3 },
+	{ id = "crate", name = "Crate", blurb = "Solid. Stack it, hide behind it.", kind = "route", size = Vector2.new(3, 3), weight = 2 },
+	{ id = "spring", name = "Spring", blurb = "Boing. Tilt it to launch sideways.", kind = "route", size = Vector2.new(3, 2), weight = 2 },
+	{ id = "conveyor", name = "Conveyor", blurb = "Carries you along. Or into things.", kind = "route", size = Vector2.new(8, 1), weight = 2 },
+	{ id = "mover", name = "Shuttle", blurb = "Slides back and forth on a rail.", kind = "route", size = Vector2.new(5, 1), weight = 2, travel = 10 },
+	{ id = "ice", name = "Ice", blurb = "Slippery. Fast, if you're brave.", kind = "route", size = Vector2.new(8, 1), weight = 1 },
+	{ id = "crumble", name = "Crumbly Ledge", blurb = "Falls apart right after you land.", kind = "route", size = Vector2.new(4, 1), weight = 1 },
+	{ id = "decoy", name = "Trick Plank", blurb = "Looks like a plank. Isn't. (No nails.)", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
+	{ id = "honey", name = "Honey", blurb = "Sticky. Slow feet, weak jumps.", kind = "trap", size = Vector2.new(6, 1), weight = 1 },
+	{ id = "spikes", name = "Spikes", blurb = "Don't.", kind = "trap", size = Vector2.new(4, 1), weight = 2 },
+	{ id = "saw", name = "Buzzsaw", blurb = "Spins. Hurts.", kind = "trap", size = Vector2.new(5, 5), weight = 2 },
+	{ id = "hammer", name = "Swing Hammer", blurb = "Knocks you flying. Timing matters.", kind = "trap", size = Vector2.new(2, 2), weight = 2 },
+	{ id = "fan", name = "Fan", blurb = "Blows everyone the way it points.", kind = "trap", size = Vector2.new(3, 2), weight = 2 },
+	{ id = "cannon", name = "Cannon", blurb = "Lobs slow cannonballs. Knockback.", kind = "trap", size = Vector2.new(3, 2), weight = 1 },
+	{ id = "bomb", name = "Bomb", blurb = "Clears objects nearby. Fix a ruined level.", kind = "tool", size = Vector2.new(1, 1), weight = 1 },
+} :: { Def }
+
+Objects.ById = {} :: { [string]: Def }
+for _, def in Objects.List do
+	Objects.ById[def.id] = def
+end
+
+--------------------------------------------------------------------------
+-- Geometry helpers
+--------------------------------------------------------------------------
+
+function Objects.footprint(def: Def, rot: number): Vector2
+	local w = def.size.X + (def.travel or 0)
+	local h = def.size.Y
+	if rot % 180 ~= 0 then
+		return Vector2.new(h, w)
+	end
+	return Vector2.new(w, h)
+end
+
+-- Snap so the footprint's edges land on whole studs (pieces line up flush)
+function Objects.snap(def: Def, x: number, y: number, rot: number): (number, number)
+	local fp = Objects.footprint(def, rot)
+	local sx = math.floor(x - fp.X / 2 + 0.5) + fp.X / 2
+	local sy = math.floor(y - fp.Y / 2 + 0.5) + fp.Y / 2
+	return sx, sy
+end
+
+function Objects.cframe(x: number, y: number, rot: number): CFrame
+	return CFrame.new(x, y, 0) * CFrame.Angles(0, 0, math.rad(rot))
+end
+
+-- Shared by the client ghost (red/green) and the server (final say).
+function Objects.check(def: Def, x: number, y: number, rot: number): (boolean, string?)
+	local level = workspace:FindFirstChild("Level")
+	local objects = workspace:FindFirstChild("Objects")
+	if not level then
+		return false, "No level"
+	end
+
+	local fp = Objects.footprint(def, rot)
+	local bmin = level:GetAttribute("BuildMin") :: Vector3?
+	local bmax = level:GetAttribute("BuildMax") :: Vector3?
+	if bmin and bmax then
+		if x - fp.X / 2 < bmin.X or x + fp.X / 2 > bmax.X or y - fp.Y / 2 < bmin.Y or y + fp.Y / 2 > bmax.Y then
+			return false, "Out of bounds"
+		end
+	end
+
+	if def.id == "bomb" then
+		return true, nil
+	end
+
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = if objects then { level, objects } else { level }
+	local hits = workspace:GetPartBoundsInBox(CFrame.new(x, y, 0), Vector3.new(fp.X - 0.15, fp.Y - 0.15, 3), params)
+	if #hits > 0 then
+		for _, hit in hits do
+			if hit.Name == "SafeZone" then
+				return false, "Too close to the start or flag"
+			end
+		end
+		return false, "Something's in the way"
+	end
+	return true, nil
+end
+
+--------------------------------------------------------------------------
+-- Model building
+--------------------------------------------------------------------------
+
+local function add(model: Model, name: string, size: Vector3, cf: CFrame, color: Color3, shape: Enum.PartType?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Shape = shape or Enum.PartType.Block
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = Enum.Material.SmoothPlastic
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = model
+	return p
+end
+
+local function solid(p: Part): Part
+	p.CanCollide = true
+	p.CanQuery = true
+	p.CanTouch = true
+	p:SetAttribute("Solid", true)
+	return p
+end
+
+local function deadly(model: Model, size: Vector3, cf: CFrame, shape: Enum.PartType?): Part
+	local p = add(model, "Hitbox", size, cf, O.Danger, shape)
+	p.Transparency = 1
+	p.CanTouch = true
+	p.CanQuery = true
+	p:SetAttribute("Deadly", true)
+	return p
+end
+
+local function ellipsoid(model: Model, name: string, size: Vector3, cf: CFrame, color: Color3): Part
+	local p = add(model, name, size, cf, color)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
+	return p
+end
+
+local FACE_CAMERA = CFrame.Angles(0, math.pi / 2, 0) -- cylinder axis X -> Z
+
+local builders: { [string]: (Model) -> () } = {}
+
+local function plankBody(m: Model, withNails: boolean)
+	solid(add(m, "Board", Vector3.new(6, 1, DEPTH), CFrame.identity, F.Wood))
+	add(m, "Trim", Vector3.new(6.02, 0.22, DEPTH + 0.02), CFrame.new(0, -0.4, 0), F.WoodDark)
+	if withNails then
+		for _, x in { -2.3, 2.3 } do
+			add(m, "Nail", Vector3.new(0.28, 0.28, 0.06), CFrame.new(x, 0.12, FRONT), F.WoodDark)
+		end
+	end
+end
+
+builders.plank = function(m)
+	plankBody(m, true)
+end
+
+builders.decoy = function(m)
+	plankBody(m, false)
+	for _, p in m:GetChildren() do
+		if p:IsA("BasePart") then
+			p.CanCollide = false
+			p:SetAttribute("Solid", nil)
+		end
+	end
+end
+
+builders.crate = function(m)
+	solid(add(m, "Box", Vector3.new(3, 3, DEPTH), CFrame.identity, F.Wood))
+	local t = 0.36
+	add(m, "Trim", Vector3.new(3, t, 0.06), CFrame.new(0, 1.5 - t / 2, FRONT), F.WoodDark)
+	add(m, "Trim", Vector3.new(3, t, 0.06), CFrame.new(0, -1.5 + t / 2, FRONT), F.WoodDark)
+	add(m, "Trim", Vector3.new(t, 3, 0.06), CFrame.new(1.5 - t / 2, 0, FRONT), F.WoodDark)
+	add(m, "Trim", Vector3.new(t, 3, 0.06), CFrame.new(-1.5 + t / 2, 0, FRONT), F.WoodDark)
+	add(m, "Trim", Vector3.new(t, 3.1, 0.05), CFrame.new(0, 0, FRONT) * CFrame.Angles(0, 0, math.rad(45)), F.WoodDark)
+end
+
+builders.spring = function(m)
+	solid(add(m, "Base", Vector3.new(3, 0.5, 3), CFrame.new(0, -0.75, 0), O.Metal))
+	for i = 0, 2 do
+		add(m, "Coil", Vector3.new(0.16, 1.5, 1.5), CFrame.new(0, -0.35 + i * 0.32, 0) * CFrame.Angles(0, 0, math.pi / 2), O.MetalLight, Enum.PartType.Cylinder)
+	end
+	local pad = solid(add(m, "Pad", Vector3.new(3, 0.4, 3), CFrame.new(0, 0.6, 0), O.Spring))
+	pad:SetAttribute("Group", "pad")
+end
+
+builders.conveyor = function(m)
+	local belt = solid(add(m, "Belt", Vector3.new(8, 1, DEPTH), CFrame.identity, O.Rubber))
+	belt:SetAttribute("Conveyor", true)
+	for _, x in { -4, 4 } do
+		add(m, "Roller", Vector3.new(DEPTH + 0.1, 1.1, 1.1), CFrame.new(x, 0, 0) * FACE_CAMERA, O.MetalLight, Enum.PartType.Cylinder)
+	end
+	for _, x in { -2.2, 0, 2.2 } do
+		add(m, "Chevron", Vector3.new(0.8, 0.16, 0.05), CFrame.new(x, 0.17, FRONT) * CFrame.Angles(0, 0, math.rad(-38)), O.Stripe)
+		add(m, "Chevron", Vector3.new(0.8, 0.16, 0.05), CFrame.new(x, -0.17, FRONT) * CFrame.Angles(0, 0, math.rad(38)), O.Stripe)
+	end
+end
+
+builders.mover = function(m)
+	local travel = (Objects.ById.mover.travel :: number) + 5
+	add(m, "Rail", Vector3.new(travel, 0.3, 0.3), CFrame.new(0, 0, -1.6), O.Rubber)
+	for _, x in { -travel / 2, travel / 2 } do
+		add(m, "RailEnd", Vector3.new(0.7, 0.7, 0.7), CFrame.new(x, 0, -1.6), O.Metal, Enum.PartType.Ball)
+	end
+	local deck = solid(add(m, "Deck", Vector3.new(5, 1, DEPTH), CFrame.identity, F.Wood))
+	deck:SetAttribute("Group", "mover")
+	for _, x in { -2.35, 2.35 } do
+		local cap = add(m, "Cap", Vector3.new(0.4, 1.06, DEPTH + 0.06), CFrame.new(x, 0, 0), O.MetalLight)
+		cap:SetAttribute("Group", "mover")
+	end
+end
+
+builders.ice = function(m)
+	local slab = solid(add(m, "Slab", Vector3.new(8, 1, DEPTH), CFrame.identity, O.Ice))
+	slab:SetAttribute("Surface", "ice")
+	for _, x in { -2.6, -2.1, 1.8 } do
+		add(m, "Shine", Vector3.new(0.14, 0.7, 0.05), CFrame.new(x, 0, FRONT) * CFrame.Angles(0, 0, math.rad(-30)), Color3.new(1, 1, 1))
+	end
+end
+
+builders.crumble = function(m)
+	local slab = solid(add(m, "Slab", Vector3.new(4, 1, DEPTH), CFrame.identity, O.Crumble))
+	slab:SetAttribute("Crumble", true)
+	add(m, "Crack", Vector3.new(0.1, 0.8, 0.05), CFrame.new(-0.7, 0, FRONT) * CFrame.Angles(0, 0, math.rad(20)), F.WoodDark)
+	add(m, "Crack", Vector3.new(0.1, 0.5, 0.05), CFrame.new(0.9, 0.15, FRONT) * CFrame.Angles(0, 0, math.rad(-35)), F.WoodDark)
+end
+
+builders.honey = function(m)
+	local slab = solid(add(m, "Slab", Vector3.new(6, 0.8, DEPTH), CFrame.new(0, -0.1, 0), O.Honey))
+	slab:SetAttribute("Surface", "honey")
+	ellipsoid(m, "Top", Vector3.new(6.2, 0.5, DEPTH + 0.2), CFrame.new(0, 0.25, 0), O.Honey)
+	for _, x in { -2.1, 0.4, 2.3 } do
+		ellipsoid(m, "Drip", Vector3.new(0.5, 0.9, 0.5), CFrame.new(x, -0.6, 1.4), O.Honey)
+	end
+end
+
+builders.spikes = function(m)
+	solid(add(m, "Base", Vector3.new(4, 0.4, DEPTH), CFrame.new(0, -0.3, 0), O.Metal))
+	add(m, "Band", Vector3.new(4.02, 0.12, 0.05), CFrame.new(0, -0.3, FRONT), O.Danger)
+	for _, x in { -1.5, -0.5, 0.5, 1.5 } do
+		add(m, "Spike", Vector3.new(0.85, 0.85, DEPTH - 0.4), CFrame.new(x, -0.1, 0) * CFrame.Angles(0, 0, math.rad(45)), O.MetalLight)
+	end
+	-- Slightly smaller than the art: forgiving hitboxes feel fair
+	deadly(m, Vector3.new(3.6, 0.7, 3), CFrame.new(0, 0.05, 0))
+end
+
+builders.saw = function(m)
+	local blade = add(m, "Blade", Vector3.new(0.4, 5, 5), FACE_CAMERA, O.MetalLight, Enum.PartType.Cylinder)
+	blade:SetAttribute("Group", "spin")
+	for i = 0, 7 do
+		local a = i * math.pi / 4
+		local tooth = add(m, "Tooth", Vector3.new(0.7, 0.7, 0.3), CFrame.Angles(0, 0, a) * CFrame.new(0, 2.45, 0) * CFrame.Angles(0, 0, math.rad(45)), O.Metal)
+		tooth:SetAttribute("Group", "spin")
+	end
+	local hub = add(m, "Hub", Vector3.new(0.7, 1.4, 1.4), FACE_CAMERA, O.Danger, Enum.PartType.Cylinder)
+	hub:SetAttribute("Group", "spin")
+	deadly(m, Vector3.new(4.4, 4.4, 4.4), CFrame.identity, Enum.PartType.Ball)
+end
+
+builders.hammer = function(m)
+	solid(add(m, "Mount", Vector3.new(2, 2, 3), CFrame.identity, O.Metal))
+	add(m, "Bolt", Vector3.new(0.3, 0.8, 0.8), CFrame.new(0, 0, 1.9) * FACE_CAMERA, O.MetalLight, Enum.PartType.Cylinder)
+	local arm = add(m, "Arm", Vector3.new(0.5, 7, 0.5), CFrame.new(0, -3.5, 1.8), F.WoodDark)
+	arm:SetAttribute("Group", "arm")
+	local head = add(m, "Head", Vector3.new(3.2, 2, 2.2), CFrame.new(0, -7.5, 1.8), O.Metal)
+	head:SetAttribute("Group", "arm")
+	local band = add(m, "Band", Vector3.new(0.5, 2.06, 2.26), CFrame.new(0, -7.5, 1.8), O.Danger)
+	band:SetAttribute("Group", "arm")
+end
+
+builders.fan = function(m)
+	solid(add(m, "Housing", Vector3.new(3, 1.2, 3), CFrame.new(0, -0.4, 0), O.Metal))
+	add(m, "Grill", Vector3.new(3.02, 0.14, 0.05), CFrame.new(0, -0.4, 1.52), O.MetalLight)
+	for i = 0, 2 do
+		local blade = add(m, "Blade", Vector3.new(2.6, 0.12, 0.5), CFrame.new(0, 0.35, 0) * CFrame.Angles(0, i * math.pi / 3, 0), O.MetalLight)
+		blade:SetAttribute("Group", "fan")
+	end
+	-- Faint column so players can always see the wind's reach
+	local zone = add(m, "Zone", Vector3.new(3, 16, 0.1), CFrame.new(0, 8.5, -1.8), Color3.new(1, 1, 1))
+	zone.Transparency = 0.9
+	zone.CastShadow = false
+	for i = 1, 3 do
+		local s = add(m, "Wind", Vector3.new(0.1, 1.8, 0.1), CFrame.new(-1 + (i - 1), 2 + i * 4, 0.5), Color3.new(1, 1, 1))
+		s.Transparency = 0.5
+		s.CastShadow = false
+		s:SetAttribute("Group", "wind")
+	end
+end
+
+builders.cannon = function(m)
+	solid(add(m, "Base", Vector3.new(3, 0.8, 3), CFrame.new(0, -0.6, 0), F.WoodDark))
+	solid(add(m, "Barrel", Vector3.new(2.8, 1.4, 1.4), CFrame.new(0.3, 0.3, 0), O.Rubber, Enum.PartType.Cylinder))
+	add(m, "Lip", Vector3.new(0.3, 1.7, 1.7), CFrame.new(1.65, 0.3, 0), O.Metal, Enum.PartType.Cylinder)
+	for _, x in { -0.8, 0.8 } do
+		add(m, "Wheel", Vector3.new(0.35, 1.2, 1.2), CFrame.new(x, -0.7, 1.7) * FACE_CAMERA, F.Wood, Enum.PartType.Cylinder)
+	end
+end
+
+builders.bomb = function(m)
+	add(m, "Ball", Vector3.new(1.6, 1.6, 1.6), CFrame.identity, O.Rubber, Enum.PartType.Ball)
+	add(m, "Fuse", Vector3.new(0.2, 0.6, 0.2), CFrame.new(0.3, 0.9, 0) * CFrame.Angles(0, 0, math.rad(-25)), F.WoodDark)
+	local r = Config.Objects.BombRadius * 2
+	local ring = add(m, "Radius", Vector3.new(0.1, r, r), FACE_CAMERA, O.Danger, Enum.PartType.Cylinder)
+	ring.Transparency = 0.8
+	ring.CastShadow = false
+end
+
+function Objects.build(id: string): Model
+	local m = Instance.new("Model")
+	m.Name = id
+	builders[id](m)
+	m.WorldPivot = CFrame.identity
+	m:SetAttribute("Id", id)
+	return m
+end
+
+return Objects
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX81143F5C64774E1D936F9C6995992C3A">
+        <Properties><string name="Name">Style</string><ProtectedString name="Source"><![CDATA[--!strict
+-- One palette for UI and world. Flat colors, no gradients, no neon.
+
+local Style = {}
+
+Style.UI = {
+	Ink = Color3.fromRGB(34, 31, 43),
+	InkSoft = Color3.fromRGB(58, 54, 70),
+	Paper = Color3.fromRGB(250, 246, 238),
+	PaperShade = Color3.fromRGB(232, 225, 212),
+	Muted = Color3.fromRGB(128, 120, 132),
+	Accent = Color3.fromRGB(238, 108, 77),
+	Good = Color3.fromRGB(82, 170, 110),
+	Bad = Color3.fromRGB(214, 76, 76),
+	Gold = Color3.fromRGB(240, 184, 72),
+}
+
+Style.Font = {
+	Title = Font.fromEnum(Enum.Font.FredokaOne),
+	Body = Font.fromEnum(Enum.Font.BuilderSansMedium),
+	Bold = Font.fromEnum(Enum.Font.BuilderSansBold),
+}
+
+Style.Forest = {
+	Grass = Color3.fromRGB(118, 176, 86),
+	GrassDark = Color3.fromRGB(92, 150, 72),
+	Dirt = Color3.fromRGB(141, 101, 70),
+	DirtDark = Color3.fromRGB(112, 80, 58),
+	Wood = Color3.fromRGB(196, 146, 96),
+	WoodDark = Color3.fromRGB(150, 106, 68),
+	Bark = Color3.fromRGB(112, 82, 60),
+	Leaf = { Color3.fromRGB(86, 146, 78), Color3.fromRGB(70, 126, 74), Color3.fromRGB(108, 162, 88) },
+	Stone = Color3.fromRGB(150, 150, 140),
+	Water = Color3.fromRGB(96, 168, 196),
+	Hill = Color3.fromRGB(128, 168, 132),
+	HillFar = Color3.fromRGB(160, 190, 176),
+	Cloud = Color3.fromRGB(252, 250, 246),
+}
+
+-- Shared materials for placed objects so they read as one family
+Style.Object = {
+	Metal = Color3.fromRGB(96, 100, 112),
+	MetalLight = Color3.fromRGB(176, 180, 190),
+	Danger = Color3.fromRGB(214, 76, 76),
+	Spring = Color3.fromRGB(238, 108, 77),
+	Honey = Color3.fromRGB(232, 162, 48),
+	Ice = Color3.fromRGB(186, 226, 238),
+	Rubber = Color3.fromRGB(52, 50, 60),
+	Stripe = Color3.fromRGB(240, 184, 72),
+	Crumble = Color3.fromRGB(206, 178, 132),
+}
+
+return Style
+]]></ProtectedString></Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="RBX308DF2EF2589456F83CC8CAD5709A0A2">
+    <Properties><string name="Name">ServerScriptService</string></Properties>
+    <Item class="Script" referent="RBXF568168318CC4ECBABC0FE295D46BFDB">
+      <Properties><string name="Name">Main</string><ProtectedString name="Source"><![CDATA[-- Server entry point. Services are plain modules; order matters only here.
+
+local Services = script.Parent.Services
+
+local PlayerService = require(Services.PlayerService)
+local LevelService = require(Services.LevelService)
+local BuildService = require(Services.BuildService)
+local RoundService = require(Services.RoundService)
+local MatchService = require(Services.MatchService)
+
+PlayerService.init()
+LevelService.init()
+BuildService.init()
+RoundService.init()
+MatchService.start()
+]]></ProtectedString></Properties>
+    </Item>
+    <Item class="Folder" referent="RBXFCA4D778EB044DA5B890B23ABBB4B808">
+      <Properties><string name="Name">Services</string></Properties>
+      <Item class="ModuleScript" referent="RBXEFEC8ED41C164068AFD2B413929A9D6C">
+        <Properties><string name="Name">BuildService</string><ProtectedString name="Source"><![CDATA[-- Deals cards, validates placement requests, spawns objects.
+-- The client only *asks* to place; every rule is re-checked here.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+local Objects = require(Shared.Objects)
+
+local HazardService = require(script.Parent.HazardService)
+local LevelService = require(script.Parent.LevelService)
+
+local HandEvent = Net.event("Hand")
+local PlaceEvent = Net.event("Place")
+local PlaceResult = Net.event("PlaceResult")
+local Explode = Net.event("Explode")
+local Cursor = Net.unreliable("Cursor")
+
+local BuildService = {}
+
+local hands = {} :: { [Player]: { string } }
+local placed = {} :: { [Player]: boolean }
+local lastCursor = {} :: { [Player]: number }
+local open = false
+
+local function weightedPick(pool: { Objects.Def }): Objects.Def
+	local total = 0
+	for _, d in pool do
+		total += d.weight
+	end
+	local r = math.random() * total
+	for _, d in pool do
+		r -= d.weight
+		if r <= 0 then
+			return d
+		end
+	end
+	return pool[#pool]
+end
+
+-- Every hand has at least one route piece, so the level can always grow a way through.
+local function deal(round: number): { string }
+	local hand = {}
+	local function pool(filter: (Objects.Def) -> boolean)
+		local list = {}
+		for _, d in Objects.List do
+			if filter(d) and not table.find(hand, d.id) and (d.id ~= "bomb" or round > 1) then
+				table.insert(list, d)
+			end
+		end
+		return list
+	end
+	table.insert(hand, weightedPick(pool(function(d)
+		return d.kind == "route"
+	end)).id)
+	while #hand < Config.Match.HandSize do
+		table.insert(hand, weightedPick(pool(function()
+			return true
+		end)).id)
+	end
+	-- shuffle so the route card isn't always first
+	for i = #hand, 2, -1 do
+		local j = math.random(1, i)
+		hand[i], hand[j] = hand[j], hand[i]
+	end
+	return hand
+end
+
+local function finite(n: any): boolean
+	return typeof(n) == "number" and n == n and math.abs(n) < 1e4
+end
+
+local function bomb(pos: Vector3)
+	local r = Config.Objects.BombRadius
+	for _, model in LevelService.objectsFolder():GetChildren() do
+		local def = Objects.ById[model:GetAttribute("Id") :: string]
+		if not def then
+			continue
+		end
+		local fp = Objects.footprint(def, model:GetAttribute("Rot") :: number)
+		local mx, my = model:GetAttribute("X") :: number, model:GetAttribute("Y") :: number
+		-- distance from blast centre to the object's footprint rectangle
+		local dx = math.max(math.abs(pos.X - mx) - fp.X / 2, 0)
+		local dy = math.max(math.abs(pos.Y - my) - fp.Y / 2, 0)
+		if dx * dx + dy * dy <= r * r then
+			model:Destroy()
+		end
+	end
+	Explode:FireAllClients(pos)
+end
+
+function BuildService.spawn(owner: Player, def: Objects.Def, x: number, y: number, rot: number): Model
+	local model = Objects.build(def.id)
+	model:PivotTo(Objects.cframe(x, y, rot))
+	model:SetAttribute("Owner", owner.UserId)
+	model:SetAttribute("OwnerName", owner.DisplayName)
+	model:SetAttribute("X", x)
+	model:SetAttribute("Y", y)
+	model:SetAttribute("Rot", rot)
+	model:SetAttribute("PlacedAt", workspace:GetServerTimeNow())
+	model.Parent = LevelService.objectsFolder()
+
+	local belt = model:FindFirstChild("Belt") :: BasePart?
+	if belt then
+		belt.AssemblyLinearVelocity = belt.CFrame.RightVector * Config.Objects.ConveyorSpeed
+	end
+	HazardService.watch(model)
+	return model
+end
+
+local function onPlace(player: Player, id: any, x: any, y: any, rot: any)
+	local function reject(reason: string)
+		PlaceResult:FireClient(player, false, reason)
+	end
+	if not open or placed[player] then
+		return reject("Building is closed")
+	end
+	if typeof(id) ~= "string" or not finite(x) or not finite(y) or not finite(rot) then
+		return reject("Bad request")
+	end
+	if rot % 90 ~= 0 then
+		return reject("Bad rotation")
+	end
+	rot %= 360
+	local hand = hands[player]
+	local def = Objects.ById[id]
+	if not hand or not def or not table.find(hand, id) then
+		return reject("That card isn't yours")
+	end
+
+	local sx, sy = Objects.snap(def, x, y, rot)
+	local ok, reason = Objects.check(def, sx, sy, rot)
+	if not ok then
+		return reject(reason or "Can't place there")
+	end
+
+	placed[player] = true
+	hands[player] = nil
+	if def.id == "bomb" then
+		bomb(Vector3.new(sx, sy, 0))
+	else
+		BuildService.spawn(player, def, sx, sy, rot)
+	end
+	PlaceResult:FireClient(player, true)
+	HandEvent:FireClient(player, nil)
+	return
+end
+
+local function onCursor(player: Player, id: any, x: any, y: any, rot: any)
+	if not open or placed[player] or not hands[player] then
+		return
+	end
+	local now = os.clock()
+	if now - (lastCursor[player] or 0) < 0.06 then
+		return
+	end
+	lastCursor[player] = now
+	if typeof(id) ~= "string" or not finite(x) or not finite(y) or not finite(rot) then
+		return
+	end
+	if id ~= "" and not table.find(hands[player], id) then
+		return
+	end
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			Cursor:FireClient(other, player.UserId, id, x, y, rot)
+		end
+	end
+end
+
+function BuildService.open(players: { Player }, round: number)
+	table.clear(hands)
+	table.clear(placed)
+	for _, p in players do
+		hands[p] = deal(round)
+		HandEvent:FireClient(p, hands[p])
+	end
+	open = true
+end
+
+function BuildService.close()
+	open = false
+	for p in hands do
+		HandEvent:FireClient(p, nil)
+	end
+	table.clear(hands)
+	for _, p in Players:GetPlayers() do
+		Cursor:FireClient(p, 0, "", 0, 0, 0) -- userId 0 = clear all ghosts
+	end
+end
+
+function BuildService.everyonePlaced(players: { Player }): boolean
+	for _, p in players do
+		if p.Parent and not placed[p] then
+			return false
+		end
+	end
+	return true
+end
+
+function BuildService.clearObjects()
+	LevelService.objectsFolder():ClearAllChildren()
+end
+
+function BuildService.init()
+	PlaceEvent.OnServerEvent:Connect(onPlace)
+	Cursor.OnServerEvent:Connect(onCursor)
+	Players.PlayerRemoving:Connect(function(p)
+		hands[p] = nil
+		placed[p] = nil
+		lastCursor[p] = nil
+	end)
+end
+
+return BuildService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBXE2263BB423C44657A2424AC59F7B55AB">
+        <Properties><string name="Name">HazardService</string><ProtectedString name="Source"><![CDATA[-- Server-side object behaviour that has to be authoritative:
+-- deadly contact, crumbling ledges, and "you used your own route" tracking.
+-- Knockback/launch effects run on the client (it owns its character's physics),
+-- because they must feel instant.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Objects = require(Shared.Objects)
+
+local HazardService = {}
+
+-- Set by RoundService
+HazardService.isRunning = function(_player: Player): boolean
+	return false
+end
+HazardService.onDeadly = function(_player: Player, _model: Model) end
+
+local touchedOwn = {} :: { [Player]: boolean }
+local crumbles = {} :: { Model }
+
+local function playerFromHit(hit: BasePart): Player?
+	if hit.Name ~= "HumanoidRootPart" then
+		return nil
+	end
+	return Players:GetPlayerFromCharacter(hit.Parent)
+end
+
+local function crumble(model: Model)
+	if model:GetAttribute("TriggeredAt") then
+		return
+	end
+	model:SetAttribute("TriggeredAt", workspace:GetServerTimeNow())
+	task.delay(Config.Objects.CrumbleDelay, function()
+		if not model.Parent then
+			return
+		end
+		model:SetAttribute("Fallen", true)
+		for _, p in model:GetDescendants() do
+			if p:IsA("BasePart") and p:GetAttribute("Solid") then
+				p.CanCollide = false
+			end
+		end
+		task.delay(Config.Objects.CrumbleRespawn, function()
+			HazardService.restore(model)
+		end)
+	end)
+end
+
+function HazardService.restore(model: Model)
+	if not model.Parent then
+		return
+	end
+	model:SetAttribute("TriggeredAt", nil)
+	model:SetAttribute("Fallen", nil)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and p:GetAttribute("Solid") then
+			p.CanCollide = true
+		end
+	end
+end
+
+function HazardService.watch(model: Model)
+	local def = Objects.ById[model:GetAttribute("Id") :: string]
+	local owner = model:GetAttribute("Owner") :: number
+	local isRoute = def and def.kind == "route"
+
+	for _, p in model:GetDescendants() do
+		if not p:IsA("BasePart") then
+			continue
+		end
+		if p:GetAttribute("Deadly") then
+			p.Touched:Connect(function(hit)
+				local player = playerFromHit(hit)
+				if player and HazardService.isRunning(player) then
+					HazardService.onDeadly(player, model)
+				end
+			end)
+		elseif p:GetAttribute("Solid") and (isRoute or p:GetAttribute("Crumble")) then
+			p.Touched:Connect(function(hit)
+				local player = playerFromHit(hit)
+				if not player or not HazardService.isRunning(player) then
+					return
+				end
+				if p:GetAttribute("Crumble") then
+					crumble(model)
+				end
+				if isRoute and player.UserId == owner then
+					touchedOwn[player] = true
+				end
+			end)
+		end
+	end
+
+	if model:FindFirstChild("Slab") and (model:FindFirstChild("Slab") :: BasePart):GetAttribute("Crumble") then
+		table.insert(crumbles, model)
+	end
+end
+
+-- Called at the start of each run so the level is identical for everyone
+function HazardService.resetRound()
+	table.clear(touchedOwn)
+	for i = #crumbles, 1, -1 do
+		local m = crumbles[i]
+		if m.Parent then
+			HazardService.restore(m)
+		else
+			table.remove(crumbles, i)
+		end
+	end
+end
+
+function HazardService.usedOwnRoute(player: Player): boolean
+	return touchedOwn[player] == true
+end
+
+return HazardService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX98CE9FA9F46C4E7A8D352FA42D590640">
+        <Properties><string name="Name">LevelService</string><ProtectedString name="Source"><![CDATA[-- Builds a layout into the world: playable pieces, start, flag, safe zones,
+-- and a background with just enough life in it (trees, hills, a river, clouds).
+
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Levels = require(Shared.Levels)
+local Style = require(Shared.Style)
+
+local F = Style.Forest
+local LevelService = {}
+
+LevelService.layout = nil :: Levels.Layout?
+LevelService.goalZone = nil :: BasePart?
+LevelService.spawn = Vector3.zero
+LevelService.flag = Vector3.zero
+
+local level: Folder
+
+local function part(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, shape: Enum.PartType?): Part
+	local p = Instance.new("Part")
+	p.Name = name
+	p.Shape = shape or Enum.PartType.Block
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = Enum.Material.SmoothPlastic
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local function solid(p: Part): Part
+	p.CanCollide = true
+	p.CanQuery = true
+	p:SetAttribute("Solid", true)
+	return p
+end
+
+local function blob(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3): Part
+	local p = part(parent, name, size, cf, color)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = p
+	return p
+end
+
+local UPRIGHT = CFrame.Angles(0, 0, math.pi / 2) -- cylinder axis X -> Y
+local BOTTOM = -26
+
+--------------------------------------------------------------------------
+-- Playable pieces
+--------------------------------------------------------------------------
+
+local builders = {}
+
+builders.ground = function(p: Levels.Piece, rng: Random)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	solid(part(level, "Grass", Vector3.new(w + 0.6, 1.2, 8.4), CFrame.new(cx, p.top - 0.6, 0), F.Grass))
+	local h = p.top - 1.2 - BOTTOM
+	solid(part(level, "Dirt", Vector3.new(w, h, 8), CFrame.new(cx, BOTTOM + h / 2, 0), F.Dirt))
+	part(level, "DirtBand", Vector3.new(w + 0.02, 1.4, 8.02), CFrame.new(cx, p.top - 3.2, 0), F.DirtDark)
+	-- a couple of grass tufts at the back edge, never in the play lane
+	for _ = 1, math.max(1, math.floor(w / 8)) do
+		local x = rng:NextNumber(p.x0 + 1, p.x1 - 1)
+		blob(level, "Tuft", Vector3.new(1.4, 1, 1), CFrame.new(x, p.top + 0.2, -3.4), F.GrassDark)
+	end
+end
+
+builders.stump = function(p: Levels.Piece)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local h = p.top - BOTTOM
+	solid(part(level, "Stump", Vector3.new(h, w, w), CFrame.new(cx, BOTTOM + h / 2, 0) * UPRIGHT, F.Bark, Enum.PartType.Cylinder))
+	part(level, "Rings", Vector3.new(0.12, w - 0.8, w - 0.8), CFrame.new(cx, p.top + 0.02, 0) * UPRIGHT, F.Wood, Enum.PartType.Cylinder)
+	blob(level, "Moss", Vector3.new(w * 0.7, 0.8, w * 0.6), CFrame.new(cx - w * 0.15, p.top - 0.1, -w * 0.25), F.GrassDark)
+end
+
+builders.rock = function(p: Levels.Piece)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local h = p.top - BOTTOM
+	solid(part(level, "Rock", Vector3.new(w, h, 6), CFrame.new(cx, BOTTOM + h / 2, 0), F.Stone))
+	blob(level, "RockCap", Vector3.new(w + 0.6, 2.2, 6.4), CFrame.new(cx, p.top - 0.9, 0), F.Stone)
+end
+
+builders.log = function(p: Levels.Piece)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	solid(part(level, "Log", Vector3.new(w, 4, 4), CFrame.new(cx, p.top - 2, 0), F.Bark, Enum.PartType.Cylinder))
+	for _, x in { p.x0, p.x1 } do
+		part(level, "LogEnd", Vector3.new(0.3, 3.4, 3.4), CFrame.new(x, p.top - 2, 0), F.Wood, Enum.PartType.Cylinder)
+		local sx = x + (x == p.x0 and 3 or -3)
+		local h = p.top - 4 - BOTTOM
+		part(level, "Support", Vector3.new(3, h, 3), CFrame.new(sx, BOTTOM + h / 2, 0), F.Stone)
+	end
+	-- a little branch stub for character
+	part(level, "Branch", Vector3.new(2.6, 0.7, 0.7), CFrame.new(cx + w * 0.2, p.top - 0.4, -1.6) * CFrame.Angles(0, 0, math.rad(35)), F.Bark)
+end
+
+builders.tree = function(p: Levels.Piece, rng: Random)
+	local w = p.x1 - p.x0
+	local cx = (p.x0 + p.x1) / 2
+	local h = p.top - 1 - BOTTOM
+	part(level, "Trunk", Vector3.new(h, 2.4, 2.4), CFrame.new(cx, BOTTOM + h / 2, -0.5) * UPRIGHT, F.Bark, Enum.PartType.Cylinder)
+	solid(part(level, "Deck", Vector3.new(w, 1, 6), CFrame.new(cx, p.top - 0.5, 0), F.Wood))
+	part(level, "DeckTrim", Vector3.new(w + 0.02, 0.24, 6.02), CFrame.new(cx, p.top - 0.9, 0), F.WoodDark)
+	-- canopy sits behind the lane so it frames the platform without hiding anyone
+	local leaf = F.Leaf[rng:NextInteger(1, #F.Leaf)]
+	blob(level, "Canopy", Vector3.new(w + 7, 7, 5), CFrame.new(cx, p.top + 5, -5), leaf)
+	blob(level, "Canopy", Vector3.new(w + 2, 5, 4), CFrame.new(cx + 2, p.top + 9, -6), F.Leaf[1])
+end
+
+--------------------------------------------------------------------------
+-- Start, flag, background
+--------------------------------------------------------------------------
+
+local function buildStart(spawn: Vector3)
+	part(level, "SignPost", Vector3.new(0.4, 3.2, 0.4), CFrame.new(spawn.X - 4, spawn.Y + 1.6, -2.6), F.WoodDark)
+	local board = part(level, "Sign", Vector3.new(2.8, 1.2, 0.3), CFrame.new(spawn.X - 4, spawn.Y + 3, -2.6), F.Wood)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.CanvasSize = Vector2.new(140, 60)
+	gui.LightInfluence = 1
+	gui.Parent = board
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.FontFace = Style.Font.Title
+	label.TextScaled = true
+	label.TextColor3 = F.WoodDark
+	label.Text = "GO  >"
+	label.Parent = gui
+	-- SurfaceGui Front faces -Z; turn the board around so the camera reads it
+	board.CFrame *= CFrame.Angles(0, math.pi, 0)
+end
+
+local function buildFlag(flag: Vector3)
+	part(level, "FlagBase", Vector3.new(1.6, 0.6, 1.6), CFrame.new(flag.X, flag.Y + 0.3, -1), F.Stone)
+	part(level, "Pole", Vector3.new(0.35, 9, 0.35), CFrame.new(flag.X, flag.Y + 4.5, -1), Style.UI.Paper)
+	part(level, "PoleTop", Vector3.new(0.7, 0.7, 0.7), CFrame.new(flag.X, flag.Y + 9.1, -1), Style.UI.Gold, Enum.PartType.Ball)
+	local cloth = part(level, "Flag", Vector3.new(3.4, 2.2, 0.12), CFrame.new(flag.X + 1.85, flag.Y + 7.7, -1), Style.UI.Accent)
+	cloth:SetAttribute("Group", "flag")
+
+	local zone = part(level, "GoalZone", Vector3.new(5, 8, 6), CFrame.new(flag.X, flag.Y + 4, 0), Style.UI.Gold)
+	zone.Transparency = 1
+	zone.CanTouch = true
+	LevelService.goalZone = zone
+end
+
+local function safeZone(center: Vector3)
+	local z = part(level, "SafeZone", Vector3.new(10, 8, 6), CFrame.new(center.X, center.Y + 4, 0), Style.UI.Good)
+	z.Transparency = 1
+	z.CanQuery = true
+end
+
+local function buildBackground(layout: Levels.Layout, rng: Random)
+	local decor = Instance.new("Folder")
+	decor.Name = "Decor"
+	decor.Parent = level
+
+	local midX = (layout.buildMin.X + layout.buildMax.X) / 2
+
+	local water = part(decor, "River", Vector3.new(420, 1, 150), CFrame.new(midX, -14, -40), F.Water)
+	water.Transparency = 0.1
+	water.CastShadow = false
+
+	for i = 1, 5 do
+		local w = rng:NextNumber(90, 150)
+		blob(decor, "Hill", Vector3.new(w, w * 0.5, 30), CFrame.new(midX - 200 + i * 75 + rng:NextNumber(-20, 20), -12, -150), F.HillFar)
+	end
+	for i = 1, 4 do
+		local w = rng:NextNumber(60, 100)
+		blob(decor, "Hill", Vector3.new(w, w * 0.45, 24), CFrame.new(midX - 160 + i * 70 + rng:NextNumber(-15, 15), -14, -95), F.Hill)
+	end
+
+	-- Background trees: varied but restrained (one silhouette, three greens)
+	for _ = 1, 16 do
+		local x = rng:NextNumber(layout.buildMin.X - 40, layout.buildMax.X + 40)
+		local z = rng:NextNumber(-60, -16)
+		local h = rng:NextNumber(18, 34)
+		part(decor, "Trunk", Vector3.new(h, 1.6, 1.6), CFrame.new(x, -14 + h / 2, z) * UPRIGHT, F.Bark, Enum.PartType.Cylinder)
+		local leaf = F.Leaf[rng:NextInteger(1, #F.Leaf)]
+		local r = rng:NextNumber(7, 11)
+		blob(decor, "Leaves", Vector3.new(r, r * 1.1, r), CFrame.new(x, -14 + h + r * 0.2, z), leaf)
+		blob(decor, "Leaves", Vector3.new(r * 0.7, r * 0.75, r * 0.7), CFrame.new(x + r * 0.35, -14 + h + r * 0.65, z + 1), leaf)
+	end
+
+	for i = 1, 6 do
+		local cloud = Instance.new("Model")
+		cloud.Name = "Cloud"
+		local x = midX - 150 + i * 55 + rng:NextNumber(-15, 15)
+		local y = rng:NextNumber(58, 85)
+		local s = rng:NextNumber(0.8, 1.4)
+		blob(cloud, "Puff", Vector3.new(16, 6, 6) * s, CFrame.new(x, y, -110), F.Cloud)
+		blob(cloud, "Puff", Vector3.new(9, 6, 5) * s, CFrame.new(x - 4 * s, y + 2.2 * s, -110), F.Cloud)
+		blob(cloud, "Puff", Vector3.new(8, 5, 5) * s, CFrame.new(x + 4 * s, y + 1.6 * s, -110), F.Cloud)
+		for _, p in cloud:GetChildren() do
+			(p :: BasePart).CastShadow = false
+		end
+		cloud.WorldPivot = CFrame.new(x, y, -110)
+		cloud:SetAttribute("Group", "cloud")
+		cloud.Parent = decor
+	end
+end
+
+local function setupLighting()
+	Lighting.ClockTime = 15.2
+	Lighting.GeographicLatitude = 30
+	Lighting.Brightness = 2
+	Lighting.Ambient = Color3.fromRGB(96, 92, 104)
+	Lighting.OutdoorAmbient = Color3.fromRGB(150, 146, 156)
+	Lighting.ShadowSoftness = 0.35
+	Lighting.EnvironmentDiffuseScale = 0.35
+	Lighting.EnvironmentSpecularScale = 0.05
+	Lighting.GlobalShadows = true
+
+	for _, c in Lighting:GetChildren() do
+		if c:IsA("PostEffect") or c:IsA("Atmosphere") then
+			c:Destroy()
+		end
+	end
+	local atmo = Instance.new("Atmosphere")
+	atmo.Density = 0.26
+	atmo.Offset = 0.1
+	atmo.Haze = 1.2
+	atmo.Glare = 0
+	atmo.Color = Color3.fromRGB(236, 226, 206)
+	atmo.Decay = Color3.fromRGB(150, 170, 180)
+	atmo.Parent = Lighting
+
+	local cc = Instance.new("ColorCorrectionEffect")
+	cc.Saturation = 0.06
+	cc.Contrast = 0.04
+	cc.Parent = Lighting
+end
+
+--------------------------------------------------------------------------
+
+function LevelService.build(layout: Levels.Layout)
+	LevelService.clear()
+	LevelService.layout = layout
+	local rng = Random.new(layout.seed)
+
+	level = Instance.new("Folder")
+	level.Name = "Level"
+	level:SetAttribute("Name", layout.name)
+	level:SetAttribute("BuildMin", Vector3.new(layout.buildMin.X, layout.buildMin.Y, 0))
+	level:SetAttribute("BuildMax", Vector3.new(layout.buildMax.X, layout.buildMax.Y, 0))
+
+	for _, piece in layout.pieces do
+		builders[piece.kind](piece, rng)
+	end
+
+	LevelService.spawn = Vector3.new(layout.spawn.X, layout.spawn.Y, 0)
+	LevelService.flag = Vector3.new(layout.flag.X, layout.flag.Y, 0)
+	level:SetAttribute("Spawn", LevelService.spawn)
+	level:SetAttribute("Flag", LevelService.flag)
+
+	buildStart(LevelService.spawn)
+	buildFlag(LevelService.flag)
+	safeZone(LevelService.spawn)
+	safeZone(LevelService.flag)
+	buildBackground(layout, rng)
+
+	level.Parent = workspace
+end
+
+function LevelService.clear()
+	local old = workspace:FindFirstChild("Level")
+	if old then
+		old:Destroy()
+	end
+	LevelService.goalZone = nil
+end
+
+function LevelService.objectsFolder(): Folder
+	local f = workspace:FindFirstChild("Objects")
+	if not f then
+		f = Instance.new("Folder")
+		f.Name = "Objects"
+		f.Parent = workspace
+	end
+	return f :: Folder
+end
+
+function LevelService.pick(previous: string?): Levels.Layout
+	local pool = {}
+	for _, l in Levels.Forest do
+		if l.name ~= previous then
+			table.insert(pool, l)
+		end
+	end
+	return pool[math.random(1, #pool)]
+end
+
+function LevelService.init()
+	setupLighting()
+	LevelService.objectsFolder()
+end
+
+return LevelService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX731E7FFC6715463F9545508480B1AD07">
+        <Properties><string name="Name">MatchService</string><ProtectedString name="Source"><![CDATA[-- The whole match: pick a level, play N rounds (last one worth double), crown a winner.
+-- ~75s per round x 8 rounds keeps a match around 10 minutes.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+
+local PlayerService = require(script.Parent.PlayerService)
+local LevelService = require(script.Parent.LevelService)
+local BuildService = require(script.Parent.BuildService)
+local RoundService = require(script.Parent.RoundService)
+local ScoringService = require(script.Parent.ScoringService)
+
+local RoundResults = Net.event("RoundResults")
+
+local MatchService = {}
+
+local function present(): { Player }
+	return Players:GetPlayers()
+end
+
+local function playMatch(previousLevel: string?): string
+	local layout = LevelService.pick(previousLevel)
+	BuildService.clearObjects()
+	LevelService.build(layout)
+	ScoringService.reset()
+	for _, p in present() do
+		ScoringService.ensure(p)
+		PlayerService.park(p)
+	end
+	ScoringService.broadcast()
+
+	local ctx = RoundService.context
+	ctx.level = layout.name
+	ctx.round = 0
+	ctx.final = false
+	RoundService.setPhase("Intro", Config.Match.IntroTime)
+	task.wait(Config.Match.IntroTime)
+
+	for round = 1, Config.Match.Rounds do
+		local players = present()
+		if #players < Config.Match.MinPlayers then
+			return layout.name
+		end
+		-- late joiners slot straight into the next round
+		for _, p in players do
+			ScoringService.ensure(p)
+		end
+
+		ctx.round = round
+		ctx.final = round == Config.Match.Rounds
+		RoundService.build(players)
+		local info = RoundService.run(present())
+
+		local mult = if ctx.final then Config.Match.FinalRoundMultiplier else 1
+		local results = ScoringService.score(info, mult)
+		RoundResults:FireAllClients(results)
+		ScoringService.broadcast()
+		RoundService.setPhase("Results", Config.Match.ResultsTime)
+		task.wait(Config.Match.ResultsTime)
+	end
+
+	local standings = ScoringService.standings()
+	local best = standings[1] and standings[1].total or 0
+	local winners = {}
+	for _, row in standings do
+		if row.total == best and best > 0 then
+			table.insert(winners, row)
+			local p = Players:GetPlayerByUserId(row.userId)
+			if p and p.Character then
+				local spot = LevelService.flag + Vector3.new(-2 - #winners * 1.8, 2.3, 0)
+				PlayerService.toStart(p, spot - Vector3.new(0, 2.3, 0), 1)
+				p.Character:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
+			end
+		end
+	end
+	RoundService.setPhase("Winner", Config.Match.WinnerTime, { winners = winners, standings = standings })
+	task.wait(Config.Match.WinnerTime)
+	return layout.name
+end
+
+function MatchService.start()
+	task.spawn(function()
+		local last: string? = nil
+		while true do
+			if #present() < Config.Match.MinPlayers then
+				RoundService.setPhase("Waiting", 0)
+				repeat
+					task.wait(1)
+				until #present() >= Config.Match.MinPlayers
+			end
+			task.wait(1.5)
+			local ok, result = pcall(playMatch, last)
+			if ok then
+				last = result
+			else
+				warn("[Match] crashed, restarting:", result)
+				task.wait(2)
+			end
+		end
+	end)
+end
+
+return MatchService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBXB99FDB12E22D48D2B7F99A7F65594642">
+        <Properties><string name="Name">PlayerService</string><ProtectedString name="Source"><![CDATA[-- Owns characters: which animal you are, where your body is, whether you can move.
+-- Nobody ever "dies" in the Roblox sense; we park and release characters instead,
+-- which means no respawn delays and no default death screen.
+
+local Players = game:GetService("Players")
+local PhysicsService = game:GetService("PhysicsService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Config = require(Shared.Config)
+local Style = require(Shared.Style)
+
+local PlayerService = {}
+
+PlayerService.species = {} :: { [Player]: string }
+
+local function pickSpecies(): string
+	local used = {}
+	for _, id in PlayerService.species do
+		used[id] = (used[id] or 0) + 1
+	end
+	local best, bestCount = Characters.List[1].id, math.huge
+	for _, s in Characters.List do
+		local n = used[s.id] or 0
+		-- least-used first, random tiebreak so it isn't always the fox
+		if n < bestCount or (n == bestCount and math.random() < 0.5) then
+			best, bestCount = s.id, n
+		end
+	end
+	return best
+end
+
+local function nameTag(model: Model, player: Player)
+	local head = model:FindFirstChild("Head") :: BasePart
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "NameTag"
+	gui.Size = UDim2.fromOffset(160, 22)
+	gui.StudsOffset = Vector3.new(0, 2.7, 0)
+	gui.MaxDistance = 140
+	gui.LightInfluence = 0
+	gui.Adornee = head
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.FontFace = Style.Font.Title
+	label.TextSize = 15
+	label.TextColor3 = Style.UI.Paper
+	label.Text = player.DisplayName
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 1.6
+	stroke.Color = Style.UI.Ink
+	stroke.Parent = label
+	label.Parent = gui
+	gui.Parent = head
+end
+
+function PlayerService.root(player: Player): BasePart?
+	local char = player.Character
+	return char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+function PlayerService.spawn(player: Player)
+	if player.Character then
+		player.Character:Destroy()
+	end
+	local species = PlayerService.species[player] or pickSpecies()
+	PlayerService.species[player] = species
+
+	local model = Characters.build(species)
+	model.Name = player.Name
+	nameTag(model, player)
+	local root = model.PrimaryPart :: BasePart
+	root.Anchored = true
+	model:PivotTo(CFrame.new(Config.World.Hold))
+	model.Parent = workspace
+	player.Character = model
+
+	local hum = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	hum.Died:Connect(function()
+		-- Shouldn't happen, but never leave someone without a body
+		task.wait(0.5)
+		if player.Parent then
+			PlayerService.spawn(player)
+		end
+	end)
+end
+
+local function setState(player: Player, cf: CFrame, anchored: boolean)
+	local char = player.Character
+	local root = PlayerService.root(player)
+	if not char or not root then
+		return
+	end
+	root.Anchored = true
+	root.AssemblyLinearVelocity = Vector3.zero
+	root.AssemblyAngularVelocity = Vector3.zero
+	char:PivotTo(cf)
+	if not anchored then
+		root.Anchored = false
+		root:SetNetworkOwner(player)
+	end
+end
+
+function PlayerService.park(player: Player)
+	setState(player, CFrame.new(Config.World.Hold), true)
+	local char = player.Character
+	if char then
+		char:SetAttribute("FailAt", nil)
+		char:SetAttribute("VictoryAt", nil)
+	end
+end
+
+-- Line up at the start, facing the flag, frozen until release()
+function PlayerService.toStart(player: Player, spawn: Vector3, slot: number)
+	local pos = spawn + Vector3.new(-((slot - 1) % 4) * 1.6, 2.3, 0)
+	setState(player, CFrame.lookAt(pos, pos + Vector3.xAxis), true)
+	local char = player.Character
+	if char then
+		char:SetAttribute("FailAt", nil)
+		char:SetAttribute("VictoryAt", nil)
+	end
+end
+
+function PlayerService.release(player: Player)
+	local root = PlayerService.root(player)
+	if root then
+		root.Anchored = false
+		root:SetNetworkOwner(player)
+	end
+end
+
+function PlayerService.freeze(player: Player)
+	local root = PlayerService.root(player)
+	if root then
+		root.Anchored = true
+		root.AssemblyLinearVelocity = Vector3.zero
+	end
+end
+
+function PlayerService.init()
+	Players.CharacterAutoLoads = false
+	PhysicsService:RegisterCollisionGroup("Players")
+	PhysicsService:CollisionGroupSetCollidable("Players", "Players", false)
+
+	local function added(player: Player)
+		PlayerService.spawn(player)
+	end
+	Players.PlayerAdded:Connect(added)
+	for _, p in Players:GetPlayers() do
+		task.spawn(added, p)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		PlayerService.species[player] = nil
+	end)
+end
+
+return PlayerService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBXFA65C32C095E4B45A31F1DCA22D000E2">
+        <Properties><string name="Name">RoundService</string><ProtectedString name="Source"><![CDATA[-- One round = build phase + run phase. Also owns the phase broadcast,
+-- since every phase change goes through here.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+
+local PlayerService = require(script.Parent.PlayerService)
+local LevelService = require(script.Parent.LevelService)
+local BuildService = require(script.Parent.BuildService)
+local HazardService = require(script.Parent.HazardService)
+local ScoringService = require(script.Parent.ScoringService)
+
+local MatchState = Net.event("MatchState")
+local FailEvent = Net.event("Fail")
+local FinishEvent = Net.event("Finish")
+
+local RoundService = {}
+
+RoundService.phase = "Waiting"
+RoundService.context = { round = 0, rounds = Config.Match.Rounds, final = false, level = "" }
+
+local status = {} :: { [Player]: string } -- running | done | dead
+local runners = {} :: { Player }
+
+function RoundService.setPhase(phase: string, duration: number, extra: { [string]: any }?)
+	RoundService.phase = phase
+	local ids = {}
+	for _, p in runners do
+		table.insert(ids, p.UserId)
+	end
+	MatchState:FireAllClients({
+		phase = phase,
+		endsAt = workspace:GetServerTimeNow() + duration,
+		round = RoundService.context.round,
+		rounds = RoundService.context.rounds,
+		final = RoundService.context.final,
+		level = RoundService.context.level,
+		runners = ids,
+		extra = extra or {},
+	})
+end
+
+-- Late joiners get the current phase immediately instead of a blank screen
+function RoundService.resend(player: Player)
+	local ids = {}
+	for _, p in runners do
+		table.insert(ids, p.UserId)
+	end
+	MatchState:FireClient(player, {
+		phase = RoundService.phase,
+		endsAt = workspace:GetServerTimeNow(),
+		round = RoundService.context.round,
+		rounds = RoundService.context.rounds,
+		final = RoundService.context.final,
+		level = RoundService.context.level,
+		runners = ids,
+		extra = {},
+	})
+end
+
+local function waitUntil(duration: number, done: () -> boolean)
+	local elapsed = 0
+	while elapsed < duration and not done() do
+		elapsed += task.wait(0.1)
+	end
+end
+
+--------------------------------------------------------------------------
+-- Build
+--------------------------------------------------------------------------
+
+function RoundService.build(players: { Player })
+	table.clear(runners)
+	for _, p in players do
+		PlayerService.park(p)
+	end
+	BuildService.open(players, RoundService.context.round)
+	RoundService.setPhase("Build", Config.Match.BuildTime)
+	waitUntil(Config.Match.BuildTime, function()
+		return BuildService.everyonePlaced(players)
+	end)
+	BuildService.close()
+	task.wait(0.6) -- let the last "pop" land before the camera moves
+end
+
+--------------------------------------------------------------------------
+-- Run
+--------------------------------------------------------------------------
+
+local runStarted = 0
+local finishers = {} :: { ScoringService.Finish }
+local kills = {} :: { [number]: number }
+
+local function isRunning(player: Player): boolean
+	return RoundService.phase == "Run" and status[player] == "running"
+end
+
+local function fail(player: Player, cause: string, killerId: number?)
+	if not isRunning(player) then
+		return
+	end
+	status[player] = "dead"
+	if killerId and killerId ~= player.UserId then
+		kills[killerId] = (kills[killerId] or 0) + 1
+	end
+	local char = player.Character
+	if char then
+		char:SetAttribute("FailAt", workspace:GetServerTimeNow())
+	end
+	FailEvent:FireAllClients(player.UserId, cause, killerId)
+	task.delay(1.4, function()
+		if status[player] == "dead" then
+			PlayerService.park(player)
+		end
+	end)
+end
+
+local function finish(player: Player)
+	if not isRunning(player) then
+		return
+	end
+	local elapsed = os.clock() - runStarted
+	if elapsed < Config.World.GoalMinTime then
+		return -- nobody legit gets here this fast
+	end
+	status[player] = "done"
+	table.insert(finishers, { player = player, timeLeft = Config.Match.RunTime - elapsed })
+	local char = player.Character
+	if char then
+		char:SetAttribute("VictoryAt", workspace:GetServerTimeNow())
+	end
+	FinishEvent:FireAllClients(player.UserId, #finishers)
+	task.delay(0.25, function()
+		if status[player] == "done" then
+			PlayerService.freeze(player)
+		end
+	end)
+end
+
+function RoundService.run(players: { Player }): ScoringService.RunInfo
+	table.clear(status)
+	table.clear(finishers)
+	table.clear(kills)
+	table.clear(runners)
+	HazardService.resetRound()
+
+	for i, p in players do
+		if p.Parent then
+			table.insert(runners, p)
+			status[p] = "ready"
+			PlayerService.toStart(p, LevelService.spawn, i)
+		end
+	end
+
+	RoundService.setPhase("Countdown", Config.Match.CountdownTime)
+	task.wait(Config.Match.CountdownTime)
+
+	runStarted = os.clock()
+	for _, p in runners do
+		status[p] = "running"
+	end
+	RoundService.setPhase("Run", Config.Match.RunTime)
+	for _, p in runners do
+		PlayerService.release(p)
+	end
+
+	local goalConn: RBXScriptConnection? = nil
+	if LevelService.goalZone then
+		goalConn = LevelService.goalZone.Touched:Connect(function(hit)
+			if hit.Name == "HumanoidRootPart" then
+				local p = Players:GetPlayerFromCharacter(hit.Parent)
+				if p then
+					finish(p)
+				end
+			end
+		end)
+	end
+
+	waitUntil(Config.Match.RunTime, function()
+		-- cheap fall check at 10Hz instead of a Heartbeat loop
+		for _, p in runners do
+			if status[p] == "running" then
+				local root = PlayerService.root(p)
+				if not root or not p.Parent then
+					status[p] = "dead"
+				elseif root.Position.Y < Config.World.KillY then
+					fail(p, "fall")
+				end
+			end
+		end
+		for _, p in runners do
+			if status[p] == "running" then
+				return false
+			end
+		end
+		return true
+	end)
+
+	for _, p in runners do
+		if status[p] == "running" then
+			fail(p, "time")
+		end
+	end
+	if goalConn then
+		goalConn:Disconnect()
+	end
+	RoundService.phase = "RunOver"
+	task.wait(1.5) -- let the last tumble finish on screen
+
+	return {
+		runners = table.clone(runners),
+		finishers = table.clone(finishers),
+		kills = table.clone(kills),
+	}
+end
+
+function RoundService.init()
+	HazardService.isRunning = isRunning
+	HazardService.onDeadly = function(player, model)
+		fail(player, model:GetAttribute("Id") :: string, model:GetAttribute("Owner") :: number)
+	end
+	Players.PlayerAdded:Connect(function(p)
+		task.wait(1)
+		RoundService.resend(p)
+		ScoringService.broadcast()
+	end)
+end
+
+return RoundService
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBXFAB64B8BCF464AF9AB4BA3AB2559C03D">
+        <Properties><string name="Name">ScoringService</string><ProtectedString name="Source"><![CDATA[-- Turns what happened in a run into points.
+--
+-- The rules, in one breath:
+--   finish 1st/2nd/3rd/4th+ -> 100/75/50/25
+--   take someone out with your object -> +25 each (max 75 a round)
+--   small bonuses: clutch finish, finishing via a route you built
+--   BUT if everyone finishes, it was TOO EASY: nobody scores
+--   and if nobody finishes, it was TOO HARD: trap points don't count
+-- So the best level is one that's deadly but beatable. That's the game.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+
+local PlayerService = require(script.Parent.PlayerService)
+local HazardService = require(script.Parent.HazardService)
+
+local ScoresEvent = Net.event("Scores")
+
+local ScoringService = {}
+
+ScoringService.totals = {} :: { [Player]: number }
+
+export type Finish = { player: Player, timeLeft: number }
+export type RunInfo = {
+	runners: { Player },
+	finishers: { Finish },
+	kills: { [number]: number }, -- killer UserId -> opponents taken out
+}
+
+local ORDINAL = { "1st", "2nd", "3rd" }
+
+local function ordinal(n: number): string
+	return ORDINAL[n] or (tostring(n) .. "th")
+end
+
+function ScoringService.reset()
+	table.clear(ScoringService.totals)
+end
+
+function ScoringService.ensure(player: Player)
+	if ScoringService.totals[player] == nil then
+		ScoringService.totals[player] = 0
+	end
+end
+
+function ScoringService.standings()
+	local list = {}
+	for player, total in ScoringService.totals do
+		if player.Parent then
+			table.insert(list, {
+				userId = player.UserId,
+				name = player.DisplayName,
+				species = PlayerService.species[player],
+				total = total,
+			})
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.total > b.total
+	end)
+	return list
+end
+
+function ScoringService.broadcast()
+	ScoresEvent:FireAllClients(ScoringService.standings())
+end
+
+function ScoringService.score(info: RunInfo, multiplier: number)
+	local S = Config.Scoring
+	local n, f = #info.runners, #info.finishers
+	local verdict: string? = nil
+	if n >= 2 and f == n then
+		verdict = "TOO_EASY"
+	elseif f == 0 then
+		verdict = "TOO_HARD"
+	end
+
+	local rows = {}
+	for _, player in info.runners do
+		if not player.Parent then
+			continue
+		end
+		ScoringService.ensure(player)
+		local items = {}
+		local function add(label: string, pts: number)
+			table.insert(items, { label = label, points = pts * multiplier })
+		end
+
+		local place: number? = nil
+		for i, fin in info.finishers do
+			if fin.player == player then
+				place = i
+				if verdict == nil then
+					add(ordinal(i), S.Place[math.min(i, #S.Place)])
+					if fin.timeLeft <= S.ClutchWindow then
+						add("Clutch", S.Clutch)
+					end
+					if HazardService.usedOwnRoute(player) then
+						add("Own route", S.OwnRoute)
+					end
+				end
+			end
+		end
+
+		local kills = info.kills[player.UserId] or 0
+		if kills > 0 and verdict == nil then
+			add(kills == 1 and "Trap" or ("Trap x" .. kills), math.min(kills * S.Trap, S.TrapCap))
+		end
+
+		local gained = 0
+		for _, it in items do
+			gained += it.points
+		end
+		ScoringService.totals[player] += gained
+
+		table.insert(rows, {
+			userId = player.UserId,
+			name = player.DisplayName,
+			species = PlayerService.species[player],
+			finished = place ~= nil,
+			items = items,
+			gained = gained,
+			total = ScoringService.totals[player],
+		})
+	end
+
+	table.sort(rows, function(a, b)
+		if a.gained ~= b.gained then
+			return a.gained > b.gained
+		end
+		return a.total > b.total
+	end)
+
+	return { verdict = verdict, multiplier = multiplier, rows = rows }
+end
+
+return ScoringService
+]]></ProtectedString></Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerStorage" referent="RBX9446F269B07C47B98794489173DAF5A6">
+    <Properties><string name="Name">ServerStorage</string></Properties>
+  </Item>
+  <Item class="StarterGui" referent="RBX0BD929F2FD49439EBB5FCD858FF14251">
+    <Properties><string name="Name">StarterGui</string></Properties>
+  </Item>
+  <Item class="StarterPack" referent="RBXE38D099FAD7A44D792854F5D01BF07DF">
+    <Properties><string name="Name">StarterPack</string></Properties>
+  </Item>
+  <Item class="StarterPlayer" referent="RBXE78E2C7E71934A7BB59EDB24FCDE683B">
+    <Properties><string name="Name">StarterPlayer</string></Properties>
+    <Item class="StarterPlayerScripts" referent="RBXE7E8633E03594703A2F804086FD2C656">
+      <Properties><string name="Name">StarterPlayerScripts</string></Properties>
+      <Item class="LocalScript" referent="RBX8382D97F444442078C0B2606595AAD89">
+        <Properties><string name="Name">Client</string><ProtectedString name="Source"><![CDATA[-- Client entry point. Controllers are plain modules; order matters only here.
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
+local Controllers = script.Parent:WaitForChild("Controllers")
+
+local State = require(Controllers.State)
+local Sound = require(Controllers.SoundController)
+local Hud = require(Controllers.HudController)
+local Camera = require(Controllers.CameraController)
+local Movement = require(Controllers.MovementController)
+local Objects = require(Controllers.ObjectController)
+local Build = require(Controllers.BuildController)
+local Animator = require(Controllers.CharacterAnimator)
+
+State.init() -- first: everyone else reads State
+Sound.init()
+Hud.init()
+Camera.init()
+Movement.init()
+Objects.init()
+Build.init()
+Animator.init()
+]]></ProtectedString></Properties>
+      </Item>
+      <Item class="Folder" referent="RBX2C471778B99E4FE6A426B086B2458FC6">
+        <Properties><string name="Name">Controllers</string></Properties>
+        <Item class="ModuleScript" referent="RBXC7ED47EB5E304B21BA796728017F70A9">
+          <Properties><string name="Name">BuildController</string><ProtectedString name="Source"><![CDATA[-- Building should take seconds:
+--   pick a card -> a ghost follows your pointer, snapped to the grid,
+--   green if it fits / red if not -> click to drop it. R rotates, right-click goes back.
+-- You also see other builders' ghosts live, which is half the fun
+-- (watching someone hover spikes over the shortcut you were planning to use).
+
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage.Shared
+local Net = require(Shared.Net)
+local Objects = require(Shared.Objects)
+local Style = require(Shared.Style)
+
+local Hud = require(script.Parent.HudController)
+local Sound = require(script.Parent.SoundController)
+local State = require(script.Parent.State)
+
+local PlaceEvent = Net.event("Place")
+local PlaceResult = Net.event("PlaceResult")
+local Cursor = Net.unreliable("Cursor")
+
+local Build = {}
+
+local hand: { string }? = nil
+local selected: string? = nil
+local rot = 0
+local ghost: Model? = nil
+local highlight: Highlight? = nil
+local valid = false
+local reason: string? = nil
+local gx, gy = 0, 0
+local waiting = false
+local pointer: Vector2? = nil
+local stick = Vector2.zero
+local lastSend = 0
+local ghostFolder: Folder
+
+type Other = { model: Model, id: string, target: CFrame }
+local others = {} :: { [number]: Other }
+
+local function makeGhost(id: string, transparency: number): Model
+	local m = Objects.build(id)
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanQuery = false
+			d.CanTouch = false
+			d.CastShadow = false
+			if d.Transparency < 1 then
+				d.Transparency = math.max(d.Transparency, transparency)
+			end
+		end
+	end
+	m.Parent = ghostFolder
+	return m
+end
+
+local function clearGhost()
+	if ghost then
+		ghost:Destroy()
+	end
+	ghost = nil
+	highlight = nil
+end
+
+local function sendCursor(id: string)
+	Cursor:FireServer(id, gx, gy, rot)
+end
+
+--------------------------------------------------------------------------
+-- Actions
+--------------------------------------------------------------------------
+
+function Build.select(id: string)
+	if waiting or not hand or not table.find(hand, id) then
+		return
+	end
+	clearGhost()
+	selected = id
+	rot = 0
+	ghost = makeGhost(id, 0.25)
+	local h = Instance.new("Highlight")
+	h.FillTransparency = 0.7
+	h.OutlineTransparency = 0.1
+	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	h.Parent = ghost
+	highlight = h
+	if not pointer then
+		local cam = workspace.CurrentCamera
+		pointer = cam.ViewportSize / 2
+	end
+	GuiService.SelectedObject = nil
+	Hud.setTray(false)
+	Hud.setPlacing(true)
+	Sound.play("pick")
+end
+
+function Build.back()
+	if not selected or waiting then
+		return
+	end
+	clearGhost()
+	selected = nil
+	sendCursor("")
+	Hud.setPlacing(false)
+	Hud.setTray(true)
+	Sound.play("pick")
+end
+
+function Build.rotate()
+	if not selected or waiting then
+		return
+	end
+	rot = (rot + 90) % 360
+	Sound.play("pick")
+end
+
+function Build.place()
+	if not selected or waiting then
+		return
+	end
+	if not valid then
+		Sound.play("error")
+		Hud.toast(reason or "Can't place there", Style.UI.Bad)
+		return
+	end
+	waiting = true
+	PlaceEvent:FireServer(selected, gx, gy, rot)
+end
+
+local function reset()
+	clearGhost()
+	hand = nil
+	selected = nil
+	waiting = false
+	Hud.showHand(nil)
+	Hud.setPlacing(false)
+end
+
+--------------------------------------------------------------------------
+-- Pointer -> world
+--------------------------------------------------------------------------
+
+local function worldPoint(screen: Vector2): Vector3?
+	local cam = workspace.CurrentCamera
+	local ray = cam:ViewportPointToRay(screen.X, screen.Y)
+	if math.abs(ray.Direction.Z) < 1e-4 then
+		return nil
+	end
+	local t = -ray.Origin.Z / ray.Direction.Z
+	if t <= 0 then
+		return nil
+	end
+	return ray.Origin + ray.Direction * t
+end
+
+local function update(dt: number)
+	-- Smooth other builders' ghosts toward their latest reported spot
+	local a = 1 - math.exp(-dt * 14)
+	for _, o in others do
+		o.model:PivotTo(o.model:GetPivot():Lerp(o.target, a))
+	end
+
+	if not selected or not ghost then
+		return
+	end
+	if stick.Magnitude > 0.2 and pointer then
+		local vp = workspace.CurrentCamera.ViewportSize
+		local p = pointer + Vector2.new(stick.X, -stick.Y) * 900 * dt
+		pointer = Vector2.new(math.clamp(p.X, 0, vp.X), math.clamp(p.Y, 0, vp.Y))
+	end
+	if UserInputService:GetLastInputType() == Enum.UserInputType.MouseMovement then
+		pointer = UserInputService:GetMouseLocation()
+	end
+	if not pointer then
+		return
+	end
+	local world = worldPoint(pointer)
+	if not world then
+		return
+	end
+
+	local def = Objects.ById[selected]
+	gx, gy = Objects.snap(def, world.X, world.Y, rot)
+	ghost:PivotTo(Objects.cframe(gx, gy, rot))
+	valid, reason = Objects.check(def, gx, gy, rot)
+	if highlight then
+		local c = if valid then Style.UI.Good else Style.UI.Bad
+		highlight.FillColor = c
+		highlight.OutlineColor = c
+	end
+
+	local now = os.clock()
+	if now - lastSend > 0.1 then
+		lastSend = now
+		sendCursor(selected)
+	end
+end
+
+--------------------------------------------------------------------------
+-- Other builders
+--------------------------------------------------------------------------
+
+local function nameTag(model: Model, userId: number)
+	local p = Players:GetPlayerByUserId(userId)
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(140, 20)
+	gui.StudsOffset = Vector3.new(0, 2.5, 0)
+	gui.AlwaysOnTop = true
+	gui.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.FontFace = Style.Font.Bold
+	label.TextSize = 14
+	label.TextColor3 = Style.UI.Paper
+	label.Text = if p then p.DisplayName else "?"
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Style.UI.Ink
+	stroke.Thickness = 1.5
+	stroke.Parent = label
+	label.Parent = gui
+	gui.Adornee = model:FindFirstChildWhichIsA("BasePart")
+	gui.Parent = model
+end
+
+local function onCursor(userId: number, id: string, x: number, y: number, r: number)
+	if userId == 0 then
+		for _, o in others do
+			o.model:Destroy()
+		end
+		table.clear(others)
+		return
+	end
+	local o = others[userId]
+	if id == "" then
+		if o then
+			o.model:Destroy()
+			others[userId] = nil
+		end
+		return
+	end
+	if not Objects.ById[id] then
+		return
+	end
+	local target = Objects.cframe(x, y, r)
+	if not o or o.id ~= id then
+		if o then
+			o.model:Destroy()
+		end
+		local m = makeGhost(id, 0.55)
+		m:PivotTo(target)
+		nameTag(m, userId)
+		o = { model = m, id = id, target = target }
+		others[userId] = o
+	end
+	(o :: Other).target = target
+end
+
+--------------------------------------------------------------------------
+
+function Build.init()
+	ghostFolder = Instance.new("Folder")
+	ghostFolder.Name = "Ghosts"
+	ghostFolder.Parent = workspace
+
+	Hud.actions.pick = Build.select
+	Hud.actions.back = Build.back
+	Hud.actions.rotate = Build.rotate
+	Hud.actions.place = Build.place
+
+	Net.event("Hand").OnClientEvent:Connect(function(newHand: { string }?)
+		if newHand then
+			reset()
+			hand = newHand
+			Hud.showHand(newHand)
+			Hud.setStatus(nil)
+		else
+			local hadHand = hand ~= nil
+			reset()
+			if hadHand and State.phase == "Build" then
+				Hud.setStatus("Placed! Waiting for the others...")
+			end
+		end
+	end)
+
+	PlaceResult.OnClientEvent:Connect(function(ok: boolean, why: string?)
+		waiting = false
+		if ok then
+			clearGhost()
+			selected = nil
+			Hud.setPlacing(false)
+		else
+			Sound.play("error")
+			Hud.toast(why or "Can't place there", Style.UI.Bad)
+		end
+	end)
+
+	Cursor.OnClientEvent:Connect(onCursor)
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not selected then
+			return
+		end
+		local t = input.UserInputType
+		if t == Enum.UserInputType.Touch then
+			if not processed then
+				pointer = Vector2.new(input.Position.X, input.Position.Y) + GuiService:GetGuiInset()
+			end
+			return
+		end
+		if processed then
+			return
+		end
+		local k = input.KeyCode
+		if t == Enum.UserInputType.MouseButton1 or k == Enum.KeyCode.ButtonA then
+			Build.place()
+		elseif t == Enum.UserInputType.MouseButton2 or k == Enum.KeyCode.Q or k == Enum.KeyCode.Backspace or k == Enum.KeyCode.ButtonB then
+			Build.back()
+		elseif k == Enum.KeyCode.R or k == Enum.KeyCode.ButtonX then
+			Build.rotate()
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.Touch and selected and not processed then
+			pointer = Vector2.new(input.Position.X, input.Position.Y) + GuiService:GetGuiInset()
+		elseif input.KeyCode == Enum.KeyCode.Thumbstick1 then
+			stick = Vector2.new(input.Position.X, input.Position.Y)
+		end
+	end)
+
+	RunService.RenderStepped:Connect(update)
+end
+
+return Build
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX8954336E16EB49C29EE197026C24DC87">
+          <Properties><string name="Name">CameraController</string><ProtectedString name="Source"><![CDATA[-- Side-on camera for a 2.5D game.
+--   overview : whole level in frame (intro, build, results)
+--   follow   : you, with a little look-ahead in the direction you're moving
+--   spectate : once you're out, follow whoever is still running and furthest along
+-- Everything eases toward its goal so mode changes read as one smooth move.
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local State = require(script.Parent.State)
+
+local Camera = {}
+
+local FOV = 40
+local FOLLOW_DIST = 46
+
+local cam = workspace.CurrentCamera
+local focus = Vector3.new(60, 20, 0)
+local dist = 100
+local lookAhead = 0
+local shakeAmp = 0
+local spectating: Player? = nil
+local failHoldUntil = 0
+
+function Camera.shake(amount: number)
+	shakeAmp = math.max(shakeAmp, amount)
+end
+
+local function levelFrame(): (Vector3?, number?)
+	local level = workspace:FindFirstChild("Level")
+	if not level then
+		return nil, nil
+	end
+	local bmin = level:GetAttribute("BuildMin") :: Vector3?
+	local bmax = level:GetAttribute("BuildMax") :: Vector3?
+	if not bmin or not bmax then
+		return nil, nil
+	end
+	local center = (bmin + bmax) / 2
+	local w = bmax.X - bmin.X + 8
+	local h = bmax.Y - bmin.Y + 8
+	local vp = cam.ViewportSize
+	local aspect = vp.X / math.max(vp.Y, 1)
+	local t = math.tan(math.rad(FOV / 2))
+	local d = math.max((h / 2) / t, (w / 2) / (t * aspect))
+	return Vector3.new(center.X, center.Y, 0), d
+end
+
+local function rootOf(p: Player): BasePart?
+	local c = p.Character
+	return c and c:FindFirstChild("HumanoidRootPart") :: BasePart?
+end
+
+local function pickSpectate(): Player?
+	local best, bestX = nil, -math.huge
+	for _, id in State.runners do
+		local p = Players:GetPlayerByUserId(id)
+		local r = p and rootOf(p)
+		if p and r and p ~= Players.LocalPlayer and not r.Anchored and r.Position.Y > -50 then
+			local fail = p.Character and p.Character:GetAttribute("FailAt")
+			if not fail and r.Position.X > bestX then
+				best, bestX = p, r.Position.X
+			end
+		end
+	end
+	return best
+end
+
+local function update(dt: number)
+	if cam.CameraType ~= Enum.CameraType.Scriptable then
+		cam.CameraType = Enum.CameraType.Scriptable
+	end
+	cam.FieldOfView = FOV
+
+	local goalFocus, goalDist = focus, dist
+	local sharp = 4
+
+	local ovFocus, ovDist = levelFrame()
+	local me = rootOf(Players.LocalPlayer)
+	local phase = State.phase
+
+	if (phase == "Countdown" or phase == "Run") and me and (State.me == "running" or os.clock() < failHoldUntil) then
+		local vx = me.AssemblyLinearVelocity.X
+		lookAhead += (math.clamp(vx * 0.3, -7, 7) - lookAhead) * math.min(1, dt * 2)
+		goalFocus = me.Position + Vector3.new(lookAhead, 3, 0)
+		goalDist = FOLLOW_DIST
+		sharp = if phase == "Countdown" then 3 else 9
+	elseif phase == "Run" then
+		if not spectating or not spectating.Parent or (spectating.Character and spectating.Character:GetAttribute("FailAt")) then
+			spectating = pickSpectate()
+		end
+		local r = spectating and rootOf(spectating)
+		if r and not r.Anchored then
+			goalFocus = r.Position + Vector3.new(0, 3, 0)
+			goalDist = FOLLOW_DIST + 8
+			sharp = 5
+		elseif ovFocus then
+			goalFocus, goalDist = ovFocus, ovDist :: number
+		end
+	elseif phase == "Winner" then
+		local level = workspace:FindFirstChild("Level")
+		local flag = level and level:GetAttribute("Flag") :: Vector3?
+		if flag then
+			goalFocus = flag + Vector3.new(-3, 4, 0)
+			goalDist = 34
+			sharp = 3
+		end
+	elseif ovFocus then
+		goalFocus, goalDist = ovFocus, ovDist :: number
+		sharp = 3
+	end
+
+	local a = 1 - math.exp(-dt * sharp)
+	focus = focus:Lerp(goalFocus, a)
+	dist += (goalDist - dist) * a
+
+	local shake = Vector3.zero
+	if shakeAmp > 0.01 then
+		shake = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * shakeAmp
+		shakeAmp *= math.exp(-dt * 14)
+	end
+
+	local eye = focus + Vector3.new(0, dist * 0.06, dist)
+	cam.CFrame = CFrame.lookAt(eye + shake, focus + shake)
+end
+
+function Camera.init()
+	RunService:BindToRenderStep("SprintCamera", Enum.RenderPriority.Camera.Value + 1, update)
+	State.meChanged:Connect(function(me)
+		if me == "dead" then
+			failHoldUntil = os.clock() + 1.1 -- watch your own tumble for a beat
+			Camera.shake(0.8)
+		end
+		spectating = nil
+	end)
+end
+
+return Camera
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX47A0637BF1DF476DA5EE59F648D158BF">
+          <Properties><string name="Name">CharacterAnimator</string><ProtectedString name="Source"><![CDATA[-- Procedural animation for every character on screen, run locally on each
+-- client from replicated velocity. No animation assets, no network cost.
+--
+--   idle     : gentle breathing, slow tail wag
+--   walk/run : waddle bob, forward lean, feet swing, fast tail
+--   jump     : stretch on take-off, squash on landing (spring-driven, so it wobbles)
+--   flap     : quick front flip on the air jump
+--   fail     : big squash + head shake (the tumble itself is real physics)
+--   victory  : happy hops
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local Sound = require(script.Parent.SoundController)
+
+local Animator = {}
+
+type Rig = {
+	model: Model,
+	root: BasePart,
+	bodyJoint: Motor6D?,
+	neck: Motor6D?,
+	hipL: Motor6D?,
+	hipR: Motor6D?,
+	tail: Motor6D?,
+	flipL: Motor6D?,
+	flipR: Motor6D?,
+	mesh: SpecialMesh?,
+	-- state
+	squash: number,
+	squashVel: number,
+	walkPhase: number,
+	grounded: boolean,
+	lastVY: number,
+	flip: number,
+	isLocal: boolean,
+}
+
+local rigs = {} :: { [Model]: Rig }
+local rayParams = RaycastParams.new()
+rayParams.CollisionGroup = "Players"
+
+local function find(model: Model, jointName: string): Motor6D?
+	for _, d in model:GetDescendants() do
+		if d:IsA("Motor6D") and d.Name == jointName then
+			return d
+		end
+	end
+	return nil
+end
+
+local function track(model: Model, isLocal: boolean)
+	local root = model:WaitForChild("HumanoidRootPart", 5) :: BasePart?
+	if not root then
+		return
+	end
+	local body = model:FindFirstChild("Body")
+	rigs[model] = {
+		model = model,
+		root = root,
+		bodyJoint = find(model, "BodyJoint"),
+		neck = find(model, "Neck"),
+		hipL = find(model, "HipL"),
+		hipR = find(model, "HipR"),
+		tail = find(model, "TailJoint"),
+		flipL = find(model, "FlipL"),
+		flipR = find(model, "FlipR"),
+		mesh = body and body:FindFirstChildOfClass("SpecialMesh"),
+		squash = 0,
+		squashVel = 0,
+		walkPhase = 0,
+		grounded = true,
+		lastVY = 0,
+		flip = 0,
+		isLocal = isLocal,
+	}
+	model.Destroying:Connect(function()
+		rigs[model] = nil
+	end)
+end
+
+local function step(dt: number)
+	local t = os.clock()
+	for model, r in rigs do
+		if not model.Parent then
+			rigs[model] = nil
+			continue
+		end
+		local v = r.root.AssemblyLinearVelocity
+		local speed = math.abs(v.X)
+		local anchored = r.root.Anchored
+
+		-- grounded: short ray down (works for remote characters too)
+		local hit = if anchored then nil else workspace:Raycast(r.root.Position, Vector3.new(0, -2.6, 0), rayParams)
+		local grounded = anchored or (hit ~= nil and v.Y < 8)
+
+		-- events
+		if r.grounded and not grounded and v.Y > 10 then
+			r.squashVel += 9 -- take-off stretch
+		elseif not r.grounded and grounded and r.lastVY < -20 then
+			r.squashVel -= math.clamp(-r.lastVY / 8, 4, 12) -- landing squash
+			if not r.isLocal then
+				Sound.playAt("land", r.root, 0.2)
+			end
+		elseif not grounded and v.Y - r.lastVY > 30 and r.lastVY < 20 then
+			r.flip = 1 -- air jump: front flip
+			r.squashVel += 6
+			if not r.isLocal then
+				Sound.playAt("airJump", r.root, 0.1)
+			end
+		end
+		r.grounded = grounded
+		r.lastVY = v.Y
+
+		-- squash spring (wobbles back to 0)
+		r.squashVel += (-220 * r.squash - 16 * r.squashVel) * dt
+		r.squash = math.clamp(r.squash + r.squashVel * dt, -0.6, 0.6)
+
+		local failAt = model:GetAttribute("FailAt")
+		local winAt = model:GetAttribute("VictoryAt")
+		local breathe = math.sin(t * 2.2) * 0.025
+
+		local s = r.squash
+		if r.mesh then
+			r.mesh.Scale = Vector3.new(1 - s * 0.35 - breathe * 0.5, 1 + s * 0.45 + breathe, 1 - s * 0.35 - breathe * 0.5)
+		end
+
+		-- walk cycle
+		local moving = grounded and speed > 1.5 and not anchored
+		if moving then
+			r.walkPhase += dt * (6 + speed * 0.45)
+		end
+		local sw = if moving then math.sin(r.walkPhase) else 0
+		local bob = if moving then math.abs(math.sin(r.walkPhase)) * 0.22 * math.min(1, speed / 12) else 0
+		local lean = if moving then -math.rad(10) * math.min(1, speed / 22) else 0
+
+		-- flip on air jump
+		local flipAngle = 0
+		if r.flip > 0 then
+			r.flip = math.max(0, r.flip - dt * 3.2)
+			flipAngle = -(1 - r.flip) * math.pi * 2
+			if r.flip == 0 then
+				flipAngle = 0
+			end
+		end
+
+		local hop = 0
+		local spin = 0
+		if winAt then
+			hop = math.abs(math.sin(t * 7)) * 1.1
+			spin = math.sin(t * 3.5) * 0.4
+		end
+
+		local headShake = 0
+		if failAt then
+			headShake = math.sin(t * 40) * 0.25
+			lean = math.rad(15)
+		end
+
+		local airLean = if not grounded then math.clamp(v.Y / 60, -1, 1) * math.rad(-8) else 0
+
+		if r.bodyJoint then
+			-- the mesh scales around its centre, so shift it to keep the feet planted
+			r.bodyJoint.Transform = CFrame.new(0, s * 0.5 + bob + hop, 0) * CFrame.Angles(lean + airLean + flipAngle, spin, 0)
+		end
+		if r.neck then
+			r.neck.Transform = CFrame.Angles(math.clamp(v.Y / 70, -1, 1) * math.rad(12) - bob * 0.3, headShake, 0)
+		end
+		if r.hipL and r.hipR then
+			local tuck = if grounded then 0 else 0.25
+			local plant = -(s * 0.5 + bob) -- undo the body's bob so feet stay on the ground
+			r.hipL.Transform = CFrame.new(0, plant + math.max(0, sw) * 0.3 + tuck, -sw * 0.4 - tuck)
+			r.hipR.Transform = CFrame.new(0, plant + math.max(0, -sw) * 0.3 + tuck, sw * 0.4 - tuck)
+		end
+		if r.tail then
+			local rate = if moving then 14 else 3
+			local amp = if moving then 0.45 else 0.22
+			r.tail.Transform = CFrame.Angles(if grounded then 0 else 0.4, math.sin(t * rate) * amp, 0)
+		end
+		if r.flipL and r.flipR then
+			local flap = if not grounded or winAt then math.sin(t * 28) * 0.6 else sw * 0.3
+			r.flipL.Transform = CFrame.Angles(0, 0, -flap)
+			r.flipR.Transform = CFrame.Angles(0, 0, flap)
+		end
+	end
+end
+
+function Animator.init()
+	local localPlayer = Players.LocalPlayer
+	local function hook(p: Player)
+		if p.Character then
+			task.spawn(track, p.Character, p == localPlayer)
+		end
+		p.CharacterAdded:Connect(function(c)
+			track(c, p == localPlayer)
+		end)
+	end
+	for _, p in Players:GetPlayers() do
+		hook(p)
+	end
+	Players.PlayerAdded:Connect(hook)
+	RunService.RenderStepped:Connect(step)
+end
+
+return Animator
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBXF5621AC50A074C34BF52904AFBEB23AE">
+          <Properties><string name="Name">HudController</string><ProtectedString name="Source"><![CDATA[-- Everything on screen. Rule of thumb: during a run, only the timer and a
+-- small score list are visible. Big moments get a short centred banner,
+-- then get out of the way.
+
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage.Shared
+local Characters = require(Shared.Characters)
+local Net = require(Shared.Net)
+local Objects = require(Shared.Objects)
+local Style = require(Shared.Style)
+
+local State = require(script.Parent.State)
+local Sound = require(script.Parent.SoundController)
+local UI = require(script.Parent.UI)
+
+local U = Style.UI
+local F = Style.Font
+local player = Players.LocalPlayer
+
+local Hud = {}
+
+-- Wired up by BuildController
+Hud.actions = {
+	pick = function(_id: string) end,
+	rotate = function() end,
+	back = function() end,
+	place = function() end,
+}
+
+local PHASES = {
+	Waiting = { "WAITING", U.Muted },
+	Intro = { "GET READY", U.InkSoft },
+	Build = { "BUILD", U.Accent },
+	Countdown = { "READY", U.Gold },
+	Run = { "RUN", U.Good },
+	Results = { "RESULTS", U.InkSoft },
+	Winner = { "WINNER", U.Gold },
+}
+
+local KIND = {
+	route = { "ROUTE", U.Good },
+	trap = { "TRAP", U.Bad },
+	tool = { "TOOL", U.Gold },
+}
+
+local CAUSE = {
+	spikes = "got spiked by",
+	saw = "got sawed by",
+	fall = "fell in the river",
+	time = "ran out of time",
+}
+
+local gui: ScreenGui
+local uiScale: UIScale
+local roundLabel: TextLabel
+local phaseChip: Frame
+local phaseText: TextLabel
+local timerLabel: TextLabel
+local scoresFrame: Frame
+local feedFrame: Frame
+local centerLabel: TextLabel
+local subLabel: TextLabel
+local tray: Frame
+local hint: TextLabel
+local touchBar: Frame
+local statusLabel: TextLabel
+local toastFrame: Frame
+local toastLabel: TextLabel
+local panel: Frame?
+
+local bannerToken = 0
+local lastTick = -1
+
+local function speciesColor(species: string?): Color3
+	local s = species and Characters.ById[species]
+	return if s then s.body else U.Muted
+end
+
+local function nameOf(userId: number): string
+	local p = Players:GetPlayerByUserId(userId)
+	return if p then p.DisplayName else "Someone"
+end
+
+--------------------------------------------------------------------------
+-- Banners & toasts
+--------------------------------------------------------------------------
+
+local function banner(text: string, sub: string?, hold: number, size: number?)
+	bannerToken += 1
+	local token = bannerToken
+	centerLabel.Text = text
+	centerLabel.TextSize = size or 54
+	subLabel.Text = sub or ""
+	centerLabel.TextTransparency = 0
+	subLabel.TextTransparency = 0
+	local stroke = centerLabel:FindFirstChildOfClass("UIStroke") :: UIStroke
+	stroke.Transparency = 0
+	local s = centerLabel:FindFirstChildOfClass("UIScale") :: UIScale
+	s.Scale = 0.6
+	UI.tween(s, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
+	task.delay(hold, function()
+		if token ~= bannerToken then
+			return
+		end
+		UI.tween(centerLabel, 0.25, { TextTransparency = 1 })
+		UI.tween(subLabel, 0.25, { TextTransparency = 1 })
+		UI.tween(stroke, 0.25, { Transparency = 1 })
+	end)
+end
+
+function Hud.toast(text: string, color: Color3?)
+	toastLabel.Text = text
+	toastFrame.BackgroundColor3 = color or U.Ink
+	toastFrame.Visible = true
+	toastFrame.BackgroundTransparency = 0
+	toastLabel.TextTransparency = 0
+	local token = os.clock()
+	toastFrame:SetAttribute("Token", token)
+	task.delay(2, function()
+		if toastFrame:GetAttribute("Token") == token then
+			UI.tween(toastFrame, 0.3, { BackgroundTransparency = 1 })
+			UI.tween(toastLabel, 0.3, { TextTransparency = 1 })
+		end
+	end)
+end
+
+local function feed(text: string, color: Color3)
+	local row = UI.new("Frame", {
+		BackgroundColor3 = U.Paper,
+		BackgroundTransparency = 0.05,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+		Parent = feedFrame,
+	}, { UI.corner(8), UI.pad(10, 5) })
+	UI.new("Frame", {
+		BackgroundColor3 = color,
+		Size = UDim2.fromOffset(4, 16),
+		Position = UDim2.fromOffset(-6, 0),
+		Parent = row,
+	}, { UI.corner(2) })
+	UI.label({ Text = text, TextSize = 14, FontFace = F.Bold, Parent = row })
+	local rows = {}
+	for _, c in feedFrame:GetChildren() do
+		if c:IsA("Frame") then
+			table.insert(rows, c)
+		end
+	end
+	if #rows > 4 then
+		rows[1]:Destroy()
+	end
+	task.delay(4.5, function()
+		if row.Parent then
+			row:Destroy()
+		end
+	end)
+end
+
+--------------------------------------------------------------------------
+-- Scores (top-left)
+--------------------------------------------------------------------------
+
+local function renderScores()
+	for _, c in scoresFrame:GetChildren() do
+		if c:IsA("Frame") then
+			c:Destroy()
+		end
+	end
+	for i, row in State.standings do
+		local mine = row.userId == player.UserId
+		local f = UI.new("Frame", {
+			BackgroundColor3 = U.Paper,
+			BackgroundTransparency = 0.05,
+			Size = UDim2.fromOffset(196, 28),
+			LayoutOrder = i,
+			Parent = scoresFrame,
+		}, { UI.corner(8) })
+		if mine then
+			UI.new("UIStroke", { Color = U.Accent, Thickness = 2, Parent = f })
+		end
+		UI.new("Frame", {
+			BackgroundColor3 = speciesColor(row.species),
+			Size = UDim2.fromOffset(12, 12),
+			Position = UDim2.fromOffset(10, 8),
+			Parent = f,
+		}, { UI.corner(6) })
+		UI.label({
+			Text = row.name,
+			TextSize = 14,
+			FontFace = F.Bold,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(120, 28),
+			Position = UDim2.fromOffset(30, 0),
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			Parent = f,
+		})
+		UI.label({
+			Text = tostring(row.total),
+			TextSize = 15,
+			FontFace = F.Title,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(50, 28),
+			Position = UDim2.new(1, -60, 0, 0),
+			Parent = f,
+		})
+	end
+end
+
+--------------------------------------------------------------------------
+-- Cards
+--------------------------------------------------------------------------
+
+local function fitViewport(vp: ViewportFrame, model: Model)
+	local cam = Instance.new("Camera")
+	cam.FieldOfView = 30
+	cam.Parent = vp
+	vp.CurrentCamera = cam
+	local cf, size = model:GetBoundingBox()
+	local extent = math.max(size.X, size.Y * 1.3)
+	local d = extent / 2 / math.tan(math.rad(15)) * 1.1 + size.Z / 2
+	cam.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, size.Y * 0.15, d), cf.Position)
+end
+
+local function makeCard(id: string, order: number): TextButton
+	local def = Objects.ById[id]
+	local button = UI.new("TextButton", {
+		Name = id,
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(156, 196),
+		LayoutOrder = order,
+		Selectable = true,
+	})
+	local holder, face = UI.card({ Size = UDim2.fromScale(1, 1), Parent = button }, 14)
+
+	local vp = UI.new("ViewportFrame", {
+		BackgroundColor3 = U.PaperShade,
+		Size = UDim2.new(1, -16, 0, 100),
+		Position = UDim2.fromOffset(8, 8),
+		Ambient = Color3.fromRGB(170, 166, 160),
+		LightColor = Color3.fromRGB(255, 250, 240),
+		LightDirection = Vector3.new(-0.4, -1, -0.6),
+		ZIndex = 2,
+		Parent = face,
+	}, { UI.corner(10) })
+	local model = Objects.build(id)
+	model.Parent = vp
+	fitViewport(vp, model)
+
+	local kind = KIND[def.kind]
+	local tag = UI.pill(kind[1], kind[2], U.Paper, 11)
+	tag.Position = UDim2.fromOffset(14, 14)
+	tag.ZIndex = 3
+	tag.Parent = face
+
+	UI.label({
+		Text = def.name,
+		FontFace = F.Title,
+		TextSize = 19,
+		Position = UDim2.fromOffset(12, 114),
+		ZIndex = 2,
+		Parent = face,
+	})
+	UI.label({
+		Text = def.blurb,
+		TextSize = 13,
+		TextColor3 = U.InkSoft,
+		TextWrapped = true,
+		AutomaticSize = Enum.AutomaticSize.None,
+		Size = UDim2.new(1, -24, 0, 44),
+		Position = UDim2.fromOffset(12, 140),
+		TextYAlignment = Enum.TextYAlignment.Top,
+		ZIndex = 2,
+		Parent = face,
+	})
+
+	local stroke = UI.new("UIStroke", { Color = U.Accent, Thickness = 0, Parent = face })
+	button.MouseEnter:Connect(function()
+		UI.tween(holder, 0.12, { Position = UDim2.fromOffset(0, -6) })
+		UI.tween(stroke, 0.12, { Thickness = 3 })
+	end)
+	button.MouseLeave:Connect(function()
+		UI.tween(holder, 0.12, { Position = UDim2.fromOffset(0, 0) })
+		UI.tween(stroke, 0.12, { Thickness = 0 })
+	end)
+	button.SelectionGained:Connect(function()
+		UI.tween(stroke, 0.12, { Thickness = 3 })
+	end)
+	button.SelectionLost:Connect(function()
+		UI.tween(stroke, 0.12, { Thickness = 0 })
+	end)
+	button.Activated:Connect(function()
+		Hud.actions.pick(id)
+	end)
+	return button
+end
+
+function Hud.showHand(hand: { string }?)
+	for _, c in tray:GetChildren() do
+		if c:IsA("GuiButton") then
+			c:Destroy()
+		end
+	end
+	if not hand then
+		tray.Visible = false
+		return
+	end
+	local first: TextButton? = nil
+	for i, id in hand do
+		local card = makeCard(id, i)
+		card.Parent = tray
+		first = first or card
+	end
+	Hud.setTray(true)
+	if UserInputService.GamepadEnabled and first then
+		GuiService.SelectedObject = first
+	end
+end
+
+function Hud.setTray(visible: boolean)
+	if visible then
+		tray.Visible = true
+		tray.Position = UDim2.new(0.5, 0, 1, 220)
+		UI.tween(tray, 0.3, { Position = UDim2.new(0.5, 0, 1, -18) }, Enum.EasingStyle.Back)
+	else
+		UI.tween(tray, 0.2, { Position = UDim2.new(0.5, 0, 1, 220) }).Completed:Once(function()
+			if tray.Position.Y.Offset > 100 then
+				tray.Visible = false
+			end
+		end)
+	end
+end
+
+function Hud.setPlacing(on: boolean)
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local pad = UserInputService:GetLastInputType().Name:find("Gamepad") ~= nil
+	hint.Text = if pad
+		then "A  place     X  rotate     B  back"
+		else "Click  place     R  rotate     Right-click  back"
+	hint.Visible = on and not touch
+	touchBar.Visible = on and touch
+end
+
+function Hud.setStatus(text: string?)
+	statusLabel.Text = text or ""
+	statusLabel.Visible = text ~= nil
+end
+
+--------------------------------------------------------------------------
+-- Results / winner panels
+--------------------------------------------------------------------------
+
+local function closePanel()
+	if panel then
+		local p = panel
+		panel = nil
+		UI.tween(p, 0.2, { Position = UDim2.new(0.5, 0, 0.5, 40) })
+		task.delay(0.2, function()
+			p:Destroy()
+		end)
+	end
+end
+
+local function openPanel(height: number): Frame
+	closePanel()
+	local holder, face = UI.card({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 40),
+		Size = UDim2.fromOffset(500, height),
+		Parent = gui,
+	}, 16)
+	panel = holder
+	UI.tween(holder, 0.3, { Position = UDim2.fromScale(0.5, 0.5) }, Enum.EasingStyle.Back)
+	return face
+end
+
+local VERDICT = {
+	TOO_EASY = { "Too easy!", "Everyone made it, so nobody scores. Build meaner." },
+	TOO_HARD = { "Too hard!", "Nobody made it, so trap points don't count." },
+}
+
+local function showResults(results)
+	local rows = results.rows
+	local face = openPanel(96 + #rows * 46 + 14)
+	local v = results.verdict and VERDICT[results.verdict]
+	UI.label({
+		Text = if v then v[1] else ("Round " .. State.round .. " results"),
+		FontFace = F.Title,
+		TextSize = 28,
+		TextColor3 = if v then U.Bad else U.Ink,
+		Position = UDim2.fromOffset(22, 16),
+		Parent = face,
+	})
+	UI.label({
+		Text = if v then v[2] elseif results.multiplier > 1 then "Final round: double points" else "Points this round",
+		TextSize = 14,
+		TextColor3 = U.Muted,
+		Position = UDim2.fromOffset(22, 54),
+		Parent = face,
+	})
+
+	for i, row in rows do
+		local y = 86 + (i - 1) * 46
+		local line = UI.new("Frame", {
+			BackgroundColor3 = if row.userId == player.UserId then U.PaperShade else U.Paper,
+			Size = UDim2.new(1, -28, 0, 40),
+			Position = UDim2.fromOffset(14 + 30, y),
+			BackgroundTransparency = 1,
+			Parent = face,
+		}, { UI.corner(10) })
+		UI.new("Frame", {
+			BackgroundColor3 = speciesColor(row.species),
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(10, 13),
+			Parent = line,
+		}, { UI.corner(7) })
+		UI.label({
+			Text = row.name,
+			FontFace = F.Bold,
+			TextSize = 16,
+			TextTruncate = Enum.TextTruncate.AtEnd,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(130, 40),
+			Position = UDim2.fromOffset(32, 0),
+			Parent = line,
+		})
+		local chips = UI.new("Frame", {
+			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(220, 40),
+			Position = UDim2.fromOffset(166, 0),
+			Parent = line,
+		}, { UI.list(Enum.FillDirection.Horizontal, 4, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center) })
+		if #row.items == 0 then
+			UI.label({ Text = if row.finished then "made it" else "didn't make it", TextSize = 13, TextColor3 = U.Muted, Parent = chips })
+		end
+		for _, it in row.items do
+			UI.pill(it.label .. " +" .. it.points, U.InkSoft, U.Paper, 12).Parent = chips
+		end
+		local gained = UI.label({
+			Text = "+0",
+			FontFace = F.Title,
+			TextSize = 20,
+			TextColor3 = if row.gained > 0 then U.Accent else U.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AutomaticSize = Enum.AutomaticSize.None,
+			Size = UDim2.fromOffset(70, 40),
+			Position = UDim2.new(1, -80, 0, 0),
+			Parent = line,
+		})
+
+		-- stagger rows in, then count the points up
+		task.delay(0.15 + i * 0.12, function()
+			if not line.Parent then
+				return
+			end
+			line.BackgroundTransparency = 0
+			UI.tween(line, 0.25, { Position = UDim2.fromOffset(14, y) }, Enum.EasingStyle.Back)
+			if row.gained > 0 then
+				local steps = 12
+				for s = 1, steps do
+					task.wait(0.03)
+					if not gained.Parent then
+						return
+					end
+					gained.Text = "+" .. math.floor(row.gained * s / steps)
+				end
+				Sound.play("points", 0.1)
+			end
+		end)
+	end
+end
+
+local function showWinner(extra)
+	local standings = extra.standings or {}
+	local winners = extra.winners or {}
+	local face = openPanel(110 + #standings * 36 + 14)
+	local title
+	if #winners == 0 then
+		title = "Nobody scored. Rematch?"
+	elseif #winners == 1 then
+		title = winners[1].name .. " wins!"
+	else
+		title = "It's a tie!"
+	end
+	UI.label({ Text = title, FontFace = F.Title, TextSize = 32, TextColor3 = U.Accent, Position = UDim2.fromOffset(22, 18), Parent = face })
+	UI.label({ Text = "Final standings", TextSize = 14, TextColor3 = U.Muted, Position = UDim2.fromOffset(22, 62), Parent = face })
+	for i, row in standings do
+		local y = 92 + (i - 1) * 36
+		UI.label({ Text = tostring(i), FontFace = F.Title, TextSize = 18, TextColor3 = U.Muted, Position = UDim2.fromOffset(24, y + 6), Parent = face })
+		UI.new("Frame", {
+			BackgroundColor3 = speciesColor(row.species),
+			Size = UDim2.fromOffset(14, 14),
+			Position = UDim2.fromOffset(52, y + 10),
+			Parent = face,
+		}, { UI.corner(7) })
+		UI.label({ Text = row.name, FontFace = F.Bold, TextSize = 16, Position = UDim2.fromOffset(74, y + 6), Parent = face })
+		UI.label({
+			Text = tostring(row.total),
+			FontFace = F.Title,
+			TextSize = 18,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -24, 0, y + 6),
+			Parent = face,
+		})
+	end
+	Sound.play("victory")
+end
+
+--------------------------------------------------------------------------
+-- Phase handling
+--------------------------------------------------------------------------
+
+local function onPhase(phase: string)
+	local p = PHASES[phase] or PHASES.Waiting
+	phaseText.Text = p[1]
+	phaseChip.BackgroundColor3 = p[2]
+	roundLabel.Text = if State.round > 0 then ("ROUND " .. State.round .. "/" .. State.rounds) else State.level:upper()
+	lastTick = -1
+
+	if phase ~= "Results" and phase ~= "Winner" then
+		closePanel()
+	end
+	if phase ~= "Build" then
+		Hud.setStatus(nil)
+	end
+
+	if phase == "Waiting" then
+		banner("Waiting for players", nil, 3, 32)
+	elseif phase == "Intro" then
+		banner(State.level, State.rounds .. " rounds. Build it mean, keep it beatable.", 3.4, 46)
+	elseif phase == "Build" then
+		banner(if State.final then "Final build" else "Build", if State.final then "Double points this round" else "Pick a piece and drop it in", 1.4, 44)
+	elseif phase == "Run" then
+		if State.isRunner(player.UserId) then
+			banner("GO!", nil, 0.6, 64)
+			Sound.play("go")
+		end
+	elseif phase == "Winner" then
+		showWinner(State.extra)
+	end
+end
+
+local function tick()
+	local phase = State.phase
+	local left = State.timeLeft()
+	local timed = phase == "Build" or phase == "Run"
+	timerLabel.Visible = timed
+	if timed then
+		local secs = math.ceil(left)
+		timerLabel.Text = string.format("%d:%02d", secs // 60, secs % 60)
+		local urgent = secs <= 5 and secs > 0
+		timerLabel.TextColor3 = if urgent then U.Bad else U.Ink
+		if urgent and secs ~= lastTick then
+			lastTick = secs
+			Sound.play("tick")
+		end
+	elseif phase == "Countdown" then
+		local n = math.ceil(left)
+		if n ~= lastTick and n > 0 then
+			lastTick = n
+			banner(tostring(n), nil, 0.7, 64)
+			Sound.play("tick")
+		end
+	end
+end
+
+--------------------------------------------------------------------------
+
+local function buildGui()
+	gui = UI.new("ScreenGui", {
+		Name = "Hud",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = player:WaitForChild("PlayerGui"),
+	})
+	uiScale = UI.new("UIScale", { Parent = gui })
+	local function rescale()
+		local h = workspace.CurrentCamera.ViewportSize.Y
+		uiScale.Scale = math.clamp(h / 900, 0.62, 1.15)
+	end
+	rescale()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(rescale)
+
+	-- Top pill: ROUND 3/8 | BUILD | 0:14
+	local _, top = UI.card({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 10),
+		Size = UDim2.fromOffset(300, 40),
+		Parent = gui,
+	}, 20)
+	UI.list(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Center).Parent = top
+	roundLabel = UI.label({ Text = "", FontFace = F.Bold, TextSize = 14, TextColor3 = U.Muted, LayoutOrder = 1, Parent = top })
+	phaseChip = UI.new("Frame", {
+		BackgroundColor3 = U.Muted,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+		LayoutOrder = 2,
+		Parent = top,
+	}, { UI.corner(99), UI.pad(10, 3) })
+	phaseText = UI.label({ Text = "", FontFace = F.Title, TextSize = 15, TextColor3 = U.Paper, Parent = phaseChip })
+	timerLabel = UI.label({ Text = "", FontFace = F.Title, TextSize = 20, LayoutOrder = 3, Parent = top })
+
+	scoresFrame = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(12, 10),
+		Size = UDim2.fromOffset(196, 300),
+		Parent = gui,
+	}, { UI.list(Enum.FillDirection.Vertical, 4) })
+
+	feedFrame = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 10),
+		Size = UDim2.fromOffset(360, 200),
+		Parent = gui,
+	}, { UI.list(Enum.FillDirection.Vertical, 4, Enum.HorizontalAlignment.Right) })
+
+	centerLabel = UI.label({
+		Text = "",
+		FontFace = F.Title,
+		TextSize = 54,
+		TextColor3 = U.Paper,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.36),
+		Parent = gui,
+	})
+	UI.new("UIStroke", { Color = U.Ink, Thickness = 3, Parent = centerLabel })
+	UI.new("UIScale", { Parent = centerLabel })
+	subLabel = UI.label({
+		Text = "",
+		FontFace = F.Bold,
+		TextSize = 18,
+		TextColor3 = U.Paper,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.36, 40),
+		Parent = gui,
+	})
+	UI.new("UIStroke", { Color = U.Ink, Thickness = 2, Parent = subLabel })
+
+	tray = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, 220),
+		Size = UDim2.fromOffset(156 * 3 + 14 * 2, 196),
+		Visible = false,
+		Parent = gui,
+	}, { UI.list(Enum.FillDirection.Horizontal, 14, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Bottom) })
+
+	hint = UI.label({
+		Text = "",
+		FontFace = F.Bold,
+		TextSize = 15,
+		TextColor3 = U.Paper,
+		BackgroundColor3 = U.Ink,
+		BackgroundTransparency = 0.1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -18),
+		Visible = false,
+		Parent = gui,
+	})
+	UI.corner(99).Parent = hint
+	UI.pad(16, 8).Parent = hint
+
+	touchBar = UI.new("Frame", {
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -18),
+		Size = UDim2.fromOffset(330, 52),
+		Visible = false,
+		Parent = gui,
+	}, { UI.list(Enum.FillDirection.Horizontal, 10, Enum.HorizontalAlignment.Center) })
+	for i, spec in { { "Back", U.InkSoft, "back" }, { "Rotate", U.InkSoft, "rotate" }, { "Place", U.Accent, "place" } } do
+		local b = UI.new("TextButton", {
+			Text = spec[1],
+			FontFace = F.Title,
+			TextSize = 18,
+			TextColor3 = U.Paper,
+			BackgroundColor3 = spec[2],
+			AutoButtonColor = false,
+			Size = UDim2.fromOffset(100, 52),
+			LayoutOrder = i,
+			Parent = touchBar,
+		}, { UI.corner(14) })
+		UI.pressable(b, function()
+			(Hud.actions :: any)[spec[3]]()
+		end)
+	end
+
+	statusLabel = UI.label({
+		Text = "",
+		FontFace = F.Bold,
+		TextSize = 16,
+		TextColor3 = U.Paper,
+		BackgroundColor3 = U.Ink,
+		BackgroundTransparency = 0.1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -18),
+		Visible = false,
+		Parent = gui,
+	})
+	UI.corner(99).Parent = statusLabel
+	UI.pad(16, 8).Parent = statusLabel
+
+	toastFrame = UI.new("Frame", {
+		BackgroundColor3 = U.Ink,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -240),
+		Visible = false,
+		Parent = gui,
+	}, { UI.corner(99), UI.pad(14, 6) })
+	toastLabel = UI.label({ Text = "", FontFace = F.Bold, TextSize = 15, TextColor3 = U.Paper, Parent = toastFrame })
+end
+
+function Hud.init()
+	buildGui()
+	pcall(function()
+		local StarterGui = game:GetService("StarterGui")
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+	end)
+
+	State.phaseChanged:Connect(onPhase)
+	RunService.Heartbeat:Connect(tick)
+
+	Net.event("Scores").OnClientEvent:Connect(function()
+		task.defer(renderScores) -- State updates first
+	end)
+	Net.event("RoundResults").OnClientEvent:Connect(showResults)
+	Net.event("Notify").OnClientEvent:Connect(function(text)
+		Hud.toast(text)
+	end)
+
+	Net.event("Fail").OnClientEvent:Connect(function(userId: number, cause: string, killerId: number?)
+		local who = nameOf(userId)
+		local text
+		local def = Objects.ById[cause]
+		if def and killerId then
+			if killerId == userId then
+				text = who .. " fell for their own " .. def.name
+			else
+				local verb = CAUSE[cause] or "got wrecked by"
+				text = who .. " " .. verb .. " " .. nameOf(killerId) .. "'s " .. def.name
+			end
+		else
+			text = who .. " " .. (CAUSE[cause] or "got taken out")
+		end
+		feed(text, U.Bad)
+		if cause == "fall" then
+			Sound.play("splash", 0.1)
+		end
+		if userId == player.UserId then
+			Sound.play("fail", 0.1)
+		end
+	end)
+
+	Net.event("Finish").OnClientEvent:Connect(function(userId: number, place: number)
+		local suffix = ({ "1st", "2nd", "3rd" })[place] or (place .. "th")
+		feed(nameOf(userId) .. " reached the flag (" .. suffix .. ")", U.Good)
+		if userId == player.UserId then
+			banner("Made it!", suffix, 1.2, 48)
+			Sound.play("victory")
+		else
+			Sound.play("goal", 0.1)
+		end
+	end)
+
+	onPhase(State.phase)
+end
+
+return Hud
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBXE9869A25DAE74E8C93E976DD61346D03">
+          <Properties><string name="Name">MovementController</string><ProtectedString name="Source"><![CDATA[-- The feel of the game lives here.
+--
+-- We keep Roblox's own ControlModule (so keyboard, gamepad and the mobile
+-- thumbstick + jump button all work for free) but override what it does
+-- with the input each frame:
+--   * movement is locked to the X axis (2.5D)
+--   * coyote time + jump buffering so jumps never feel "eaten"
+--   * one air jump ("flap"), refilled on landing or on a wall jump
+--   * wall slide + wall jump when you push into a wall in the air
+--   * ice keeps your momentum, honey slows you and kills the flap
+--   * launch(): springs, hammers, cannons hand us a velocity and we hold
+--     its horizontal speed for a moment so the humanoid can't cancel it
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local State = require(script.Parent.State)
+local Sound = require(script.Parent.SoundController)
+
+local M = Config.Movement
+local player = Players.LocalPlayer
+
+local Movement = {}
+Movement.enabled = false
+Movement.windX = 0 -- horizontal push from fans this frame, set by ObjectController
+
+local airJumpEvent = Instance.new("BindableEvent")
+Movement.airJumped = airJumpEvent.Event
+
+local root: BasePart?
+local hum: Humanoid?
+local controls: any
+
+local inputX = 0
+local grounded = false
+local lastGrounded = 0
+local jumpedSinceGround = false
+local lastJumpReq = 0
+local bufferedAt = -1
+local airJumps = M.AirJumps
+local launchUntil = 0
+local launchVX = 0
+local lastWallDir = 0
+local wallUntil = 0
+local surface: string? = nil
+local lastSurface: string? = nil
+local iceVX = 0
+local peakFall = 0
+
+local rayParams = RaycastParams.new()
+rayParams.CollisionGroup = "Players" -- skips every character's hitbox
+
+local function canMove(): boolean
+	return Movement.enabled and root ~= nil and hum ~= nil and not (root :: BasePart).Anchored and not (hum :: Humanoid).PlatformStand
+end
+
+function Movement.launch(v: Vector3, lock: number)
+	if not root then
+		return
+	end
+	root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, 0)
+	if lock > 0 then
+		launchVX = v.X
+		launchUntil = os.clock() + lock
+	end
+	jumpedSinceGround = true
+end
+
+function Movement.root(): BasePart?
+	return root
+end
+
+local function setCharacter(c: Model)
+	root = c:WaitForChild("HumanoidRootPart") :: BasePart
+	hum = c:WaitForChild("Humanoid") :: Humanoid
+	local h = hum :: Humanoid
+	for _, st in {
+		Enum.HumanoidStateType.Climbing,
+		Enum.HumanoidStateType.Swimming,
+		Enum.HumanoidStateType.FallingDown,
+		Enum.HumanoidStateType.Ragdoll,
+		Enum.HumanoidStateType.Seated,
+	} do
+		h:SetStateEnabled(st, false)
+	end
+	h.StateChanged:Connect(function(_, new)
+		if new == Enum.HumanoidStateType.Jumping and canMove() then
+			jumpedSinceGround = true
+			Sound.play("jump", 0.1)
+		end
+	end)
+end
+
+local function onLand(now: number)
+	if now - bufferedAt <= M.JumpBuffer and hum then
+		hum.Jump = true
+	end
+	bufferedAt = -1
+	if peakFall > 40 then
+		Sound.play("land", 0.15)
+	end
+	peakFall = 0
+end
+
+-- Runs right after the ControlModule, so our Move() call wins.
+local function control(dt: number)
+	if not hum or not root then
+		return
+	end
+	local mv = controls and controls:GetMoveVector() or Vector3.zero
+	local x = mv.X
+	local ax = math.abs(x)
+	if ax < 0.2 then
+		x = 0
+	elseif ax > 0.6 then
+		x = math.sign(x)
+	else
+		x = math.sign(x) * (ax - 0.2) / 0.4
+	end
+	inputX = x
+
+	if not canMove() then
+		hum:Move(Vector3.zero)
+		return
+	end
+
+	local honey = surface == "honey"
+	local speed = M.WalkSpeed * (if honey then M.HoneySpeed else 1)
+	hum.JumpPower = M.JumpPower * (if honey then M.HoneyJump else 1)
+
+	local target: number
+	if os.clock() < launchUntil then
+		target = launchVX
+	elseif surface == "ice" and grounded then
+		local goal = x * speed + Movement.windX
+		iceVX += (goal - iceVX) * math.min(1, dt * M.IceAccel)
+		target = iceVX
+	else
+		target = x * speed + Movement.windX
+		iceVX = root.AssemblyLinearVelocity.X
+	end
+
+	if math.abs(target) < 0.05 then
+		hum.WalkSpeed = speed
+		hum:Move(Vector3.zero)
+	else
+		hum.WalkSpeed = math.abs(target)
+		hum:Move(Vector3.new(math.sign(target), 0, 0))
+	end
+end
+
+local function physics()
+	if not root or not hum then
+		return
+	end
+	if root.Anchored then
+		hum.PlatformStand = false
+		return
+	end
+
+	-- 2.5D lock
+	local p = root.Position
+	if math.abs(p.Z) > 0.001 then
+		root.CFrame -= Vector3.new(0, 0, p.Z)
+	end
+	local v = root.AssemblyLinearVelocity
+	if v.Z ~= 0 then
+		v = Vector3.new(v.X, v.Y, 0)
+		root.AssemblyLinearVelocity = v
+	end
+	if not canMove() then
+		return
+	end
+
+	local now = os.clock()
+	local onFloor = hum.FloorMaterial ~= Enum.Material.Air
+	if onFloor then
+		if not grounded then
+			onLand(now)
+		end
+		lastGrounded = now
+		airJumps = M.AirJumps
+		jumpedSinceGround = false
+		local hit = workspace:Raycast(p, Vector3.new(0, -3.6, 0), rayParams)
+		surface = if hit then hit.Instance:GetAttribute("Surface") :: string? else nil
+		lastSurface = surface
+	else
+		surface = nil
+		peakFall = math.max(peakFall, -v.Y)
+	end
+	grounded = onFloor
+
+	-- Wall slide: only while pushing into a wall in the air
+	if not onFloor and inputX ~= 0 then
+		local dir = math.sign(inputX)
+		local hit = workspace:Raycast(p, Vector3.new(dir * 1.5, 0, 0), rayParams)
+		if hit and hit.Instance.CanCollide and math.abs(hit.Normal.X) > 0.7 then
+			lastWallDir = dir
+			wallUntil = now + 0.1
+			if v.Y < -M.WallSlideSpeed then
+				root.AssemblyLinearVelocity = Vector3.new(v.X, -M.WallSlideSpeed, 0)
+			end
+		end
+	end
+end
+
+local function onJumpRequest()
+	local now = os.clock()
+	local fresh = now - lastJumpReq > 0.08 -- JumpRequest repeats while held; only new presses count
+	lastJumpReq = now
+	if not fresh or not canMove() or grounded or not root then
+		return
+	end
+	local v = root.AssemblyLinearVelocity
+	if now < wallUntil and lastWallDir ~= 0 then
+		local away = -lastWallDir
+		Movement.launch(Vector3.new(away * M.WallJumpPower.X, M.WallJumpPower.Y, 0), M.WallJumpLock)
+		airJumps = M.AirJumps
+		wallUntil = 0
+		Sound.play("jump", 0.1)
+	elseif now - lastGrounded <= M.CoyoteTime and not jumpedSinceGround then
+		root.AssemblyLinearVelocity = Vector3.new(v.X, M.JumpPower, 0)
+		jumpedSinceGround = true
+		Sound.play("jump", 0.1)
+	elseif airJumps > 0 and lastSurface ~= "honey" then
+		airJumps -= 1
+		root.AssemblyLinearVelocity = Vector3.new(v.X, M.AirJumpPower, 0)
+		jumpedSinceGround = true
+		Sound.play("airJump", 0.1)
+		airJumpEvent:Fire()
+	else
+		bufferedAt = now
+	end
+end
+
+local function tumble()
+	if not root or not hum or root.Anchored then
+		return
+	end
+	local facing = if root.CFrame.LookVector.X >= 0 then 1 else -1
+	hum.PlatformStand = true
+	root.AssemblyLinearVelocity = Vector3.new(-facing * 14, 40, 0)
+	root.AssemblyAngularVelocity = Vector3.new(0, 0, facing * 12)
+end
+
+local function refreshEnabled()
+	local was = Movement.enabled
+	Movement.enabled = State.me == "running" and State.phase == "Run"
+	if Movement.enabled and not was then
+		launchUntil = 0
+		airJumps = M.AirJumps
+		bufferedAt = -1
+		peakFall = 0
+		if hum then
+			hum.PlatformStand = false
+		end
+	end
+end
+
+function Movement.init()
+	local playerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule") :: ModuleScript) :: any
+	controls = playerModule:GetControls()
+
+	if player.Character then
+		task.spawn(setCharacter, player.Character)
+	end
+	player.CharacterAdded:Connect(setCharacter)
+
+	RunService:BindToRenderStep("SprintControl", Enum.RenderPriority.Input.Value + 1, control)
+	RunService.PreSimulation:Connect(physics)
+	UserInputService.JumpRequest:Connect(onJumpRequest)
+
+	State.phaseChanged:Connect(refreshEnabled)
+	State.meChanged:Connect(function(me)
+		refreshEnabled()
+		if me == "dead" then
+			tumble()
+		end
+	end)
+end
+
+return Movement
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX6B7A1870264C46FEA408DCC8E3CA644D">
+          <Properties><string name="Name">ObjectController</string><ProtectedString name="Source"><![CDATA[-- Brings placed objects to life on the client.
+--
+-- All motion (saws, fans, hammers, shuttles, cannonballs) is computed from the
+-- shared server clock, so every player sees the same thing at the same time
+-- without the server streaming positions. That's cheaper and smoother.
+--
+-- Effects that push *your* character (springs, fans, hammers, cannonballs)
+-- are applied here too, because your client owns your physics and these
+-- must feel instant. Deadly contact is still decided by the server.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local Shared = ReplicatedStorage.Shared
+local Config = require(Shared.Config)
+local Net = require(Shared.Net)
+local Objects = require(Shared.Objects)
+local Style = require(Shared.Style)
+
+local Movement = require(script.Parent.MovementController)
+local Camera = require(script.Parent.CameraController)
+local Sound = require(script.Parent.SoundController)
+
+local C = Config.Objects
+local TAU = math.pi * 2
+
+local ObjectController = {}
+
+type Animated = { part: BasePart, rel: CFrame }
+type Record = {
+	model: Model,
+	id: string,
+	pivot: CFrame,
+	placedAt: number,
+	groups: { [string]: { Animated } },
+	ready: boolean,
+	-- per-type scratch
+	padPush: number?,
+	cooldown: number?,
+	headPrevX: number?,
+	maxDist: number?,
+	consumed: { [number]: boolean }?,
+}
+
+local records = {} :: { [Model]: Record }
+local balls = {} :: { BasePart }
+local ballFolder: Folder
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function register(model: Model)
+	local id = model:GetAttribute("Id") :: string?
+	if not id or records[model] then
+		return
+	end
+	-- Rebuild the exact placement frame from the server's attributes rather
+	-- than trusting the replicated pivot.
+	local x, y, r = model:GetAttribute("X"), model:GetAttribute("Y"), model:GetAttribute("Rot")
+	local pivot = if typeof(x) == "number" and typeof(y) == "number" and typeof(r) == "number"
+		then Objects.cframe(x, y, r)
+		else model:GetPivot()
+	local rec: Record = {
+		model = model,
+		id = id,
+		pivot = pivot,
+		placedAt = (model:GetAttribute("PlacedAt") :: number?) or now(),
+		groups = {},
+		ready = false,
+	}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local g = d:GetAttribute("Group") :: string?
+			if g then
+				rec.groups[g] = rec.groups[g] or {}
+				table.insert(rec.groups[g], { part = d, rel = pivot:ToObjectSpace(d.CFrame) })
+			end
+		end
+	end
+	records[model] = rec
+
+	-- Placement pop: quick overshoot so it feels like the object "lands"
+	Sound.playAt("place", model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.15)
+	local scale = Instance.new("NumberValue")
+	scale.Value = 0.5
+	local conn = scale.Changed:Connect(function(v)
+		if model.Parent then
+			model:ScaleTo(math.max(v, 0.05))
+		end
+	end)
+	local tween = TweenService:Create(scale, TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Value = 1 })
+	tween.Completed:Once(function()
+		conn:Disconnect()
+		if model.Parent then
+			model:ScaleTo(1)
+		end
+		rec.ready = true
+	end)
+	tween:Play()
+end
+
+local function setGroup(rec: Record, name: string, offset: CFrame, velocity: Vector3?)
+	local g = rec.groups[name]
+	if not g then
+		return
+	end
+	for _, a in g do
+		a.part.CFrame = rec.pivot * offset * a.rel
+		if velocity then
+			a.part.AssemblyLinearVelocity = velocity
+		end
+	end
+end
+
+--------------------------------------------------------------------------
+-- Cannonballs (deterministic from the clock, pooled parts)
+--------------------------------------------------------------------------
+
+local function ball(i: number): BasePart
+	local b = balls[i]
+	if not b then
+		b = Instance.new("Part")
+		b.Shape = Enum.PartType.Ball
+		b.Size = Vector3.new(1.4, 1.4, 1.4)
+		b.Color = Style.Object.Rubber
+		b.Material = Enum.Material.SmoothPlastic
+		b.Anchored = true
+		b.CanCollide = false
+		b.CanQuery = false
+		b.CanTouch = false
+		b.Parent = ballFolder
+		balls[i] = b
+	end
+	return b
+end
+
+local function cannonRange(rec: Record): number
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	local list = {}
+	local level = workspace:FindFirstChild("Level")
+	local objects = workspace:FindFirstChild("Objects")
+	if level then
+		table.insert(list, level)
+	end
+	if objects then
+		table.insert(list, objects)
+	end
+	params.FilterDescendantsInstances = list
+	local dir = rec.pivot.RightVector
+	local origin = rec.pivot * Vector3.new(1.9, 0.3, 0)
+	local best = 90
+	-- ignore our own parts by stepping past them
+	local hit = workspace:Raycast(origin + dir * 0.2, dir * best, params)
+	while hit and hit.Instance:IsDescendantOf(rec.model) do
+		origin = hit.Position + dir * 0.05
+		hit = workspace:Raycast(origin, dir * best, params)
+	end
+	if hit and hit.Instance.CanCollide then
+		return (hit.Position - (rec.pivot * Vector3.new(1.9, 0.3, 0))).Magnitude
+	end
+	return best
+end
+
+--------------------------------------------------------------------------
+-- Per-frame
+--------------------------------------------------------------------------
+
+local function inBox(rel: Vector3, hx: number, hy: number): boolean
+	return math.abs(rel.X) <= hx and math.abs(rel.Y) <= hy and math.abs(rel.Z) <= 4
+end
+
+local function visuals(dt: number)
+	local t = now()
+	local ballIndex = 0
+	local root = Movement.root()
+	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
+
+	for model, rec in records do
+		if not model.Parent then
+			records[model] = nil
+			continue
+		end
+		if not rec.ready then
+			continue
+		end
+		local age = t - rec.placedAt
+		local id = rec.id
+
+		if id == "saw" then
+			setGroup(rec, "spin", CFrame.Angles(0, 0, -age * 7))
+		elseif id == "fan" then
+			setGroup(rec, "fan", CFrame.Angles(0, age * 16, 0))
+			local g = rec.groups.wind
+			if g then
+				for i, a in g do
+					local y = 1.5 + ((age * 14 + i * 5.1) % 14)
+					a.part.CFrame = rec.pivot * CFrame.new(a.rel.Position.X, y, a.rel.Position.Z)
+				end
+			end
+		elseif id == "hammer" then
+			local angle = math.rad(65) * math.sin(age * TAU / 2.4)
+			setGroup(rec, "arm", CFrame.Angles(0, 0, angle))
+			if canAffect and root then
+				local head: Animated? = nil
+				for _, a in rec.groups.arm or {} do
+					if a.part.Name == "Head" then
+						head = a
+					end
+				end
+				if head then
+					local hx = head.part.Position.X
+					local vx = hx - (rec.headPrevX or hx)
+					rec.headPrevX = hx
+					local rel = head.part.CFrame:PointToObjectSpace(root.Position)
+					if inBox(rel, 1.6 + 0.9, 1 + 1.2) and os.clock() > (rec.cooldown or 0) then
+						rec.cooldown = os.clock() + 0.7
+						local dir = if math.abs(vx) > 0.001 then math.sign(vx) else math.sign(root.Position.X - hx)
+						Movement.launch(Vector3.new(dir * C.HammerKnock.X, C.HammerKnock.Y, 0), 0.4)
+						Sound.play("bonk", 0.1)
+						Camera.shake(1.2)
+					end
+				end
+			end
+		elseif id == "cannon" then
+			rec.maxDist = rec.maxDist or cannonRange(rec)
+			rec.consumed = rec.consumed or {}
+			local dir = rec.pivot.RightVector
+			local muzzle = rec.pivot * Vector3.new(1.9, 0.3, 0)
+			local life = (rec.maxDist :: number) / C.CannonSpeed
+			local since = age - 1
+			if since > 0 then
+				local newest = math.floor(since / C.CannonInterval)
+				local oldest = math.max(0, math.floor((since - life) / C.CannonInterval))
+				for k = oldest, newest do
+					local bAge = since - k * C.CannonInterval
+					if bAge >= 0 and bAge <= life and not (rec.consumed :: any)[k] then
+						if bAge < dt * 1.5 then
+							Sound.playAt("cannon", rec.model.PrimaryPart or rec.model:FindFirstChildWhichIsA("BasePart") :: BasePart, 0.1)
+						end
+						ballIndex += 1
+						local pos = muzzle + dir * (bAge * C.CannonSpeed)
+						local b = ball(ballIndex)
+						b.CFrame = CFrame.new(pos)
+						b.Transparency = 0
+						if canAffect and root and (root.Position - pos).Magnitude < 2.1 then
+							(rec.consumed :: any)[k] = true
+							local knock = dir * C.CannonKnock.X + Vector3.new(0, C.CannonKnock.Y, 0)
+							Movement.launch(knock, 0.35)
+							Sound.play("bonk", 0.1)
+							Camera.shake(1)
+						end
+					end
+				end
+			end
+		elseif id == "spring" then
+			local push = rec.padPush or 0
+			if push > 0 then
+				rec.padPush = math.max(0, push - dt * 4)
+				setGroup(rec, "pad", CFrame.new(0, -0.35 * math.sin(push * math.pi), 0))
+			end
+		elseif id == "crumble" then
+			local fallen = model:GetAttribute("Fallen")
+			local trig = model:GetAttribute("TriggeredAt") :: number?
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.LocalTransparencyModifier = if fallen then 1 else 0
+				end
+			end
+			if trig and not fallen then
+				local shake = CFrame.new((math.random() - 0.5) * 0.15, (math.random() - 0.5) * 0.1, 0)
+				model:PivotTo(rec.pivot * shake)
+			elseif model:GetPivot() ~= rec.pivot then
+				model:PivotTo(rec.pivot)
+			end
+		end
+	end
+
+	for i = ballIndex + 1, #balls do
+		balls[i].Transparency = 1
+	end
+
+	-- Ambient level life: flag sway, drifting clouds
+	local level = workspace:FindFirstChild("Level")
+	if level then
+		local flag = level:FindFirstChild("Flag") :: BasePart?
+		if flag then
+			local base = flag:GetAttribute("Base") :: CFrame?
+			if not base then
+				flag:SetAttribute("Base", flag.CFrame)
+				base = flag.CFrame
+			end
+			local pole = (base :: CFrame) * CFrame.new(-1.7, 0, 0)
+			flag.CFrame = pole * CFrame.Angles(0, math.sin(t * 2.2) * 0.18, 0) * CFrame.new(1.7, 0, 0)
+		end
+		local decor = level:FindFirstChild("Decor")
+		if decor then
+			for _, m in decor:GetChildren() do
+				if m:IsA("Model") and m:GetAttribute("Group") == "cloud" then
+					local base = m:GetAttribute("Base") :: CFrame?
+					if not base then
+						m:SetAttribute("Base", m:GetPivot())
+						base = m:GetPivot()
+					end
+					local x = ((t * 1.2 + (base :: CFrame).X + 200) % 400) - 200
+					m:PivotTo(CFrame.new(x, (base :: CFrame).Y, (base :: CFrame).Z))
+				end
+			end
+		end
+	end
+end
+
+-- Things that physically carry or push you: run before physics.
+local function physicsStep(dt: number)
+	local t = now()
+	local root = Movement.root()
+	local canAffect = Movement.enabled and root ~= nil and not (root :: BasePart).Anchored
+	local windX = 0
+
+	for model, rec in records do
+		if not model.Parent or not rec.ready then
+			continue
+		end
+		local age = t - rec.placedAt
+
+		if rec.id == "mover" then
+			local travel = 10
+			local w = TAU / 4.5
+			local offset = travel / 2 * math.sin(age * w)
+			local speed = travel / 2 * w * math.cos(age * w)
+			setGroup(rec, "mover", CFrame.new(offset, 0, 0), rec.pivot.RightVector * speed)
+		elseif rec.id == "conveyor" then
+			local belt = model:FindFirstChild("Belt") :: BasePart?
+			if belt then
+				belt.AssemblyLinearVelocity = rec.pivot.RightVector * C.ConveyorSpeed
+			end
+		end
+
+		if not canAffect or not root then
+			continue
+		end
+		local r = root :: BasePart
+
+		if rec.id == "spring" then
+			local rel = rec.pivot:PointToObjectSpace(r.Position)
+			local up = rec.pivot.UpVector
+			local v = r.AssemblyLinearVelocity
+			if math.abs(rel.X) < 2.4 and rel.Y > 0.4 and rel.Y < 3.6 and v:Dot(up) <= 4 and os.clock() > (rec.cooldown or 0) then
+				rec.cooldown = os.clock() + 0.3
+				rec.padPush = 1
+				if up.Y > 0.9 then
+					Movement.launch(Vector3.new(v.X, C.SpringPower, 0), 0)
+				else
+					Movement.launch(up * C.SpringPower, 0.35)
+				end
+				Sound.play("spring", 0.1)
+			end
+		elseif rec.id == "fan" then
+			local rel = rec.pivot:PointToObjectSpace(r.Position)
+			if math.abs(rel.X) < 1.5 + 0.9 and rel.Y > 0 and rel.Y < 16.5 then
+				local up = rec.pivot.UpVector
+				-- falls off toward the end of the column so the edge is readable
+				local strength = 1 - math.clamp((rel.Y - 10) / 6.5, 0, 1) * 0.6
+				windX += up.X * 18 * strength
+				if math.abs(up.Y) > 0.1 then
+					local v = r.AssemblyLinearVelocity
+					local target = C.FanMaxSpeed * up.Y * strength
+					if (up.Y > 0 and v.Y < target) or (up.Y < 0 and v.Y > target) then
+						local a = math.min(1, dt * 3)
+						r.AssemblyLinearVelocity = Vector3.new(v.X, v.Y + (target - v.Y) * a, 0)
+					end
+				end
+			end
+		end
+	end
+	Movement.windX = windX
+end
+
+local function explode(pos: Vector3)
+	local p = Instance.new("Part")
+	p.Shape = Enum.PartType.Ball
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Material = Enum.Material.SmoothPlastic
+	p.Color = Style.UI.Paper
+	p.Size = Vector3.one
+	p.CFrame = CFrame.new(pos)
+	p.Parent = ballFolder
+	local d = Config.Objects.BombRadius * 2
+	local tween = TweenService:Create(p, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Size = Vector3.new(d, d, d),
+		Transparency = 1,
+	})
+	tween.Completed:Once(function()
+		p:Destroy()
+	end)
+	tween:Play()
+	Sound.play("boom", 0.1)
+	Camera.shake(2)
+end
+
+function ObjectController.init()
+	ballFolder = Instance.new("Folder")
+	ballFolder.Name = "ClientFx"
+	ballFolder.Parent = workspace
+
+	local function watch(folder: Instance)
+		for _, m in folder:GetChildren() do
+			if m:IsA("Model") then
+				task.spawn(register, m)
+			end
+		end
+		folder.ChildAdded:Connect(function(m)
+			if m:IsA("Model") then
+				-- give replication a frame to deliver the parts
+				task.wait()
+				register(m)
+			end
+		end)
+	end
+	task.spawn(function()
+		watch(workspace:WaitForChild("Objects"))
+	end)
+
+	RunService.RenderStepped:Connect(visuals)
+	RunService.PreSimulation:Connect(physicsStep)
+	Net.event("Explode").OnClientEvent:Connect(explode)
+end
+
+return ObjectController
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX471FC2AB681445D18E18ACD0B957E3EB">
+          <Properties><string name="Name">SoundController</string><ProtectedString name="Source"><![CDATA[-- Every sound in the game goes through here, so swapping in real audio later
+-- is a matter of editing this one table.
+--
+-- PLACEHOLDERS: these are sounds that ship inside the Roblox client.
+-- Replace with Creator Store audio ("rbxassetid://123...") before release.
+
+local SoundService = game:GetService("SoundService")
+
+local SOUNDS = {
+	jump = { id = "rbxasset://sounds/action_jump.mp3", volume = 0.35, pitch = 1.15 },
+	airJump = { id = "rbxasset://sounds/action_jump.mp3", volume = 0.35, pitch = 1.45 },
+	land = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 0.35, pitch = 1.1 },
+	spring = { id = "rbxasset://sounds/action_jump.mp3", volume = 0.6, pitch = 0.7 },
+	bonk = { id = "rbxasset://sounds/collide.wav", volume = 0.7, pitch = 0.8 },
+	fail = { id = "rbxasset://sounds/uuhhh.mp3", volume = 0.45, pitch = 1.05 },
+	splash = { id = "rbxasset://sounds/impact_water.mp3", volume = 0.5, pitch = 1 },
+	place = { id = "rbxasset://sounds/clickfast.wav", volume = 0.6, pitch = 0.9 },
+	pick = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 1.3 },
+	error = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.3, pitch = 0.6 },
+	tick = { id = "rbxasset://sounds/clickfast.wav", volume = 0.35, pitch = 1.6 },
+	go = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.5, pitch = 1.2 },
+	goal = { id = "rbxasset://sounds/electronicpingshort.wav", volume = 0.6, pitch = 1.5 },
+	points = { id = "rbxasset://sounds/clickfast.wav", volume = 0.4, pitch = 2 },
+	boom = { id = "rbxasset://sounds/collide.wav", volume = 0.9, pitch = 0.45 },
+	cannon = { id = "rbxasset://sounds/collide.wav", volume = 0.35, pitch = 0.6 },
+	whoosh = { id = "rbxasset://sounds/swoosh.wav", volume = 0.4, pitch = 1 },
+	victory = { id = "rbxasset://sounds/victory.wav", volume = 0.5, pitch = 1 },
+}
+
+local SoundController = {}
+
+local group = Instance.new("SoundGroup")
+group.Name = "SFX"
+group.Volume = 0.8
+group.Parent = SoundService
+
+local templates = {} :: { [string]: Sound }
+
+function SoundController.init()
+	for name, def in SOUNDS do
+		local s = Instance.new("Sound")
+		s.Name = name
+		s.SoundId = def.id
+		s.Volume = def.volume
+		s.PlaybackSpeed = def.pitch
+		s.SoundGroup = group
+		s.RollOffMaxDistance = 160
+		s.RollOffMinDistance = 30
+		templates[name] = s
+	end
+end
+
+-- 2D sound (UI, your own actions)
+function SoundController.play(name: string, pitchJitter: number?)
+	local t = templates[name]
+	if not t then
+		return
+	end
+	local s = t:Clone()
+	if pitchJitter then
+		s.PlaybackSpeed *= 1 + (math.random() - 0.5) * pitchJitter
+	end
+	s.Parent = SoundService
+	s:Play()
+	s.Ended:Once(function()
+		s:Destroy()
+	end)
+	task.delay(4, function()
+		if s.Parent then
+			s:Destroy()
+		end
+	end)
+end
+
+-- Positional sound (other players, objects)
+function SoundController.playAt(name: string, where: BasePart | Attachment, pitchJitter: number?)
+	local t = templates[name]
+	if not t then
+		return
+	end
+	local s = t:Clone()
+	if pitchJitter then
+		s.PlaybackSpeed *= 1 + (math.random() - 0.5) * pitchJitter
+	end
+	s.Parent = where
+	s:Play()
+	task.delay(4, function()
+		s:Destroy()
+	end)
+end
+
+return SoundController
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX5CCD8893AFBA448AB54E84444BC61DED">
+          <Properties><string name="Name">State</string><ProtectedString name="Source"><![CDATA[-- Client-side mirror of what the server told us. Read-only for gameplay;
+-- the server is always the source of truth.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Net = require(ReplicatedStorage.Shared.Net)
+
+local State = {}
+
+State.phase = "Waiting"
+State.endsAt = 0
+State.round = 0
+State.rounds = 0
+State.final = false
+State.level = ""
+State.extra = {} :: { [string]: any }
+State.runners = {} :: { number }
+State.me = "idle" -- idle | running | done | dead
+State.standings = {} :: { any }
+State.speciesOf = {} :: { [number]: string }
+
+local phaseChanged = Instance.new("BindableEvent")
+State.phaseChanged = phaseChanged.Event
+
+local meChanged = Instance.new("BindableEvent")
+State.meChanged = meChanged.Event
+
+local localId = Players.LocalPlayer.UserId
+
+local function setMe(v: string)
+	if State.me ~= v then
+		State.me = v
+		meChanged:Fire(v)
+	end
+end
+
+function State.timeLeft(): number
+	return math.max(0, State.endsAt - workspace:GetServerTimeNow())
+end
+
+function State.isRunner(userId: number): boolean
+	return table.find(State.runners, userId) ~= nil
+end
+
+function State.init()
+	Net.event("MatchState").OnClientEvent:Connect(function(s)
+		State.phase = s.phase
+		State.endsAt = s.endsAt
+		State.round = s.round
+		State.rounds = s.rounds
+		State.final = s.final
+		State.level = s.level
+		State.extra = s.extra or {}
+		State.runners = s.runners or {}
+
+		if s.phase == "Countdown" or s.phase == "Run" then
+			if State.isRunner(localId) and (s.phase == "Countdown" or State.me == "idle") then
+				setMe("running")
+			end
+		else
+			setMe("idle")
+		end
+		phaseChanged:Fire(s.phase)
+	end)
+
+	Net.event("Fail").OnClientEvent:Connect(function(userId)
+		if userId == localId then
+			setMe("dead")
+		end
+	end)
+	Net.event("Finish").OnClientEvent:Connect(function(userId)
+		if userId == localId then
+			setMe("done")
+		end
+	end)
+	Net.event("Scores").OnClientEvent:Connect(function(standings)
+		State.standings = standings
+		for _, row in standings do
+			State.speciesOf[row.userId] = row.species
+		end
+	end)
+end
+
+return State
+]]></ProtectedString></Properties>
+        </Item>
+        <Item class="ModuleScript" referent="RBX9EC9A67384974D9284CF30D706639100">
+          <Properties><string name="Name">UI</string><ProtectedString name="Source"><![CDATA[-- Tiny UI kit so every panel, label and button shares one look:
+-- warm paper cards, ink text, a hard offset shadow (no blur, no gradients).
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local Style = require(ReplicatedStorage.Shared.Style)
+
+local U = Style.UI
+local UI = {}
+
+function UI.new(className: string, props: { [string]: any }, children: { Instance }?): any
+	local inst = Instance.new(className)
+	local parent = props.Parent
+	for k, v in props do
+		if k ~= "Parent" then
+			(inst :: any)[k] = v
+		end
+	end
+	if children then
+		for _, c in children do
+			c.Parent = inst
+		end
+	end
+	if parent then
+		inst.Parent = parent
+	end
+	return inst
+end
+
+function UI.corner(r: number): UICorner
+	return UI.new("UICorner", { CornerRadius = UDim.new(0, r) })
+end
+
+function UI.pad(px: number, py: number?): UIPadding
+	local y = py or px
+	return UI.new("UIPadding", {
+		PaddingLeft = UDim.new(0, px),
+		PaddingRight = UDim.new(0, px),
+		PaddingTop = UDim.new(0, y),
+		PaddingBottom = UDim.new(0, y),
+	})
+end
+
+function UI.list(dir: Enum.FillDirection, gap: number, align: Enum.HorizontalAlignment?, valign: Enum.VerticalAlignment?): UIListLayout
+	return UI.new("UIListLayout", {
+		FillDirection = dir,
+		Padding = UDim.new(0, gap),
+		HorizontalAlignment = align or Enum.HorizontalAlignment.Left,
+		VerticalAlignment = valign or Enum.VerticalAlignment.Top,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	})
+end
+
+function UI.label(props: { [string]: any }): TextLabel
+	local defaults = {
+		BackgroundTransparency = 1,
+		FontFace = Style.Font.Body,
+		TextSize = 16,
+		TextColor3 = U.Ink,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+	}
+	for k, v in props do
+		defaults[k] = v
+	end
+	return UI.new("TextLabel", defaults)
+end
+
+-- A card with a hard shadow underneath. Returns (holder, face).
+-- Put content in `face`; position/size the holder.
+function UI.card(props: { [string]: any }, radius: number?): (Frame, Frame)
+	local r = radius or 12
+	local holder = UI.new("Frame", { BackgroundTransparency = 1 })
+	for k, v in props do
+		(holder :: any)[k] = v
+	end
+	UI.new("Frame", {
+		Name = "Shadow",
+		BackgroundColor3 = U.Ink,
+		BackgroundTransparency = 0.82,
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, 4),
+		ZIndex = 0,
+		Parent = holder,
+	}, { UI.corner(r) })
+	local face = UI.new("Frame", {
+		Name = "Face",
+		BackgroundColor3 = U.Paper,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 1,
+		Parent = holder,
+	}, { UI.corner(r) })
+	return holder, face
+end
+
+function UI.pill(text: string, bg: Color3, fg: Color3?, size: number?): Frame
+	local f = UI.new("Frame", {
+		BackgroundColor3 = bg,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		Size = UDim2.new(),
+	}, { UI.corner(99), UI.pad(8, 3) })
+	UI.label({ Text = text, FontFace = Style.Font.Bold, TextSize = size or 13, TextColor3 = fg or U.Paper, Parent = f })
+	return f
+end
+
+function UI.tween(obj: Instance, t: number, props: { [string]: any }, style: Enum.EasingStyle?, dir: Enum.EasingDirection?): Tween
+	local tw = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+
+-- Hover lift + press squish, the same on every button
+function UI.pressable(button: GuiButton, onClick: () -> ())
+	local scale = button:FindFirstChildOfClass("UIScale") or UI.new("UIScale", { Parent = button })
+	button.MouseEnter:Connect(function()
+		UI.tween(scale, 0.12, { Scale = 1.04 })
+	end)
+	button.MouseLeave:Connect(function()
+		UI.tween(scale, 0.12, { Scale = 1 })
+	end)
+	button.MouseButton1Down:Connect(function()
+		UI.tween(scale, 0.06, { Scale = 0.95 })
+	end)
+	button.MouseButton1Up:Connect(function()
+		UI.tween(scale, 0.18, { Scale = 1.04 }, Enum.EasingStyle.Back)
+	end)
+	button.Activated:Connect(onClick)
+end
+
+return UI
+]]></ProtectedString></Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="Players" referent="RBXC513C3AB48AF4E4E8059E879AC1993AB">
+    <Properties><string name="Name">Players</string><bool name="CharacterAutoLoads">false</bool></Properties>
+  </Item>
+  <Item class="SoundService" referent="RBX4386096CDAAC4DD09E2D9D897015B2AD">
+    <Properties><string name="Name">SoundService</string></Properties>
+  </Item>
+</roblox>
