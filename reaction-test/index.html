@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reaction Test</title>
+<style>
+  :root { --bg: #f4f4f1; --fg: #1d1d1b; --box: #d64545; --go: #2ea043; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #161616; --fg: #f0f0ee; --box: #e05a5a; --go: #3fb950; }
+  }
+  :root[data-theme="dark"] { --bg: #161616; --fg: #f0f0ee; --box: #e05a5a; --go: #3fb950; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
+  #pad { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+         text-align: center; padding: 16px; box-sizing: border-box; user-select: none; cursor: pointer; }
+  #pad.wait { background: var(--box); color: #fff; }
+  #pad.go { background: var(--go); color: #fff; }
+  h1 { font-size: 1.6rem; margin: 0 0 8px; }
+  p { margin: 6px 0; font-size: 1.05rem; }
+  #big { font-size: 3rem; font-weight: 700; margin: 12px 0; }
+  button { margin: 6px; padding: 10px 18px; font-size: 1rem; border-radius: 8px; border: 0;
+           background: var(--fg); color: var(--bg); cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="pad">
+  <h1>Reaction Test</h1>
+  <p id="msg">Click or press Space to start. 5 tries.</p>
+  <div id="big"></div>
+  <p id="list"></p>
+  <div>
+    <button id="btn">Start</button>
+    <button id="save" style="display:none">Save results</button>
+  </div>
+</div>
+<script>
+  const pad = document.getElementById('pad');
+  const msg = document.getElementById('msg');
+  const big = document.getElementById('big');
+  const list = document.getElementById('list');
+  const btn = document.getElementById('btn');
+  const saveBtn = document.getElementById('save');
+  const TOTAL = 5;
+  let results = [];
+  let state = 'idle';   // idle | waiting | ready | done
+  let timer = null;
+  let readyAt = 0;
+
+  function setState(name, cls, text) {
+    state = name;
+    pad.className = cls || '';
+    msg.textContent = text;
+  }
+
+  function startRound() {
+    setState('waiting', 'wait', 'Wait for GREEN... do not click yet.');
+    big.textContent = '';
+    btn.style.display = 'none';
+    saveBtn.style.display = 'none';
+    const delay = 2000 + Math.random() * 3000; // random 2-5 seconds, so you cannot guess it
+    timer = setTimeout(() => {
+      readyAt = performance.now();
+      setState('ready', 'go', 'CLICK NOW!');
+    }, delay);
+  }
+
+  function handlePress() {
+    if (state === 'idle' || state === 'done') {
+      if (state === 'done') { results = []; list.textContent = ''; }
+      startRound();
+    } else if (state === 'waiting') {
+      clearTimeout(timer);
+      setState('idle', 'wait', 'Too early! Wait for green. Click to try again.');
+      btn.style.display = 'inline-block';
+      btn.textContent = 'Try again';
+    } else if (state === 'ready') {
+      const ms = Math.round(performance.now() - readyAt);
+      results.push(ms);
+      big.textContent = ms + ' ms';
+      list.textContent = 'Tries: ' + results.join(', ');
+      if (results.length >= TOTAL) {
+        const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
+        setState('done', '', 'Done! Average: ' + avg + ' ms (best: ' + Math.min(...results) + ' ms)');
+        btn.style.display = 'inline-block';
+        btn.textContent = 'Run again';
+        saveBtn.style.display = 'inline-block';
+      } else {
+        setState('idle', '', 'Good. Click for the next try (' + (results.length + 1) + ' of ' + TOTAL + ').');
+        btn.style.display = 'inline-block';
+        btn.textContent = 'Next';
+      }
+    }
+  }
+
+  function saveResults() {
+    const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
+    const now = new Date();
+    const text =
+      'Reaction Test Results\n' +
+      'Date: ' + now.toLocaleString() + '\n' +
+      'Tries (ms): ' + results.join(', ') + '\n' +
+      'Average: ' + avg + ' ms\n' +
+      'Best: ' + Math.min(...results) + ' ms\n';
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = now.toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    a.href = url;
+    a.download = 'reaction-test-' + stamp + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    saveBtn.textContent = 'Saved!';
+  }
+
+  pad.addEventListener('mousedown', (e) => { if (e.target.tagName !== 'BUTTON') handlePress(); });
+  pad.addEventListener('touchstart', (e) => { if (e.target.tagName !== 'BUTTON') { e.preventDefault(); handlePress(); } }, { passive: false });
+  btn.addEventListener('click', (e) => { e.stopPropagation(); handlePress(); });
+  saveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveResults(); });
+  document.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); handlePress(); } });
+</script>
+</body>
+</html>
