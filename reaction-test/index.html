@@ -44,7 +44,7 @@
       radial-gradient(35% 28% at 85% 20%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 70%),
       radial-gradient(40% 35% at 60% 100%, color-mix(in srgb, var(--accent3) 12%, transparent), transparent 70%);
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 70px; }
+  .wrap { max-width: none; width: 100%; margin: 0 auto; padding: 28px clamp(18px, 2.5vw, 48px) 70px; box-sizing: border-box; }
 
   /* header */
   header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
@@ -457,6 +457,39 @@
   .cats button[aria-selected="true"], .subTabs button[aria-selected="true"] { border-color: var(--accent3) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent3) 35%, transparent); }
   .subTabs button { background: var(--panel-solid); color: var(--fg); }
   .subTabs button[aria-selected="true"] { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; }
+
+  /* phone layout */
+  @media (max-width: 560px) {
+    .wrap { padding: 16px 12px 60px; }
+    .logo { font-size: 1.05rem; }
+    .head-right { gap: 6px; }
+    .chip { font-size: .7rem; padding: 5px 9px; }
+    .cats { gap: 6px; }
+    .cats button { padding: 10px 6px; font-size: .9rem; }
+    .cats button small { font-size: .62rem; }
+    .subTabs button { padding: 8px 12px; font-size: .85rem; }
+    .card { padding: 14px; border-radius: 16px; }
+    .gGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
+    .gGame { min-height: 0 !important; padding: 10px !important; border-radius: 14px !important; }
+    .gGame .preview { height: 96px !important; }
+    .gGame h2 { font-size: .9rem !important; }
+    .gGame p { display: none !important; }
+    .gGame .rk { display: none !important; }
+    .gGame .best { font-size: .72rem !important; }
+    #gScreen { padding: 14px !important; scroll-margin-top: 130px; }
+    #gStage { min-height: 0 !important; }
+    #gStage #arena { height: 320px !important; }
+    #arena { height: 280px; }
+    #bigNum { font-size: 2.6rem; }
+    .modeRow button { font-size: .8rem; padding: 7px 8px; }
+    .formRow input[type="text"], .formRow input[type="number"] { width: 100%; }
+    .btnrow button { flex: 1 1 45%; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .tile .val { font-size: 1.25rem; }
+    .gstatRow { grid-template-columns: 1fr 1fr !important; }
+    .tier { grid-template-columns: 1fr; gap: 2px; }
+    .target { width: 48px; height: 48px; }
+  }
 
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
