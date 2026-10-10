@@ -504,7 +504,7 @@
   <nav class="tabs subTabs" id="subBar" role="tablist" aria-label="Pages"></nav>
 
   <div class="panel on" id="p-test" role="tabpanel" data-panel="test">
-  <section class="card">
+  <section class="card" id="testCard">
     <div class="card-head">
       <h2>Test your reflexes</h2>
       <span class="muted">Press <span class="kbd">Space</span> or click. Click early and that try restarts.</span>
@@ -1095,7 +1095,7 @@
   arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress('any'); } });
   document.addEventListener('keydown', (e) => {
     if (['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
-    if ($('gScreen').classList.contains('on')) return;
+    if ($('gScreen').classList.contains('on') && !reactionInGames) return;
     if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) onPress('any'); }
     const keyDir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.code];
     if (keyDir) { e.preventDefault(); onPress(keyDir); }
@@ -1452,6 +1452,36 @@
     if (s.mean <= goal) { txt.innerHTML = '<b>Target reached!</b><br>Your overall average is ' + Math.round(s.mean) + ' ms, which is at or under your target.'; return; }
     txt.innerHTML = '<b>' + Math.round(s.mean - goal) + ' ms to go.</b><br>Your overall average is ' + Math.round(s.mean) + ' ms. Keep going.';
   }
+
+  // ---- bridge: lets the Brain games grid open the reaction test ----
+  let reactionInGames = false;
+  const testCard = $('testCard');
+  const testPlaceholder = document.createElement('div');
+  testCard.parentNode.insertBefore(testPlaceholder, testCard);
+  window.ReactionLabBridge = {
+    summary(mode) {
+      const list = runs.filter(r => (r.mode || 'simple') === mode);
+      const tries = list.flatMap(r => r.tries);
+      const m = mean(tries);
+      return m == null ? 'Not played yet' : 'Average ' + Math.round(m) + ' ms';
+    },
+    open(mode) {
+      if (currentMode !== mode) { currentMode = mode; writeJSON(MODE_KEY, mode); renderColors(); renderMode(); }
+      resetRun();
+      reactionInGames = true;
+      $('gTitle2').textContent = MODES[mode].label + ' reaction';
+      $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
+      $('gStage').innerHTML = '';
+      $('gStage').appendChild(testCard);
+    },
+    close() {
+      if (!reactionInGames) return;
+      reactionInGames = false;
+      clearTimeout(timer); clearTimeout(stimTimer); removeTarget();
+      testPlaceholder.parentNode.insertBefore(testCard, testPlaceholder);
+      resetRun();
+    }
+  };
 
   function renderMode() {
     document.querySelectorAll('#modeRow [data-mode]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === currentMode)));
@@ -2013,7 +2043,11 @@
     return g.higherBetter ? Math.max(...list.map(s => s.score)) : Math.min(...list.map(s => s.score));
   }
   function renderGrid() {
-    $('gGrid').innerHTML = GAMES.map(g => {
+    $('gGrid').innerHTML = REACTION_TILES.map(t =>
+      '<button class="gGame" data-id="' + t.id + '"><div class="preview">' + t.preview + '</div>' +
+      '<h2>' + esc(t.name) + '</h2><p>' + esc(t.desc) + '</p>' +
+      '<div class="best">' + esc(window.ReactionLabBridge.summary(t.mode)) + '</div></button>'
+    ).join('') + GAMES.map(g => {
       const b = bestOf(g.id);
       return '<button class="gGame" data-id="' + g.id + '"><div class="preview">' + (PREVIEW[g.id] || '') + '</div>' +
         '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
@@ -2035,7 +2069,15 @@
   }
   $('gClear').addEventListener('click', () => { if (confirm('Delete all brain game scores?')) { scores = []; write(); renderGrid(); renderScores(); } });
 
+  // reaction modes open the reaction test in the game screen
+  const REACTION_TILES = [
+    { id: 'r-simple', mode: 'simple', name: 'Simple Reaction', desc: 'Wait for the colour change, then click.', preview: '<div class="pv"><div class="pv-dot"></div></div>' },
+    { id: 'r-audio', mode: 'audio', name: 'Audio Only', desc: 'Listen for the beep, then click. No visual cue.', preview: '<div class="pv"><div class="pv-ring"></div></div>' },
+    { id: 'r-target', mode: 'target', name: 'Target', desc: 'A target appears. Click it fast.', preview: '<div class="pv"><div class="pv-drift"></div></div>' },
+    { id: 'r-arrows', mode: 'arrows', name: 'Arrows', desc: 'Press the matching arrow direction.', preview: '<div class="pv"><span class="pv-word">→</span></div>' }
+  ];
   function openGame(id) {
+    if (id.indexOf('r-') === 0) return window.ReactionLabBridge.open(id.slice(2));
     const g = GAMES.find(x => x.id === id);
     const token = ++running;
     $('gTitle2').textContent = g.name;
@@ -2043,6 +2085,7 @@
     const sr = $('gScreen').getBoundingClientRect();
     if (sr.top < 0 || sr.top > window.innerHeight * 0.6) $('gScreen').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const stage = $('gStage');
+    if (window.ReactionLabBridge) window.ReactionLabBridge.close();
     stage.innerHTML = '';
     const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
     // show a start screen first; the game only begins when Start is pressed
@@ -2057,7 +2100,7 @@
       GAME_FNS[id](api);
     });
   }
-  $('gQuit2').addEventListener('click', () => { running++; $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
+  $('gQuit2').addEventListener('click', () => { running++; if (window.ReactionLabBridge) window.ReactionLabBridge.close(); $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
 
   function showResult(g, score) {
     const best = bestOf(g.id);
