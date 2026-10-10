@@ -832,6 +832,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     if (goal == null) {
       setRing($('goalRing'), 0);
       $('goalPct').textContent = '—';
+      $('goalPct').nextElementSibling.textContent = 'no goal set';
       $('goalState').textContent = '';
       msg.className = 'goalMsg';
       msg.textContent = 'Set a target average in ms, like 200, to track progress.';
@@ -839,7 +840,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     }
     if (s.mean == null) {
       setRing($('goalRing'), 0);
-      $('goalPct').textContent = '0%';
+      $('goalPct').textContent = goal + ' ms';
+      $('goalPct').nextElementSibling.textContent = 'target';
       $('goalState').textContent = 'target ' + goal + ' ms';
       msg.className = 'goalMsg';
       msg.textContent = 'Save a run to start tracking your goal.';
@@ -848,7 +850,13 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     // progress runs from 260 ms (average) up to your goal
     const pct = Math.max(0, Math.min(1, (260 - s.mean) / (260 - goal)));
     setRing($('goalRing'), pct);
-    $('goalPct').textContent = Math.round(pct * 100) + '%';
+    if (s.mean <= goal) {
+      $('goalPct').textContent = 'Done';
+      $('goalPct').nextElementSibling.textContent = 'goal reached';
+    } else {
+      $('goalPct').textContent = Math.round(s.mean - goal) + ' ms';
+      $('goalPct').nextElementSibling.textContent = 'to go';
+    }
     $('goalState').textContent = 'target ' + goal + ' ms';
     if (s.mean <= goal) {
       msg.className = 'goalMsg hit';
@@ -1008,7 +1016,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     const host = $('history');
     if (!runs.length) { host.innerHTML = '<div class="empty">No runs yet. Finish a run and hit Save.</div>'; return; }
     const table = document.createElement('table');
-    table.innerHTML = '<thead><tr><th>Date</th><th>Tries (ms)</th><th>Mean</th><th>Speed</th><th></th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Date</th><th>Tries (ms)</th><th>Average</th><th>Speed <span class="muted" style="text-transform:none;letter-spacing:0">(longer = faster)</span></th><th></th></tr></thead>';
     const tb = document.createElement('tbody');
     const worst = Math.max(...runs.map(r => r.mean), 260);
     runs.forEach((r, i) => {
@@ -1021,6 +1029,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       tdMean.appendChild(tag);
       const tdBar = document.createElement('td');
       const bar = document.createElement('div'); bar.className = 'bar2';
+      bar.title = 'Average ' + Math.round(r.mean) + ' ms (longer bar = faster)';
       const fill = document.createElement('b');
       bar.appendChild(fill); tdBar.appendChild(bar);
       const tdDel = document.createElement('td');
