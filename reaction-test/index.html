@@ -421,6 +421,21 @@
   .gGame .best { margin-top: 4px !important; font-size: .7rem !important; }
   .gGame .rk { margin-top: 6px !important; width: 100%; }
   .gGame .rkBar { margin-top: 4px !important; }
+  /* taller, vertical layout for Brain games */
+  .gGrid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 18px !important; }
+  .gGame { padding: 18px !important; border-radius: 20px !important; min-height: 340px; }
+  .gGame .preview { height: 180px !important; }
+  .gGame h2 { font-size: 1.1rem !important; margin: 14px 0 4px !important; }
+  .gGame p { display: block !important; font-size: .88rem !important; }
+  .gGame .best { font-size: .85rem !important; margin-top: 8px !important; }
+  .gGame .rk { display: block !important; margin-top: 12px !important; width: 100%; }
+  .gGame .rkNote, .gGame .rkNext { display: block !important; }
+  #gStage { min-height: 520px !important; }
+  #gStage #arena { height: 440px !important; }
+  #gStage #testCard { width: 100%; border: 0; box-shadow: none; background: transparent; padding: 0; }
+  #gStage #testCard .card-head { display: none; }
+  #gScreen { padding: 26px !important; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -1456,8 +1471,10 @@
   // ---- bridge: lets the Brain games grid open the reaction test ----
   let reactionInGames = false;
   const testCard = $('testCard');
-  const testPlaceholder = document.createElement('div');
-  testCard.parentNode.insertBefore(testPlaceholder, testCard);
+  const reactionHolder = document.createElement('div');
+  reactionHolder.hidden = true;
+  testCard.parentNode.insertBefore(reactionHolder, testCard);
+  reactionHolder.appendChild(testCard);
   window.ReactionLabBridge = {
     summary(mode) {
       const list = runs.filter(r => (r.mode || 'simple') === mode);
@@ -1478,7 +1495,7 @@
       if (!reactionInGames) return;
       reactionInGames = false;
       clearTimeout(timer); clearTimeout(stimTimer); removeTarget();
-      testPlaceholder.parentNode.insertBefore(testCard, testPlaceholder);
+      reactionHolder.appendChild(testCard);
       resetRun();
     }
   };
