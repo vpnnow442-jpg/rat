@@ -101,9 +101,9 @@
   .modeRow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; padding: 5px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
   .modeRow button { flex: 1 1 auto; border: 0; background: transparent; color: var(--muted); padding: 9px 12px; }
   .modeRow button[aria-selected="true"] { background: var(--panel-solid); color: var(--fg); box-shadow: 0 1px 0 var(--line); }
-  #arena.choice { background: linear-gradient(160deg, #2563eb, #1e3a8a); color: #fff; }
-  #arena.sound { background: linear-gradient(160deg, #a855f7, #6d28d9); color: #fff; }
-  #arena.stop { background: linear-gradient(160deg, #475569, #1e293b); color: #fff; }
+  .target { position: absolute; width: 64px; height: 64px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+            background: radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 60%, #94a3b8); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+  .target:active { transform: scale(.94); }
   .colorRow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
   .colorRow label { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); font-weight: 600; }
   .colorRow input[type="color"] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
@@ -375,9 +375,8 @@
     </div>
     <div class="modeRow" id="modeRow" role="tablist" aria-label="Game mode">
       <button data-mode="simple" aria-selected="true">Simple</button>
-      <button data-mode="sound" aria-selected="false">Sound</button>
-      <button data-mode="choice" aria-selected="false">Choice</button>
-      <button data-mode="gonogo" aria-selected="false">Go / No-go</button>
+      <button data-mode="audio" aria-selected="false">Audio only</button>
+      <button data-mode="target" aria-selected="false">Target</button>
     </div>
     <div id="arena" role="button" tabindex="0" aria-label="Reaction test area. Click or press Enter to start">
       <h3 id="arenaTitle">Ready?</h3>
@@ -614,18 +613,16 @@
   if (!Array.isArray(friends)) friends = [];
   const MODE_KEY = 'reactionlab-mode-v1';
   const MODES = {
-    simple: { label: 'Simple',     tries: 5,  hint: 'Wait for the colour change, then click or press Space as fast as you can.' },
-    sound:  { label: 'Sound',      tries: 5,  hint: 'Wait for the beep, then click or press Space. Turn your volume up.' },
-    choice: { label: 'Choice',     tries: 5,  hint: 'An arrow appears. Press Left or Right (or tap that side of the box). Wrong sides count as mistakes.' },
-    gonogo: { label: 'Go / No-go', tries: 10, hint: 'On GO, click or press Space. On STOP, hold back. Pressing on STOP or missing GO counts as a mistake.' }
+    simple: { label: 'Simple',     tries: 5, hint: 'Wait for the colour change, then click or press Space as fast as you can.' },
+    audio:  { label: 'Audio only', tries: 5, hint: 'No colours or words. Listen for the sound, then click anywhere in the box as soon as you hear it.' },
+    target: { label: 'Target',     tries: 5, hint: 'Wait. A target appears in a random spot. Click it as fast as you can. Clicking empty space counts as a mistake.' }
   };
   let currentMode = readJSON(MODE_KEY, 'simple');
   if (!MODES[currentMode]) currentMode = 'simple';
   let current = [];                      // correct reaction times this run
   let errors = 0;                        // mistakes this run
   let trial = 0;                         // finished trials this run
-  let plan = [];                         // stimulus order (choice / go-no-go)
-  let stimulus = null;                   // current stimulus
+  let targetEl = null;                   // the target button in Target mode
   let state = 'idle';                    // idle | waiting | ready | pause | done
   let timer = null, stimTimer = null, readyAt = 0, audioCtx = null;
   const modeRuns = () => runs.filter(r => (r.mode || 'simple') === currentMode);
@@ -707,17 +704,27 @@
       o.frequency.value = 880; g.gain.value = 0.25;
       o.connect(g); g.connect(audioCtx.destination);
       o.start(); o.stop(audioCtx.currentTime + 0.15);
-    } catch (e) { /* no sound available: the arena still changes */ }
+    } catch (e) { /* no sound available */ }
   }
-  function makePlan() {
-    const shuffle = (a) => a.sort(() => Math.random() - 0.5);
-    if (currentMode === 'choice') return shuffle(Array.from({ length: 5 }, (_, i) => (i % 2 ? 'left' : 'right')));
-    if (currentMode === 'gonogo') return shuffle(Array.from({ length: 10 }, (_, i) => (i < 7 ? 'go' : 'nogo')));
-    return null;
+  function removeTarget() {
+    if (targetEl) { targetEl.remove(); targetEl = null; }
+  }
+  function placeTarget() {
+    removeTarget();
+    const size = 64;
+    const t = document.createElement('button');
+    t.className = 'target';
+    t.setAttribute('aria-label', 'Target');
+    t.style.left = (12 + Math.random() * Math.max(0, arena.clientWidth - size - 24)) + 'px';
+    t.style.top = (12 + Math.random() * Math.max(0, arena.clientHeight - size - 24)) + 'px';
+    t.addEventListener('pointerdown', (e) => { e.stopPropagation(); onPress('hit'); });
+    arena.appendChild(t);
+    targetEl = t;
   }
   function resetRun() {
     clearTimeout(timer); clearTimeout(stimTimer);
-    current = []; errors = 0; trial = 0; plan = makePlan(); stimulus = null; state = 'idle';
+    removeTarget();
+    current = []; errors = 0; trial = 0; state = 'idle';
     saveRunBtn.hidden = true; resetBtn.hidden = true;
     renderDots();
     setArena('', 'Ready?', MODES[currentMode].hint);
@@ -726,10 +733,15 @@
   function nextTrial() {
     if (trial >= MODES[currentMode].tries) return endRun();
     state = 'waiting';
-    stimulus = plan ? plan[trial] : null;
-    setArena('wait', 'Wait...', currentMode === 'choice' || currentMode === 'gonogo' ? 'Get ready. Do not press yet.' : 'Do not press until the signal.');
-    bigNum.textContent = '';
+    removeTarget();
     renderDots();
+    bigNum.textContent = '';
+    if (currentMode === 'simple') {
+      setArena('wait', 'Wait...', 'Do not click until the screen turns to your go colour.');
+    } else {
+      // audio and target modes stay neutral so nothing signals the moment
+      setArena('', 'Wait...', currentMode === 'audio' ? 'Listen. The sound comes at a random time.' : 'The target comes at a random time.');
+    }
     timer = setTimeout(showStimulus, 2000 + Math.random() * 3000); // random so you cannot guess the moment
   }
   function showStimulus() {
@@ -737,37 +749,34 @@
     state = 'ready';
     if (currentMode === 'simple') {
       setArena('go', 'CLICK!', '');
-    } else if (currentMode === 'sound') {
+    } else if (currentMode === 'audio') {
+      setArena('', '', '');
       beep();
-      setArena('sound', 'BEEP!', 'Click or press Space now.');
-    } else if (currentMode === 'choice') {
-      setArena('choice', stimulus === 'left' ? '←' : '→', 'Press ' + (stimulus === 'left' ? 'Left' : 'Right') + ' (or tap that side).');
-    } else if (currentMode === 'gonogo') {
-      if (stimulus === 'go') setArena('go', 'GO!', 'Click or press Space.');
-      else setArena('stop', 'STOP', 'Hold back. Do not press.');
+    } else if (currentMode === 'target') {
+      setArena('', '', '');
+      placeTarget();
     }
-    // a trial with no press ends by itself after a short wait
-    const limit = currentMode === 'gonogo' ? (stimulus === 'go' ? 1200 : 1000) : 4000;
-    stimTimer = setTimeout(onTimeout, limit);
+    stimTimer = setTimeout(onTimeout, 4000);
   }
   function onTimeout() {
     clearTimeout(stimTimer);
-    if (currentMode === 'gonogo' && stimulus === 'nogo') flashDelta('Good hold', true);
-    else { errors++; flashDelta('Missed it', false); }
+    errors++;
+    flashDelta('Too slow, counted as a miss', false);
     finishTrial(null);
   }
   function finishTrial(ms) {
     trial++;
     state = 'pause';
+    removeTarget();
     renderDots();
     if (trial >= MODES[currentMode].tries) { setTimeout(endRun, 500); return; }
-    if (currentMode === 'gonogo') { setTimeout(nextTrial, 700); return; }
-    // simple, sound and choice wait for a click to go on, so the result stays visible
+    // wait for a click to go on, so the result stays visible
     state = 'idle';
     setArena('', ms == null ? 'Next try' : 'Nice, ' + ms + ' ms', 'Click for try ' + (trial + 1) + ' of ' + MODES[currentMode].tries + '.');
   }
   function endRun() {
     clearTimeout(timer); clearTimeout(stimTimer);
+    removeTarget();
     state = 'done';
     const m = mean(current);
     const mistakes = errors ? ' ' + errors + (errors === 1 ? ' mistake.' : ' mistakes.') : '';
@@ -779,18 +788,16 @@
     }
     resetBtn.hidden = false;
   }
-  // side: 'left' | 'right' (from keys or the tapped half of the box) | 'space' | 'any'
-  function onPress(side) {
+  // side: 'any' (arena press or Space / Enter) or 'hit' (the target itself)
+  function onPress(kind) {
     if (state === 'done' || state === 'pause') return;
     if (state === 'idle') {
-      if (currentMode === 'sound') ensureAudio();
-      if (currentMode === 'choice' && side !== 'left' && side !== 'right') return;
+      if (currentMode === 'audio') ensureAudio();
       return nextTrial();
     }
     if (state === 'waiting') {
       // pressing too early restarts this try
       clearTimeout(timer);
-      if (currentMode === 'gonogo') errors++;
       flashDelta('Too early', false);
       setArena('early', 'Too early!', 'Wait for the signal. Click to try this one again.');
       state = 'idle';
@@ -798,14 +805,9 @@
       return;
     }
     if (state === 'ready') {
-      if (currentMode === 'choice' && side !== stimulus) {
-        if (side === 'left' || side === 'right') { errors++; flashDelta('Wrong side', false); }
+      if (currentMode === 'target' && kind !== 'hit') {
+        errors++; flashDelta('Missed the target', false);
         return;
-      }
-      if (currentMode === 'choice' && side !== 'left' && side !== 'right') return;
-      if (currentMode === 'gonogo' && stimulus === 'nogo') {
-        clearTimeout(stimTimer); errors++; flashDelta('That was STOP', false);
-        return finishTrial(null);
       }
       clearTimeout(stimTimer);
       const ms = Math.round(performance.now() - readyAt);
@@ -833,20 +835,11 @@
     toast('Run saved: ' + fmt(m) + ' average');
   }
 
-  // arena press: work out which half was tapped for choice mode
-  arena.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    const b = arena.getBoundingClientRect();
-    onPress(e.clientX - b.left < b.width / 2 ? 'left' : 'right');
-  });
+  arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress('any'); });
   arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress('any'); } });
   document.addEventListener('keydown', (e) => {
     if (['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
-    if (e.code === 'Space') { e.preventDefault(); onPress(currentMode === 'choice' ? 'space' : 'any'); }
-    else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
-      e.preventDefault();
-      onPress(e.code === 'ArrowLeft' ? 'left' : 'right');
-    }
+    if (e.code === 'Space') { e.preventDefault(); onPress('any'); }
   });
   saveRunBtn.addEventListener('click', saveRun);
   resetBtn.addEventListener('click', discardRun);
@@ -1163,7 +1156,7 @@
       const tdDate = document.createElement('td');
       tdDate.textContent = new Date(r.t).toLocaleString();
       const modeTag = document.createElement('span'); modeTag.className = 'tag'; modeTag.style.marginLeft = '8px';
-      modeTag.textContent = (MODES[r.mode || 'simple'] || MODES.simple).label;
+      modeTag.textContent = MODES[r.mode || 'simple'] ? MODES[r.mode || 'simple'].label : (r.mode + ' (old)');
       tdDate.appendChild(modeTag);
       const tdTries = document.createElement('td'); tdTries.className = 'tries'; tdTries.textContent = r.tries.join(', ');
       const tdMean = document.createElement('td');
