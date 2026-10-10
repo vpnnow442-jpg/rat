@@ -441,6 +441,7 @@
     <button role="tab" aria-selected="false" aria-controls="p-compare" data-tab="compare">Compare</button>
     <button role="tab" aria-selected="false" aria-controls="p-bench" data-tab="bench">Benchmarks</button>
     <button role="tab" aria-selected="false" aria-controls="p-fan" data-tab="fan">Fan estimates</button>
+    <button role="tab" aria-selected="false" aria-controls="p-games" data-tab="games">Brain games</button>
     <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
     <button role="tab" aria-selected="false" aria-controls="p-profile" data-tab="profile">Profile</button>
   </nav>
@@ -476,18 +477,6 @@
     </div>
   </section>
 
-  <section class="card reveal" id="gamesCard">
-    <div class="card-head"><h2>Brain games</h2><span class="gMuted">Memory and speed games. Scores are tracked below.</span></div>
-    <div class="gGrid" id="gGrid"></div>
-    <section id="gScreen" aria-live="polite">
-      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
-      <div class="stage" id="gStage"></div>
-    </section>
-    <section class="gScoresBox">
-      <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
-      <div id="gScoreTable"></div>
-    </section>
-  </section>
 
 
   </div>
@@ -604,6 +593,21 @@
     </div>
     <div class="tableWrap" id="board"></div>
     <p class="note">There is no live online leaderboard yet, because that needs a server. Ask a friend to send you their backup file (they press Backup (JSON) in their History tab). Type their name, then add the file here and you will both be ranked. Their file is stored only in your browser.</p>
+  </section>
+  </div>
+
+  <div class="panel" id="p-games" role="tabpanel" data-panel="games">
+  <section class="card reveal" id="gamesCard">
+    <div class="card-head"><h2>Brain games</h2><span class="gMuted">Memory and speed games. Scores are tracked below.</span></div>
+    <div class="gGrid" id="gGrid"></div>
+    <section id="gScreen" aria-live="polite">
+      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
+      <div class="stage" id="gStage"></div>
+    </section>
+    <section class="gScoresBox">
+      <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
+      <div id="gScoreTable"></div>
+    </section>
   </section>
   </div>
 
