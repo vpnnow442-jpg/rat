@@ -446,7 +446,10 @@
   #gInfo #exBlock { display: grid; gap: 4px; }
 
   /* while one game is open, hide every other tile and heading */
-  body.game-open .gGrid, body.game-open .rarityKey { display: none !important; }
+  body.game-open .gGrid, body.game-open .gGroupTitle, body.game-open .rarityKey { display: none !important; }
+  .gGroup { margin-top: 20px; }
+  .gGroup:first-child { margin-top: 0; }
+  .gGroupTitle { font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
   body.game-open #p-all > .card > .card-head, body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head, body.game-open #p-originals > .card > .card-head, body.game-open #p-classics > .card > .card-head { display: none !important; }
 
   .closeX { width:48px; height:48px; flex:0 0 48px; border-radius:50%; border:2px solid #ef4444; background:transparent;
@@ -792,7 +795,7 @@
   <div class="panel" id="p-all" role="tabpanel" data-panel="all">
   <section class="card reveal">
     <div class="card-head"><h2>All games</h2><span class="gMuted">Every game and reaction mode in one place</span></div>
-    <div class="gGrid" id="aGrid"></div>
+    <div id="aGrid"></div>
   </section>
   </div>
 
@@ -2136,7 +2139,15 @@
     ).join('') + GAMES.filter(g => (g.cat || 'brain') === 'brain').map(gameTile).join('');
     $('vGrid').innerHTML = GAMES.filter(g => g.cat === 'vision').map(gameTile).join('');
     $('oGrid').innerHTML = GAMES.filter(g => g.cat === 'originals').map(gameTile).join('');
-    $('aGrid').innerHTML = GAMES.map(gameTile).join('');
+    const reactionHtml = REACTION_TILES.map(t =>
+      '<button class="gGame" data-id="' + t.id + '"><div class="preview">' + t.preview + '</div>' +
+      '<h2>' + esc(t.name) + '</h2><p>' + esc(t.desc) + '</p>' +
+      '<div class="best">' + esc(window.ReactionLabBridge.summary(t.mode)) + '</div></button>'
+    ).join('');
+    const group = (title, body) => '<div class="gGroup"><h3 class="gGroupTitle">' + esc(title) + '</h3><div class="gGrid">' + body + '</div></div>';
+    const cat = (c) => GAMES.filter(g => (g.cat || 'brain') === c).map(gameTile).join('');
+    $('aGrid').innerHTML = group('Reaction modes', reactionHtml) + group('Memory and speed', cat('brain')) +
+      group('Vision', cat('vision')) + group('Originals', cat('originals')) + group('Reaction classics', cat('classics'));
     $('cGrid').innerHTML = GAMES.filter(g => g.cat === 'classics').map(gameTile).join('');
     document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
   }
@@ -2166,7 +2177,7 @@
     grid.parentNode.insertBefore($('gScreen'), grid);
   }
   function openGame(id) {
-    if (id.indexOf('r-') === 0) { placeScreen('gGrid'); return window.ReactionLabBridge.open(id.slice(2)); }
+    if (id.indexOf('r-') === 0) { placeScreen($('p-all').classList.contains('on') ? 'aGrid' : 'gGrid'); return window.ReactionLabBridge.open(id.slice(2)); }
     const g = GAMES.find(x => x.id === id);
     // the game opens above the page the user is on (All games, or its own page)
     placeScreen($('p-all').classList.contains('on') ? 'aGrid' : ({ vision: 'vGrid', originals: 'oGrid', classics: 'cGrid' }[g.cat] || 'gGrid'));
@@ -3003,20 +3014,34 @@
     next();
   };
 
-  // Cascade: tiles fall in four lanes. Tap the lane when a tile reaches the line.
+  // Cascade: tiles fall in four lanes. Tap a lane as its tile reaches the glowing line.
   GAME_FNS.cascade = async (api) => {
     const A = newArea(340); const info = newNote(); api.stage.append(A, info);
-    const line = document.createElement('div'); line.style.cssText = 'position:absolute;left:0;right:0;bottom:60px;height:2px;background:var(--accent3);'; A.appendChild(line);
+    for (let lane = 1; lane < 4; lane++) {
+      const dv = document.createElement('div');
+      dv.style.cssText = 'position:absolute;top:0;bottom:0;left:' + (lane * 25) + '%;width:1px;background:var(--line);';
+      A.appendChild(dv);
+    }
+    const line = document.createElement('div');
+    line.style.cssText = 'position:absolute;left:0;right:0;bottom:60px;height:3px;background:linear-gradient(90deg,transparent,var(--accent3),transparent);box-shadow:0 0 14px var(--accent3);';
+    A.appendChild(line);
     const tiles = []; let spawned = 0, hits = 0, last = performance.now(), ended = false;
     const lineY = () => A.clientHeight - 60;
+    // tap areas are on top of the tiles, so a tap always counts for its lane
     for (let lane = 0; lane < 4; lane++) {
       const z = document.createElement('button');
-      z.style.cssText = 'position:absolute;bottom:0;height:60px;width:25%;left:' + (lane * 25) + '%;background:var(--line);opacity:.5;border:0;';
+      z.style.cssText = 'position:absolute;top:0;bottom:0;width:25%;left:' + (lane * 25) + '%;background:transparent;border:0;cursor:pointer;z-index:2;transition:background .15s;';
       z.onclick = () => {
         if (!api.alive() || ended) return;
-        const t = tiles.find(t => t.live && t.lane === lane && Math.abs(t.y - lineY()) <= 26);
-        if (t) { t.live = false; t.el.remove(); hits++; info.textContent = 'Hit! ' + hits; }
-        else info.textContent = 'Not on the line';
+        z.style.background = 'rgba(139,108,255,.16)';
+        setTimeout(() => { z.style.background = 'transparent'; }, 150);
+        const t = tiles.find(t => t.live && t.lane === lane && Math.abs(t.y + 12 - lineY()) <= 30);
+        if (t) {
+          t.live = false; hits++;
+          t.el.style.background = 'var(--accent3)';
+          setTimeout(() => t.el.remove(), 120);
+          info.textContent = 'Hit! ' + hits;
+        } else info.textContent = 'Not on the line';
       };
       A.appendChild(z);
     }
@@ -3025,7 +3050,7 @@
       spawned++;
       const lane = Math.floor(Math.random() * 4);
       const el = document.createElement('div');
-      el.style.cssText = 'position:absolute;width:22%;height:24px;left:' + (lane * 25 + 1.5) + '%;top:-30px;border-radius:8px;background:var(--accent2);';
+      el.style.cssText = 'position:absolute;z-index:1;pointer-events:none;width:22%;height:24px;left:' + (lane * 25 + 1.5) + '%;top:-30px;border-radius:8px;background:linear-gradient(180deg,var(--accent2),var(--accent));box-shadow:0 0 12px var(--accent2);transition:background .1s;';
       A.appendChild(el);
       tiles.push({ el, lane, y: -30, live: true });
       setTimeout(spawn, Math.max(260, 650 - spawned * 15));
@@ -3042,6 +3067,7 @@
       if (spawned >= 20 && tiles.every(t => !t.live)) { ended = true; return api.finish(hits); }
       requestAnimationFrame(tick);
     }
+    info.textContent = 'Tap the lane when its tile reaches the line.';
     spawn(); requestAnimationFrame(tick);
   };
 
