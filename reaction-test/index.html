@@ -2128,14 +2128,20 @@
   // Tracking Trainer: share of time the cursor is on a moving target for 10 seconds
   GAME_FNS.track = async (api) => {
     const area = document.createElement('div');
-    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--cell);border:1px solid var(--line);overflow:hidden;cursor:crosshair;touch-action:none;';
+    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;cursor:crosshair;touch-action:none;';
     const dot = document.createElement('div');
     dot.style.cssText = 'position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:var(--accent);box-shadow:0 0 22px var(--accent);';
     area.appendChild(dot);
+    const count = document.createElement('div');
+    count.style.cssText = 'position:absolute;inset:0;display:grid;place-items:center;font-size:4rem;font-weight:800;pointer-events:none;';
+    area.appendChild(count);
     const info = document.createElement('div'); info.className = 'gMuted';
     api.stage.append(area, info);
-    let cx = 0, cy = 0, on = 0, ticks = 0, started = 0, timer = null;
+
+    // the ball moves from the start, so you can track it during the countdown
     const t0 = performance.now();
+    let live = false, on = 0, ticks = 0, timer = null, rafId = 0;
+    let pointer = null;
     const move = () => {
       const t = (performance.now() - t0) / 1000;
       const w = area.clientWidth, hgt = area.clientHeight;
@@ -2144,21 +2150,37 @@
       dot.style.left = x + 'px'; dot.style.top = y + 'px';
       return { x, y };
     };
-    let pointer = null;
     area.addEventListener('pointermove', (e) => { const b = area.getBoundingClientRect(); pointer = { x: e.clientX - b.left, y: e.clientY - b.top }; });
     area.addEventListener('pointerleave', () => { pointer = null; });
-    let rafId = 0;
+
     const loop = () => {
       if (!api.alive()) return;
-      if (!started) { started = performance.now(); timer = setTimeout(end, 10000); }
       const d = move();
-      ticks++;
-      if (pointer && Math.hypot(pointer.x - d.x, pointer.y - d.y) < 26) on++;
-      info.textContent = Math.round((on / Math.max(1, ticks)) * 100) + '% on target';
+      if (live) {
+        ticks++;
+        if (pointer && Math.hypot(pointer.x - d.x, pointer.y - d.y) < 26) on++;
+        info.textContent = Math.round((on / Math.max(1, ticks)) * 100) + '% on target';
+      }
       rafId = requestAnimationFrame(loop);
     };
     function end() { cancelAnimationFrame(rafId); if (api.alive()) api.finish(Math.round((on / Math.max(1, ticks)) * 100)); }
-    info.textContent = 'Move your mouse onto the moving circle. The 10-second timer starts now.';
+    function startScoring() {
+      live = true;
+      count.textContent = '';
+      info.textContent = '0% on target';
+      timer = setTimeout(end, 10000);
+    }
+    // 3, 2, 1, GO, then scoring starts
+    const steps = ['3', '2', '1', 'GO!'];
+    steps.forEach((label, i) => {
+      setTimeout(() => {
+        if (!api.alive()) return;
+        count.textContent = label;
+        count.animate([{ transform: 'scale(1.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 350, easing: 'ease-out' });
+        if (i === steps.length - 1) setTimeout(startScoring, 400);
+      }, i * 800);
+    });
+    info.textContent = 'Get ready. Scoring starts after the countdown.';
     rafId = requestAnimationFrame(loop);
   };
 
