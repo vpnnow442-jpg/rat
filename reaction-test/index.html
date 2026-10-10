@@ -725,6 +725,13 @@
 
   </div>
 
+  <div class="panel" id="p-vision" role="tabpanel" data-panel="vision">
+  <section class="card reveal">
+    <div class="card-head"><h2>Vision tests</h2><span class="gMuted">Fun vision drills with ranks. Not a medical test.</span></div>
+    <div class="gGrid" id="vGrid"></div>
+  </section>
+  </div>
+
   <div class="panel" id="p-fan" role="tabpanel" data-panel="fan">
   <section class="card reveal">
     <div class="card-head"><h2>Fictional showdown</h2><span class="muted">Fun, not science</span></div>
@@ -2008,7 +2015,11 @@
     { id:'type', name:'Typing Speed',    desc:'How many words per minute can you type?', unit:'wpm', higherBetter:true, preview:'type' },
     { id:'cps',  name:'CPS Test',        desc:'Clicks per second in 5 seconds. The classic click-speed test.', unit:'CPS', higherBetter:true, preview:'CPS' },
     { id:'space',name:'Spacebar Speed',  desc:'Smash the spacebar as many times as you can in 5 seconds.', unit:'presses', higherBetter:true, preview:'SPACE' },
-    { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' }
+    { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' },
+    { id:'colour', name:'Colour Spot', desc:'Find the one square with a slightly different colour. It gets harder each level.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
+    { id:'odd', name:'Odd Letter', desc:'Spot the letter that does not match the others. Look closely.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
+    { id:'peri', name:'Edge Flash', desc:'Keep your eyes on the centre dot and click the targets that flash at the edges.', unit:'hits of 20', higherBetter:true, preview:'', cat:'vision' },
+    { id:'multi', name:'Track Three', desc:'Remember 3 highlighted dots, then track them as they move and pick them out.', unit:'correct of 9', higherBetter:true, preview:'', cat:'vision' },
   ];
 
   const PREVIEW = {
@@ -2021,14 +2032,19 @@
     type: '<div class="pv"><span class="pv-caret">type<b>|</b></span></div>',
     cps:  '<div class="pv"><div class="pv-ring"></div></div>',
     space:'<div class="pv"><span class="pv-key">SPACE</span></div>',
-    track:'<div class="pv"><div class="pv-drift"></div></div>'
+    track:'<div class="pv"><div class="pv-drift"></div></div>',
+    colour: '<div class="pv"><div class="pv-grid">' + '<i></i>'.repeat(9) + '</div></div>',
+    odd: '<div class="pv"><span class="pv-word">b d</span></div>',
+    peri: '<div class="pv"><div class="pv-ring"></div></div>',
+    multi: '<div class="pv"><div class="pv-row"><span>●</span><span>●</span><span>●</span></div></div>'
   };
   // Rank cut-offs per game, from Bronze up to Diamond. Each is a score you need to reach.
   const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
   const RANK_CUTS = {
     seq: [4, 7, 10, 13, 16], num: [4, 6, 8, 10, 12], word: [10, 14, 17, 19, 20], vis: [3, 6, 9, 12, 15],
     ord: [3500, 2500, 1800, 1400, 1100], pop: [600, 550, 450, 380, 320],
-    type: [30, 50, 70, 90, 110], cps: [4, 6, 7.5, 9, 11], space: [25, 35, 45, 55, 65], track: [30, 45, 60, 75, 90]
+    type: [30, 50, 70, 90, 110], cps: [4, 6, 7.5, 9, 11], space: [25, 35, 45, 55, 65], track: [30, 45, 60, 75, 90],
+    colour: [3, 5, 7, 9, 11], odd: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [3, 4, 5, 6, 8]
   };
   // Rough rarity guide only. These are estimates, not measured data.
   const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%'];
@@ -2085,17 +2101,19 @@
     if (!list.length) return null;
     return g.higherBetter ? Math.max(...list.map(s => s.score)) : Math.min(...list.map(s => s.score));
   }
+  function gameTile(g) {
+    const b = bestOf(g.id);
+    return '<button class="gGame" data-id="' + g.id + '"><div class="preview">' + (PREVIEW[g.id] || '') + '</div>' +
+      '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
+      '<div class="best">' + (b == null ? 'Not played yet' : 'Best: ' + b + ' ' + esc(g.unit)) + '</div>' + rankHtml(g, b) + '</button>';
+  }
   function renderGrid() {
     $('gGrid').innerHTML = REACTION_TILES.map(t =>
       '<button class="gGame" data-id="' + t.id + '"><div class="preview">' + t.preview + '</div>' +
       '<h2>' + esc(t.name) + '</h2><p>' + esc(t.desc) + '</p>' +
       '<div class="best">' + esc(window.ReactionLabBridge.summary(t.mode)) + '</div></button>'
-    ).join('') + GAMES.map(g => {
-      const b = bestOf(g.id);
-      return '<button class="gGame" data-id="' + g.id + '"><div class="preview">' + (PREVIEW[g.id] || '') + '</div>' +
-        '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
-        '<div class="best">' + (b == null ? 'Not played yet' : 'Best: ' + b + ' ' + esc(GAMES.find(x => x.id === g.id).unit)) + '</div>' + rankHtml(g, b) + '</button>';
-    }).join('');
+    ).join('') + GAMES.filter(g => (g.cat || 'brain') === 'brain').map(gameTile).join('');
+    $('vGrid').innerHTML = GAMES.filter(g => g.cat === 'vision').map(gameTile).join('');
     document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
   }
   function renderScores() {
@@ -2119,9 +2137,14 @@
     { id: 'r-target', mode: 'target', name: 'Target', desc: 'A target appears. Click it fast.', preview: '<div class="pv"><div class="pv-drift"></div></div>' },
     { id: 'r-arrows', mode: 'arrows', name: 'Arrows', desc: 'Press the matching arrow direction.', preview: '<div class="pv"><span class="pv-word">→</span></div>' }
   ];
+  function placeScreen(gridId) {
+    const grid = $(gridId);
+    grid.parentNode.insertBefore($('gScreen'), grid);
+  }
   function openGame(id) {
-    if (id.indexOf('r-') === 0) return window.ReactionLabBridge.open(id.slice(2));
+    if (id.indexOf('r-') === 0) { placeScreen('gGrid'); return window.ReactionLabBridge.open(id.slice(2)); }
     const g = GAMES.find(x => x.id === id);
+    placeScreen(g.cat === 'vision' ? 'vGrid' : 'gGrid');
     const token = ++running;
     $('gTitle2').textContent = g.name;
     $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
@@ -2443,6 +2466,170 @@
   };
 
 
+  // Colour Spot: find the one square whose colour is slightly different
+  GAME_FNS.colour = async (api) => {
+    let level = 1;
+    const board = document.createElement('div'); board.className = 'board';
+    board.style.width = 'min(360px, 90vw)';
+    const msg = document.createElement('div'); msg.className = 'big'; msg.style.fontSize = '1.1rem';
+    api.stage.append(msg, board);
+    function round() {
+      if (!api.alive()) return;
+      const n = Math.min(3 + level, 8);
+      board.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+      board.innerHTML = '';
+      const hue = Math.floor(Math.random() * 360);
+      const diff = Math.max(3, 30 - level * 3);
+      const odd = Math.floor(Math.random() * n * n);
+      msg.textContent = 'Level ' + level + ': find the different square';
+      for (let i = 0; i < n * n; i++) {
+        const c = document.createElement('button'); c.className = 'cellBtn';
+        c.style.background = 'hsl(' + hue + ', 70%, ' + (50 + (i === odd ? diff : 0)) + '%)';
+        c.onclick = () => {
+          if (!api.alive()) return;
+          if (i === odd) { level++; setTimeout(round, 250); }
+          else api.finish(level - 1);
+        };
+        board.appendChild(c);
+      }
+    }
+    round();
+  };
+
+  // Odd Letter: spot the letter that is not like the others
+  GAME_FNS.odd = async (api) => {
+    let level = 1;
+    const pairs = [['b', 'd'], ['p', 'q'], ['O', 'Q'], ['m', 'n'], ['6', '9'], ['E', 'F']];
+    const board = document.createElement('div'); board.className = 'board';
+    board.style.width = 'min(360px, 90vw)';
+    const msg = document.createElement('div'); msg.className = 'big'; msg.style.fontSize = '1.1rem';
+    api.stage.append(msg, board);
+    function round() {
+      if (!api.alive()) return;
+      const n = Math.min(3 + level, 8);
+      board.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
+      board.innerHTML = '';
+      const pair = pairs[Math.floor(Math.random() * pairs.length)];
+      const odd = Math.floor(Math.random() * n * n);
+      msg.textContent = 'Level ' + level + ': find the odd letter';
+      for (let i = 0; i < n * n; i++) {
+        const c = document.createElement('button'); c.className = 'cellBtn num';
+        c.textContent = i === odd ? pair[1] : pair[0];
+        c.onclick = () => {
+          if (!api.alive()) return;
+          if (i === odd) { level++; setTimeout(round, 250); }
+          else api.finish(level - 1);
+        };
+        board.appendChild(c);
+      }
+    }
+    round();
+  };
+
+  // Edge Flash: keep your eyes on the centre, click each target that flashes at the edge
+  GAME_FNS.peri = async (api) => {
+    const area = document.createElement('div');
+    area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;';
+    const fix = document.createElement('div');
+    fix.style.cssText = 'position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--fg);';
+    area.appendChild(fix);
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(area, info);
+    let shown = 0, hits = 0;
+    function flash() {
+      if (!api.alive()) return;
+      if (shown >= 20) return api.finish(hits);
+      shown++;
+      info.textContent = 'Keep your eyes on the centre dot. Target ' + shown + ' of 20';
+      const ang = Math.random() * Math.PI * 2;
+      const cx = area.clientWidth / 2 + Math.cos(ang) * area.clientWidth * 0.38;
+      const cy = area.clientHeight / 2 + Math.sin(ang) * area.clientHeight * 0.38;
+      const t = document.createElement('button');
+      t.style.cssText = 'position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:0;background:var(--accent2);left:' + cx + 'px;top:' + cy + 'px;cursor:pointer;';
+      area.appendChild(t);
+      let done = false;
+      const end = (hit) => { if (done) return; done = true; if (hit) hits++; t.remove(); setTimeout(flash, 350); };
+      t.onclick = () => { if (api.alive()) end(true); };
+      setTimeout(() => end(false), 800);
+    }
+    flash();
+  };
+
+  // Track Three: 3 dots are highlighted, then all 8 move and you pick out the 3
+  GAME_FNS.multi = async (api) => {
+    const area = document.createElement('div');
+    area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;';
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(area, info);
+    const dots = [];
+    for (let i = 0; i < 8; i++) {
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--line);';
+      area.appendChild(el);
+      dots.push({ el, x: 0, y: 0, vx: 0, vy: 0, target: false });
+    }
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    function move(ms) {
+      return new Promise(res => {
+        const t0 = performance.now(); let last = t0;
+        const f = (now) => {
+          if (!api.alive()) return res(false);
+          const dt = (now - last) / 1000; last = now;
+          const W = area.clientWidth, H = area.clientHeight;
+          dots.forEach(d => {
+            d.x += d.vx * dt; d.y += d.vy * dt;
+            if (d.x < 14 || d.x > W - 14) { d.vx *= -1; d.x = Math.max(14, Math.min(W - 14, d.x)); }
+            if (d.y < 14 || d.y > H - 14) { d.vy *= -1; d.y = Math.max(14, Math.min(H - 14, d.y)); }
+            d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
+          });
+          if (now - t0 < ms) requestAnimationFrame(f); else res(true);
+        };
+        requestAnimationFrame(f);
+      });
+    }
+    let round = 0, total = 0;
+    async function playRound() {
+      if (!api.alive()) return;
+      round++;
+      if (round > 3) return api.finish(total);
+      const speed = 90 + round * 35;
+      const W = area.clientWidth, H = area.clientHeight;
+      dots.forEach(d => {
+        d.x = 30 + Math.random() * (W - 60); d.y = 30 + Math.random() * (H - 60);
+        const a = Math.random() * Math.PI * 2;
+        d.vx = Math.cos(a) * speed; d.vy = Math.sin(a) * speed;
+        d.target = false; d.el.style.background = 'var(--line)'; d.el.onclick = null; d.el.style.cursor = 'default';
+        d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
+      });
+      const picks = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, 3);
+      picks.forEach(i => { dots[i].target = true; dots[i].el.style.background = 'var(--accent2)'; });
+      info.textContent = 'Round ' + round + ' of 3. Remember the 3 highlighted dots.';
+      await wait(1500);
+      if (!api.alive()) return;
+      dots.forEach(d => { d.el.style.background = 'var(--line)'; });
+      info.textContent = 'Tracking...';
+      if (!(await move(4500))) return;
+      const chosen = [];
+      info.textContent = 'Click the 3 dots that were highlighted.';
+      dots.forEach((d, i) => {
+        d.el.style.cursor = 'pointer';
+        d.el.onclick = () => {
+          if (!api.alive() || chosen.includes(i) || chosen.length >= 3) return;
+          chosen.push(i);
+          d.el.style.background = 'var(--accent3)';
+          if (chosen.length === 3) {
+            const correct = chosen.filter(j => dots[j].target).length;
+            total += correct;
+            info.textContent = correct + ' of 3 correct';
+            dots.forEach(x => { x.el.onclick = null; });
+            setTimeout(playRound, 1000);
+          }
+        };
+      });
+    }
+    playRound();
+  };
+
   renderGrid();
   renderScores();
   window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY };
@@ -2450,7 +2637,7 @@
 
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
-    { id: 'play', label: 'Brain games', hint: 'Reaction tests and games', tabs: [['test', 'Brain games'], ['fan', 'Fan estimates']] },
+    { id: 'play', label: 'Brain games', hint: 'Reaction, memory and vision', tabs: [['test', 'Brain games'], ['vision', 'Vision tests'], ['fan', 'Fan estimates']] },
     { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['compare', 'Compare weeks'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
