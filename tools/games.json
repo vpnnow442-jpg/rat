@@ -100,9 +100,9 @@
     },
     {
       "id": "multi",
-      "name": "Track Three",
-      "desc": "Three dots light up, then all eight drift around. Pick out the three you were shown.",
-      "unit": "correct of 12",
+      "name": "Track One",
+      "desc": "One dot lights up, then all eight race around. Keep your eyes on it and pick it out.",
+      "unit": "correct of 10",
       "higherBetter": true,
       "preview": "",
       "cat": "vision"
@@ -350,12 +350,12 @@
       20
     ],
     "multi": [
-      6,
+      4,
+      5,
       7,
+      8,
       9,
-      10,
-      11,
-      12
+      10
     ],
     "ghost": [
       3,

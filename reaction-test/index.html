@@ -2201,7 +2201,7 @@
     { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' },
     { id:'colour', name:'Colour Spot', desc:'Find the one square with a slightly different colour. It gets harder each level.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
     { id:'peri', name:'Edge Flash', desc:'Keep your eyes on the centre dot and click the targets that flash at the edges.', unit:'hits of 20', higherBetter:true, preview:'', cat:'vision' },
-    { id:'multi', name:'Track Three', desc:'Three dots light up, then all eight drift around. Pick out the three you were shown.', unit:'correct of 12', higherBetter:true, preview:'', cat:'vision' },
+    { id:'multi', name:'Track One', desc:'One dot lights up, then all eight race around. Keep your eyes on it and pick it out.', unit:'correct of 10', higherBetter:true, preview:'', cat:'vision' },
     { id:'ghost', name:'Ghost Tap', desc:'A dot slips behind a wall. Tap the exact moment it crosses the line.', unit:'hits of 8', higherBetter:true, preview:'', cat:'originals' },
     { id:'dual', name:'Dual Mind', desc:'Two zones, two rules. Tap green on the left and blue on the right. Tapping the wrong one costs a point.', unit:'points of 8', higherBetter:true, preview:'', cat:'originals' },
     { id:'blink', name:'Blink', desc:'A number flashes for a moment, then vanishes. Type it back. It gets longer and faster.', unit:'digits', higherBetter:true, preview:'', cat:'originals' },
@@ -2257,7 +2257,7 @@
     seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [10, 20, 35, 55, 80, 120], vis: [3, 5, 7, 9, 11, 13],
     ord: [5000, 4000, 3200, 2600, 2100, 1700], pop: [750, 620, 520, 440, 380, 330],
     type: [30, 50, 70, 90, 110, 130], cps: [4, 6, 7.5, 9, 11, 13], space: [25, 35, 45, 55, 65, 75], track: [30, 45, 60, 75, 90, 95],
-    colour: [4, 6, 8, 10, 12, 14], peri: [8, 11, 14, 16, 18, 20], multi: [6, 7, 9, 10, 11, 12], ghost: [3, 4, 5, 6, 7, 8], dual: [3, 4, 5, 6, 7, 8], blink: [4, 5, 6, 7, 8, 9],
+    colour: [4, 6, 8, 10, 12, 14], peri: [8, 11, 14, 16, 18, 20], multi: [4, 5, 7, 8, 9, 10], ghost: [3, 4, 5, 6, 7, 8], dual: [3, 4, 5, 6, 7, 8], blink: [4, 5, 6, 7, 8, 9],
     nerve: [30, 22, 15, 10, 7, 5], colortrap: [6, 8, 10, 12, 14, 15], flip: [5, 7, 9, 10, 11, 12], mirror: [6, 8, 9, 10, 11, 12],
     pulse: [160, 120, 90, 65, 45, 30], schulte: [45000, 34000, 26000, 20000, 16000, 13000], bullseye: [14, 10, 7.5, 5.5, 4, 3],
     cascade: [6, 9, 12, 15, 17, 19], sprint: [5, 10, 15, 20, 30, 40], targetrush: [10, 14, 18, 22, 26, 30],
@@ -2909,7 +2909,7 @@
     flash();
   };
 
-  // Track Three: 3 of 8 dots are highlighted, then all of them drift and you pick out the 3
+  // Track One: 1 of 8 dots is highlighted, then all of them race around and you pick it out
   GAME_FNS.multi = async (api) => {
     const area = document.createElement('div');
     area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid #94a3b8;overflow:hidden;';
@@ -2941,13 +2941,13 @@
         requestAnimationFrame(f);
       });
     }
-    const ROUNDS = 4, TARGETS = 3;
+    const ROUNDS = 10, TARGETS = 1;   // fast rounds: a short look, a quick chase, then pick
     let round = 0, total = 0;
     async function playRound() {
       if (!api.alive()) return;
       round++;
       if (round > ROUNDS) return api.finish(total);
-      const speed = 70 + round * 15;
+      const speed = 150 + round * 28;   // 178 to 430 px/s, so it really is fast
       const W = area.clientWidth, H = area.clientHeight;
       dots.forEach(d => {
         d.x = 30 + Math.random() * (W - 60); d.y = 30 + Math.random() * (H - 60);
@@ -2957,14 +2957,14 @@
         d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
       });
       shuffled([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, TARGETS).forEach(i => { dots[i].target = true; dots[i].el.style.background = 'var(--accent2)'; });
-      info.textContent = 'Round ' + round + ' of ' + ROUNDS + '. Remember the ' + TARGETS + ' highlighted dots.';
-      await wait(1800);
+      info.textContent = 'Round ' + round + ' of ' + ROUNDS + '. Remember the highlighted dot.';
+      await wait(1100);
       if (!api.alive()) return;
       dots.forEach(d => { d.el.style.background = '#94a3b8'; });
       info.textContent = 'Tracking...';
-      if (!(await move(4000))) return;
+      if (!(await move(3000))) return;
       const chosen = [];
-      info.textContent = 'Click the ' + TARGETS + ' dots that were highlighted.';
+      info.textContent = 'Click the dot that was highlighted.';
       dots.forEach((d, i) => {
         d.el.style.cursor = 'pointer';
         d.el.onclick = () => {
@@ -2975,8 +2975,8 @@
             const correct = chosen.filter(j => dots[j].target).length;
             total += correct;
             dots.forEach(x => { x.el.onclick = null; x.el.style.cursor = 'default'; if (x.target) x.el.style.background = 'var(--accent2)'; });
-            info.textContent = correct + ' of ' + TARGETS + ' correct';
-            setTimeout(playRound, 1400);
+            info.textContent = correct ? 'Correct!' : 'Missed it. It is shown in teal.';
+            setTimeout(playRound, 1000);
           }
         };
       });
