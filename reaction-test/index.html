@@ -2097,11 +2097,11 @@
     api.stage.append(msg, board);
     const cells = []; for (let i = 0; i < 16; i++) { const b = document.createElement('button'); b.className = 'cellBtn'; b.disabled = true; board.appendChild(b); cells.push(b); }
     async function round() {
-      const count = Math.min(3 + level, 14);
+      const count = Math.min(5 + level, 16);
       const lit = new Set(); while (lit.size < count) lit.add(Math.floor(Math.random() * 16));
       msg.textContent = 'Remember these squares';
       cells.forEach((c, i) => { c.disabled = true; c.onclick = null; c.classList.toggle('lit', lit.has(i)); });
-      await sleep(1400);
+      await sleep(1000);
       if (!api.alive()) return;
       cells.forEach(c => c.classList.remove('lit'));
       msg.textContent = 'Tap the ' + count + ' squares';
