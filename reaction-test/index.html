@@ -442,6 +442,10 @@
   #gInfo #exPickCard { display: none; }
   #gInfo #exBlock { display: grid; gap: 4px; }
 
+  /* while one game is open, hide every other tile and heading */
+  body.game-open .gGrid, body.game-open .rarityKey { display: none !important; }
+  body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head { display: none !important; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -810,8 +814,6 @@
         <li>GitHub Pages, which hosts the page, may keep standard visit logs (like IP address) as any web host does.</li>
         <li>Clearing your browser data erases everything, so keep a JSON backup if you want to keep your history.</li>
       </ul>
-      <h3>Terms</h3>
-      <ul><li>See the <a href="./terms.html">draft Terms of Use</a>.</li></ul>
       <h3>Your choices</h3>
       <ul>
         <li>Export a backup, delete your history, or delete everything at any time using the controls below.</li>
@@ -1514,8 +1516,9 @@
       const m = mean(tries);
       return m == null ? 'Not played yet' : 'Average ' + Math.round(m) + ' ms';
     },
-    showGame(id) { openInfo('game:' + id); },
+    showGame(id) { document.body.classList.add('game-open'); openInfo('game:' + id); },
     open(mode) {
+      document.body.classList.add('game-open');
       if (currentMode !== mode) { currentMode = mode; writeJSON(MODE_KEY, mode); renderColors(); renderMode(); }
       resetRun();
       openInfo('mode:' + mode);
@@ -1526,6 +1529,7 @@
       $('gStage').appendChild(testCard);
     },
     close() {
+      document.body.classList.remove('game-open');
       closeInfo();
       if (!reactionInGames) return;
       reactionInGames = false;
