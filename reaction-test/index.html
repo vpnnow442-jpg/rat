@@ -2451,9 +2451,15 @@
       GAME_FNS[id](api);
     });
   }
+  let resultAt = 0;
   document.addEventListener('keydown', (e) => {
-    const start = document.getElementById('gStart');
-    if (e.key === 'Enter' && start && $('gScreen').classList.contains('on') && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); start.click(); }
+    const screenOn = $('gScreen').classList.contains('on');
+    const typing = ['INPUT', 'BUTTON'].includes(document.activeElement.tagName);
+    const start = document.getElementById('gStart'), again = document.getElementById('again');
+    if (e.key === 'Enter' && start && screenOn && !typing) { e.preventDefault(); start.click(); }
+    // Enter plays again, but not in the first moment, so a double Enter at the end of a game cannot restart it by accident
+    else if (e.key === 'Enter' && again && screenOn && !typing && performance.now() - resultAt > 900) { e.preventDefault(); again.click(); }
+    else if (e.key === 'Escape' && screenOn && document.activeElement.tagName !== 'INPUT') { $('gQuit2').click(); }
   });
   $('gQuit2').addEventListener('click', () => { running++; if (window.ReactionLabBridge) window.ReactionLabBridge.close(); $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
 
@@ -2462,11 +2468,15 @@
     const isBest = best === score;
     const rk = rankInfo(g, best);
     const shown = score + ' ' + g.unit;
+    resultAt = performance.now();
+    const mine = scores.filter(s => s.game === g.id).map(s => s.score);
+    const avg = mine.length ? Math.round(mine.reduce((a, b) => a + b, 0) / mine.length * 10) / 10 : null;
     $('gStage').innerHTML =
       '<div class="gResult">' +
       '<div class="gResultLabel">Your score</div>' +
       '<div class="big gResultScore">' + esc(shown) + '</div>' +
       (isBest ? '<div class="gResultBest">New personal best</div>' : '<div class="gResultSub">Personal best: ' + esc(best + ' ' + g.unit) + '</div>') +
+      '<div class="gResultSub">' + mine.length + (mine.length === 1 ? ' play' : ' plays') + (mine.length > 1 ? ' · average ' + esc(avg + ' ' + g.unit) : '') + '</div>' +
       '<div class="gResultRank">' + rankBadge(rk.idx, rk.name) + '<span class="rkNote">' + esc(rk.note) + '</span></div>' +
       '<div class="rkBar" style="width:min(320px,80vw)"><b style="width:' + rk.pct.toFixed(0) + '%"></b></div>' +
       '<div class="rkNext">' + esc(rk.next) + '</div>' +
@@ -2661,10 +2671,15 @@
       }).join(' ');
     };
     let started = 0; let finished = false;
+    box.addEventListener('paste', (e) => { e.preventDefault(); info.textContent = 'Pasting is switched off. Type it out.'; });
+    box.addEventListener('drop', (e) => e.preventDefault());
     box.addEventListener('input', () => {
       if (!started) started = performance.now();
       draw();
-      if (box.value.trim() === text) finish();
+      const typedWords = box.value.trim().split(' ');
+      const lastWord = words[words.length - 1];
+      // done when the whole sentence is typed exactly, or the last word is fully typed (mistakes just lose points)
+      if (box.value.trim() === text || (typedWords.length === words.length && typedWords[typedWords.length - 1].length >= lastWord.length)) finish();
     });
     function finish() {
       if (finished || !api.alive()) return;
@@ -2675,7 +2690,7 @@
       api.finish(Math.round(correct / minutes));
     }
     draw(); setTimeout(() => box.focus({ preventScroll: true }), 50);
-    info.textContent = 'Type the sentence exactly. Finish it to get your score.';
+    info.textContent = 'Type the sentence. Only correct words count, so fix mistakes as you go.';
   };
 
   // CPS Test: clicks in 5 seconds
