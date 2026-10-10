@@ -1039,6 +1039,24 @@
   function rankName(idx, name) { return '<span class="rkName">' + rankIcon(idx, 20) + esc(name) + '</span>'; }
   // The reaction tiers on the first page have seven steps. They share the six symbols; the lowest step has none.
   const tierRankIdx = (i) => (i >= 0 && i <= 5 ? 5 - i : -1);
+  // Reaction-mode ranks use your average ms. Audio sits near the research range;
+  // Target and Arrows are my own estimates. All are rough guides.
+  const MODE_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
+  const MODE_RANK_CUTS = {
+    audio: [300, 250, 220, 190, 160, 140],
+    target: [600, 500, 420, 350, 290, 240],
+    arrows: [750, 600, 480, 400, 340, 290]
+  };
+  function modeRank(key, avg) {
+    if (avg == null) return { idx: -1, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + MODE_RANK_CUTS[key][0] + ' ms' };
+    const cuts = MODE_RANK_CUTS[key];
+    let idx = -1;
+    cuts.forEach((c, i) => { if (avg < c) idx = i; });
+    if (idx === cuts.length - 1) return { idx, name: MODE_RANK_NAMES[idx], next: 'Top rank reached' };
+    if (idx < 0) return { idx, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + cuts[0] + ' ms' };
+    return { idx, name: MODE_RANK_NAMES[idx], next: MODE_RANK_NAMES[idx + 1] + ' at ' + cuts[idx + 1] + ' ms' };
+  }
+
   const BADGES = [
     { id: 'first',   ico: '▶',  name: 'First run',      desc: 'Save your first run',          test: s => s.runs >= 1 },
     { id: 'ten',     ico: '⟳',  name: 'Ten runs',       desc: 'Save 10 runs',                 test: s => s.runs >= 10 },
@@ -3691,24 +3709,6 @@
     fillExplore();
     const [kind, key] = $('expPick').value.split(':');
     if (kind === 'mode') renderModeExplore(key); else renderGameExplore(key);
-  }
-
-  // Reaction-mode ranks use your average ms. Audio sits near the research range;
-  // Target and Arrows are my own estimates. All are rough guides.
-  const MODE_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
-  const MODE_RANK_CUTS = {
-    audio: [300, 250, 220, 190, 160, 140],
-    target: [600, 500, 420, 350, 290, 240],
-    arrows: [750, 600, 480, 400, 340, 290]
-  };
-  function modeRank(key, avg) {
-    if (avg == null) return { idx: -1, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + MODE_RANK_CUTS[key][0] + ' ms' };
-    const cuts = MODE_RANK_CUTS[key];
-    let idx = -1;
-    cuts.forEach((c, i) => { if (avg < c) idx = i; });
-    if (idx === cuts.length - 1) return { idx, name: MODE_RANK_NAMES[idx], next: 'Top rank reached' };
-    if (idx < 0) return { idx, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + cuts[0] + ' ms' };
-    return { idx, name: MODE_RANK_NAMES[idx], next: MODE_RANK_NAMES[idx + 1] + ' at ' + cuts[idx + 1] + ' ms' };
   }
 
   function renderModeExplore(key) {
