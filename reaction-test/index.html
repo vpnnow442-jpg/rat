@@ -75,7 +75,7 @@
 
   /* arena */
   :root {
-    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309; --a-flash: #cbd5e1; --t-target: #cbd5e1;
+    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309; --a-flash: #cbd5e1; --t-target: #cbd5e1; --a-arrow: #38bdf8;
   }
   #arena {
     position: relative; height: 320px; border-radius: 16px; overflow: hidden;
@@ -90,6 +90,10 @@
   #arena.early { background: var(--a-early); color: #fff; }
   #arena::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.55), transparent 60%); }
   #arena.saved::after { animation: flash .7s ease-out; }
+  #arena.arrows { background: radial-gradient(120% 90% at 50% 40%, color-mix(in srgb, var(--a-arrow) 55%, #0b1220), #0b1220 70%); color: #fff; }
+  #arena.arrows #arenaTitle { font-size: clamp(5rem, 18vw, 8rem); line-height: 1; text-shadow: 0 0 24px var(--a-arrow), 0 0 60px var(--a-arrow); }
+  #arenaTitle.pop { animation: popIn .35s cubic-bezier(.3,1.6,.5,1) both; }
+  @keyframes popIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   #arena::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 0;
                    background: radial-gradient(circle at 50% 50%, var(--a-flash) 0%, transparent 65%); }
   #arena.hint::before { animation: hintFlash .7s ease-out; }
@@ -412,6 +416,7 @@
       <button data-mode="simple" aria-selected="true">Simple</button>
       <button data-mode="audio" aria-selected="false">Audio only</button>
       <button data-mode="target" aria-selected="false">Target</button>
+      <button data-mode="arrows" aria-selected="false">Arrows</button>
     </div>
     <div id="arena" role="button" tabindex="0" aria-label="Reaction test area. Click or press Enter to start">
       <h3 id="arenaTitle">Ready?</h3>
@@ -701,14 +706,18 @@
   const MODES = {
     simple: { label: 'Simple',     tries: 5, hint: 'Wait for the colour change, then click or press Space as fast as you can.' },
     audio:  { label: 'Audio only', tries: 5, hint: 'No colours or words. Listen for the sound, then click anywhere in the box as soon as you hear it.' },
-    target: { label: 'Target',     tries: 5, hint: 'Wait. A target appears in a random spot. Click it as fast as you can. Clicking empty space counts as a mistake.' }
+    target: { label: 'Target',     tries: 5, hint: 'Wait. A target appears in a random spot. Click it as fast as you can. Clicking empty space counts as a mistake.' },
+    arrows: { label: 'Arrows',     tries: 5, hint: 'An arrow appears. Press that direction on the keyboard (← → ↑ ↓), or tap that side of the box. Wrong directions count as mistakes.' }
   };
+  const ARROW_GLYPH = { left: '←', right: '→', up: '↑', down: '↓' };
+  const DIRS = ['left', 'right', 'up', 'down'];
   let currentMode = readJSON(MODE_KEY, 'simple');
   if (!MODES[currentMode]) currentMode = 'simple';
   let current = [];                      // correct reaction times this run
   let errors = 0;                        // mistakes this run
   let trial = 0;                         // finished trials this run
   let targetEl = null;                   // the target button in Target mode
+  let stimulus = null;                   // the arrow direction in Arrows mode
   let state = 'idle';                    // idle | waiting | ready | pause | done
   let timer = null, stimTimer = null, readyAt = 0, audioCtx = null;
   const modeRuns = () => runs.filter(r => (r.mode || 'simple') === currentMode);
@@ -811,7 +820,7 @@
     clearTimeout(timer); clearTimeout(stimTimer);
     arena.classList.remove('hint');
     removeTarget();
-    current = []; errors = 0; trial = 0; state = 'idle';
+    current = []; errors = 0; trial = 0; state = 'idle'; stimulus = null;
     saveRunBtn.hidden = true; resetBtn.hidden = true;
     renderDots();
     setArena('', 'Ready?', MODES[currentMode].hint);
@@ -828,7 +837,7 @@
       setArena('wait', 'Wait...', 'Do not click until the screen turns to your go colour.');
     } else {
       // audio and target modes stay neutral so nothing signals the moment
-      setArena('', 'Wait...', currentMode === 'audio' ? 'Listen. The sound comes at a random time.' : 'The target comes at a random time.');
+      setArena('', 'Wait...', currentMode === 'audio' ? 'Listen. The sound comes at a random time.' : currentMode === 'arrows' ? 'The arrow comes at a random time.' : 'The target comes at a random time.');
     }
     timer = setTimeout(showStimulus, 2000 + Math.random() * 3000); // random so you cannot guess the moment
   }
@@ -849,6 +858,10 @@
     } else if (currentMode === 'target') {
       setArena('', '', '');
       placeTarget();
+    } else if (currentMode === 'arrows') {
+      stimulus = DIRS[Math.floor(Math.random() * DIRS.length)];
+      setArena('arrows', ARROW_GLYPH[stimulus], 'Press ' + stimulus + ' or tap that side.');
+      arenaTitle.classList.remove('pop'); void arenaTitle.offsetWidth; arenaTitle.classList.add('pop');
     }
     stimTimer = setTimeout(onTimeout, 4000);
   }
@@ -904,6 +917,14 @@
         errors++; flashDelta('Missed the target', false);
         return;
       }
+      if (currentMode === 'arrows') {
+        if (!DIRS.includes(kind)) return;            // Space and Enter do nothing here
+        if (kind !== stimulus) {
+          errors++; flashDelta('Wrong way', false);
+          arena.classList.add('early'); void arena.offsetWidth;
+          return;
+        }
+      }
       clearTimeout(stimTimer);
       const ms = Math.round(performance.now() - readyAt);
       current.push(ms);
@@ -930,11 +951,20 @@
     toast('Run saved: ' + fmt(m) + ' average');
   }
 
-  arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress('any'); });
+  // which half of the box was tapped? (used by Arrows mode)
+  function dirFromPoint(e) {
+    const b = arena.getBoundingClientRect();
+    const dx = e.clientX - (b.left + b.width / 2), dy = e.clientY - (b.top + b.height / 2);
+    if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? 'left' : 'right';
+    return dy < 0 ? 'up' : 'down';
+  }
+  arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(currentMode === 'arrows' ? dirFromPoint(e) : 'any'); });
   arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress('any'); } });
   document.addEventListener('keydown', (e) => {
     if (['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
     if (e.code === 'Space') { e.preventDefault(); onPress('any'); }
+    const keyDir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.code];
+    if (keyDir) { e.preventDefault(); onPress(keyDir); }
   });
   saveRunBtn.addEventListener('click', saveRun);
   resetBtn.addEventListener('click', discardRun);
@@ -1505,7 +1535,6 @@
       const vsLab = Math.round(s.mean - 231);
       you.textContent = 'Your overall average is ' + Math.round(s.mean) + ' ms. That is ' + Math.abs(vsLab) + ' ms ' + (vsLab <= 0 ? 'faster' : 'slower') + ' than the New Zealand adult lab average.';
     }
-    // dots for each published mean, plus your own
     BENCH_DATA.forEach(b => {
       if (b.mean == null) return;
       if (b.min != null) {
@@ -1571,6 +1600,161 @@
       list.appendChild(item);
     });
   }
+
+  // ---- fictional showdown: fan opinion, clearly labelled, not measured data ----
+  const FICTIONAL = [
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#111827"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><rect x="14" y="26" width="32" height="8" rx="3" fill="#0b0f19"/><path d="M14 22 Q30 6 46 22 L46 26 L14 26 Z" fill="#0b0f19"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Neo', from: 'The Matrix', ms: 110, why: 'Dodges bullets in slow motion. The film sells him as faster than the machines.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#374151"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 24 Q30 8 46 24 L46 28 L14 28 Z" fill="#1f2937"/><rect x="22" y="36" width="16" height="3" rx="1.5" fill="#9ca3af"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Levi Ackerman', from: 'Attack on Titan', ms: 135, why: 'Famous for his speed and precise blade work, often shown reacting before others see the threat.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#1e3a8a"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M15 24 Q30 10 45 24 L45 28 L15 28 Z" fill="#0f172a"/><rect x="18" y="26" width="24" height="4" rx="2" fill="#93c5fd"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Kiyotaka Ayanokoji', from: 'Classroom of the Elite', ms: 160, why: 'Shown reading people and situations very quickly, though the story is about perception more than raw speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#b91c1c"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 22 Q30 8 46 22 L46 30 L14 30 Z" fill="#7f1d1d"/><ellipse cx="22" cy="30" rx="6" ry="4" fill="#fff"/><ellipse cx="38" cy="30" rx="6" ry="4" fill="#fff"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Spider-Man', from: 'Marvel', ms: 120, why: 'His spider-sense warns him of danger before it happens, which makes him look very quick.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#166534"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 24 Q30 10 46 24 L46 28 L14 28 Z" fill="#14532d"/><path d="M40 36 L52 30" stroke="#e5e7eb" stroke-width="3" stroke-linecap="round"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Roronoa Zoro', from: 'One Piece', ms: 150, why: 'Known for lightning-fast sword strikes. Quick, but the show rarely focuses on his reaction speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#78350f"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 26 Q30 8 46 26 L46 30 L14 30 Z" fill="#451a03"/><path d="M48 14 Q56 30 48 46" stroke="#d6a86b" stroke-width="2.5" fill="none"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Katniss Everdeen', from: 'The Hunger Games', ms: 175, why: 'A skilled archer who reacts to danger fast, shown more through hunting and survival than speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#f97316"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 8 44 26 L44 28 L16 28 Z" fill="#111827"/><path d="M26 16 L30 6 L34 16" fill="#111827"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Son Goku', from: 'Dragon Ball', ms: 115, why: 'Shown dodging huge attacks at the last second, with fights that feel very fast.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#0ea5e9"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M15 24 Q30 10 45 24 L45 28 L15 28 Z" fill="#f3f4f6"/><rect x="19" y="28" width="22" height="5" rx="2.5" fill="#1f2937"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Gojo Satoru', from: 'Jujutsu Kaisen', ms: 105, why: 'Shown seeing and reacting to attacks almost before they start. Often the fastest on screen.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#eab308"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 25 Q30 9 44 25 L44 27 L16 27 Z" fill="#facc15"/><path d="M14 22 L20 26 M46 22 L40 26" stroke="#1d4ed8" stroke-width="2"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Naruto Uzumaki', from: 'Naruto', ms: 145, why: 'Fast in fights and known for quick clone and shadow moves.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#16a34a"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#14532d"/><circle cx="22" cy="34" r="1" fill="#fff"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Izuku Midoriya', from: 'My Hero Academia', ms: 140, why: 'Shown with fast reflexes and quick reads of danger, though his speed is built up over time.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#1f2937"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 22 L22 26 L30 20 L38 26 L46 22 L44 30 L16 30 Z" fill="#fbbf24" opacity=".9"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#0f172a"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Batman', from: 'DC Comics', ms: 165, why: 'Trained to react fast, but the stories show him relying on planning more than pure speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#4b5563"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#111827"/><rect x="18" y="33" width="24" height="4" rx="2" fill="#111827"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'John Wick', from: 'John Wick films', ms: 115, why: 'Shown with very fast, precise shooting and reactions. The films focus on his skill with firearms.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#2563eb"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 26 Q20 12 30 16 Q40 12 46 26 L44 28 L16 28 Z" fill="#3b82f6"/><path d="M40 20 L52 22 L44 26 Z" fill="#fff"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Sonic the Hedgehog', from: 'Sonic franchise', ms: 95, why: 'Known as the fastest character in his games. Speed is the whole point of him.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#b91c1c"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 26 Q30 8 46 26 L46 30 L14 30 Z" fill="#991b1b"/><ellipse cx="30" cy="34" rx="10" ry="6" fill="#1f2937" opacity=".8"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Deadpool', from: 'Marvel', ms: 120, why: 'Heals fast and fights quickly. The comics often play his reactions for laughs.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#16a34a"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#0f172a"/><rect x="22" y="40" width="16" height="2" rx="1" fill="#fff"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Tanjiro Kamado', from: 'Demon Slayer', ms: 135, why: 'Shown with sharp instincts and quick reactions when fighting demons.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#4338ca"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M15 24 Q30 9 45 24 L45 28 L15 28 Z" fill="#1e1b4b"/><path d="M25 28 L30 40 L35 28" fill="#818cf8" opacity=".6"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Sung Jin-Woo', from: 'Solo Leveling', ms: 105, why: 'Gets much faster as he levels up, and by the later story he moves at a level almost no one can match.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#7c2d12"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#451a03"/><circle cx="25" cy="35" r="2" fill="#f59e0b" opacity=".5"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Eren Yeager', from: 'Attack on Titan', ms: 150, why: 'Known for fighting with fierce drive more than precise speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#7e22ce"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M16 26 Q30 10 44 26 L44 28 L16 28 Z" fill="#2e1065"/><circle cx="30" cy="33" r="3" fill="#c4b5fd"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Lelouch vi Britannia', from: 'Code Geass', ms: 170, why: 'Shown calculating every move ahead of time. His reactions come from planning, not raw speed.' }
+  ];
+  function renderFictional() {
+    const host = $('fic');
+    // sorted from lowest to highest estimated reaction time
+    const sorted = FICTIONAL.slice().sort((a, b) => a.ms - b.ms);
+    host.innerHTML = sorted.map(c =>
+      '<div class="ficCard">' +
+        '<div class="ficTop"><div class="ficAv">' + c.av + '</div><div><div class="ficName">' + esc(c.name) + '</div><div class="ficFrom">' + esc(c.from) + '</div></div></div>' +
+        '<div class="ficScore"><div class="meter2"><b data-w="' + Math.round(Math.max(8, Math.min(100, (250 - c.ms) / 150 * 100))) + '"></b></div><span>est. ~' + c.ms + ' ms</span></div>' +
+        '<p class="ficWhy">' + esc(c.why) + '</p>' +
+        '<button class="ficGoal" data-goal="' + c.ms + '" data-name="' + esc(c.name) + '">Set my goal to ' + c.ms + ' ms</button>' +
+      '</div>'
+    ).join('');
+    host.querySelectorAll('.ficGoal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        goal = Number(btn.dataset.goal);
+        writeJSON(GOAL_KEY, goal);
+        renderAll(false);
+        toast('Goal set to ' + goal + ' ms (' + btn.dataset.name + ' estimate)');
+      });
+    });
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      host.querySelectorAll('.meter2 b').forEach(b => { b.style.width = b.dataset.w + '%'; });
+    }));
+  }
+
+  // ---- colours per game mode, plus the audio-mode hint ----
+  const COLOR_KEY = 'reactionlab-arena-colors-v2';
+  const HINT_KEY = 'reactionlab-audio-hint-v1';
+  // each field: [key, label, CSS variable, default colour]
+  const COLOR_FIELDS = {
+    simple: [['idle', 'Start', '--a-idle', '#1b1d27'], ['wait', 'Wait', '--a-wait', '#c2262f'], ['go', 'Go', '--a-go', '#16a34a'], ['early', 'Too early', '--a-early', '#b45309']],
+    audio:  [['idle', 'Start', '--a-idle', '#1b1d27'], ['flash', 'Hint glow', '--a-flash', '#cbd5e1']],
+    target: [['idle', 'Start', '--a-idle', '#1b1d27'], ['target', 'Target', '--t-target', '#cbd5e1'], ['early', 'Too early', '--a-early', '#b45309']],
+    arrows: [['idle', 'Start', '--a-idle', '#1b1d27'], ['arrow', 'Arrow', '--a-arrow', '#38bdf8'], ['early', 'Too early', '--a-early', '#b45309']]
+  };
+  let colorsByMode = readJSON(COLOR_KEY, {});
+  // older saves stored one flat set of colours; keep them as the Simple mode colours
+  if (colorsByMode.idle || colorsByMode.wait) { colorsByMode = { simple: colorsByMode }; }
+  let audioHint = readJSON(HINT_KEY, false) === true;
+
+  function colourFor(mode, key) {
+    const set = colorsByMode[mode] || {};
+    const field = COLOR_FIELDS[mode].find(f => f[0] === key);
+    return set[key] || field[3];
+  }
+  function applyColors() {
+    Object.keys(COLOR_FIELDS).forEach(mode => {
+      COLOR_FIELDS[mode].forEach(([key, , cssVar]) => {
+        document.documentElement.style.setProperty(cssVar, colourFor(mode, key));
+      });
+    });
+  }
+  function renderColors() {
+    const row = $('colorFields');
+    row.innerHTML = '';
+    COLOR_FIELDS[currentMode].forEach(([key, label]) => {
+      const wrap = document.createElement('label');
+      wrap.textContent = label + ' ';
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = colourFor(currentMode, key);
+      input.setAttribute('aria-label', label + ' colour');
+      input.addEventListener('input', (e) => {
+        colorsByMode[currentMode] = colorsByMode[currentMode] || {};
+        colorsByMode[currentMode][key] = e.target.value;
+        writeJSON(COLOR_KEY, colorsByMode);
+        applyColors();
+      });
+      wrap.appendChild(input);
+      row.appendChild(wrap);
+    });
+    const hintWrap = $('hintWrap');
+    hintWrap.hidden = currentMode !== 'audio';
+    $('audioHint').checked = audioHint;
+  }
+  $('colReset').addEventListener('click', () => {
+    colorsByMode[currentMode] = {};
+    writeJSON(COLOR_KEY, colorsByMode);
+    applyColors(); renderColors(); toast('Colours reset for this mode');
+  });
+  $('audioHint').addEventListener('change', (e) => {
+    audioHint = e.target.checked;
+    writeJSON(HINT_KEY, audioHint);
+  });
+  applyColors();
+
+  // ---- profile, totals and data controls ----
+  const PROFILE_KEY = 'reactionlab-profile-v1';
+  let profile = readJSON(PROFILE_KEY, { name: '', color: '#8b6cff', created: null });
+  if (!profile || typeof profile !== 'object') profile = { name: '', color: '#8b6cff', created: null };
+
+  function initials(name) {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('');
+  }
+  function renderProfile() {
+    const av = $('avatarBig');
+    av.textContent = initials(profile.name);
+    av.style.background = 'linear-gradient(135deg, ' + profile.color + ', var(--accent3))';
+    $('profName').textContent = profile.name || 'Not set';
+    const all = runs.flatMap(r => r.tries);
+    const first = runs.length ? new Date(runs[runs.length - 1].t) : null;
+    $('profSince').textContent = first ? 'Testing since ' + first.toLocaleDateString() : 'Start a run to begin your history.';
+    $('pfRuns').textContent = runs.length;
+    $('pfTries').textContent = all.length;
+    $('pfBest').textContent = all.length ? Math.min(...all) + ' ms' : '—';
+    $('pfStreak').textContent = computeStreak();
+    const counts = {};
+    runs.forEach(r => { const k = r.mode || 'simple'; counts[k] = (counts[k] || 0) + 1; });
+    const parts = Object.keys(counts).map(k => (MODES[k] ? MODES[k].label : k) + ': ' + counts[k]);
+    $('pfModes').textContent = parts.length ? 'Runs by mode. ' + parts.join(' · ') : 'No runs yet.';
+    $('profInput').value = profile.name || '';
+    $('profColor').value = profile.color;
+    const chip = $('profChip');
+    if (chip) chip.textContent = profile.name ? 'Hi, ' + profile.name : 'Set your profile';
+  }
+  $('profSave').addEventListener('click', () => {
+    const name = $('profInput').value.trim().slice(0, 20);
+    profile = { name, color: $('profColor').value, created: profile.created || new Date().toISOString() };
+    writeJSON(PROFILE_KEY, profile);
+    renderProfile();
+    toast('Profile saved');
+  });
+  $('wipeBtn').addEventListener('click', () => {
+    if ($('wipeConfirm').value.trim() !== 'DELETE') { toast('Type DELETE to confirm'); return; }
+    [RUNS_KEY, GOAL_KEY, FRIENDS_KEY, COLOR_KEY, HINT_KEY, MODE_KEY, PROFILE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    runs = []; goal = null; friends = []; colorsByMode = {}; audioHint = false; profile = { name: '', color: '#8b6cff', created: null };
+    currentMode = 'simple';
+    $('wipeConfirm').value = '';
+    applyColors(); renderColors(); resetRun(); renderAll(false);
+    toast('All your data was deleted');
+  });
 
   // ---- tabs ----
   const tabButtons = document.querySelectorAll('.tabs [data-tab]');
