@@ -282,6 +282,16 @@
   .fakeTag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
              background: var(--warn); color: #111; margin-bottom: 12px; }
 
+  .profHead { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .avatar { width: 72px; height: 72px; border-radius: 22px; display: grid; place-items: center; font-size: 1.6rem; font-weight: 800; color: #fff; flex: 0 0 72px; }
+  .formRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  .formRow input[type="text"] { width: 220px; }
+  .privacy { font-size: .9rem; line-height: 1.7; }
+  .privacy h3 { font-size: .95rem; margin: 16px 0 4px; }
+  .privacy ul { margin: 6px 0 0; padding-left: 20px; }
+  .dangerBox { border: 1px solid var(--wait); border-radius: 14px; padding: 14px; margin-top: 16px; }
+  .dangerBox input[type="text"] { width: 160px; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -353,6 +363,7 @@
   <header>
     <div class="logo"><div class="mark"><i></i></div>Reaction<span style="color:var(--accent)">Lab</span></div>
     <div class="head-right">
+      <div class="chip" id="profChip">Set your profile</div>
       <div class="chip" id="modeChip">Mode: Simple</div>
       <div class="chip" id="streakChip">Streak <b>0</b> days</div>
       <div class="chip" id="runCount">0 runs saved</div>
@@ -368,6 +379,7 @@
     <button role="tab" aria-selected="false" aria-controls="p-bench" data-tab="bench">Benchmarks</button>
     <button role="tab" aria-selected="false" aria-controls="p-fan" data-tab="fan">Fan estimates</button>
     <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
+    <button role="tab" aria-selected="false" aria-controls="p-profile" data-tab="profile">Profile</button>
   </nav>
 
   <div class="panel on" id="p-test" role="tabpanel" data-panel="test">
@@ -567,6 +579,68 @@
     <span class="fakeTag">FAN ESTIMATE, NOT MEASURED</span>
     <p class="muted" style="margin:0 0 14px">No one has measured these characters, so these numbers are invented guesses for fun. They are based on how each character is shown in their series. Do not compare them with the real studies above.</p>
     <div class="fic" id="fic"></div>
+  </section>
+  </div>
+
+  <div class="panel" id="p-profile" role="tabpanel" data-panel="profile">
+  <section class="card reveal">
+    <div class="card-head"><h2>Your profile</h2><span class="muted">Saved only in this browser</span></div>
+    <div class="profHead">
+      <div class="avatar" id="avatarBig">?</div>
+      <div>
+        <div style="font-size:1.3rem;font-weight:800" id="profName">Not set</div>
+        <div class="muted" id="profSince">Start a run to begin your history.</div>
+      </div>
+    </div>
+    <div class="formRow">
+      <input type="text" id="profInput" maxlength="20" placeholder="Your name or nickname" aria-label="Your name">
+      <label class="muted">Colour <input type="color" id="profColor" value="#8b6cff" aria-label="Avatar colour"></label>
+      <button class="primary" id="profSave">Save profile</button>
+    </div>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Your totals</h2><span class="muted">All modes together</span></div>
+    <div class="stats">
+      <div class="tile"><div class="label">Runs</div><div class="val" id="pfRuns">0</div></div>
+      <div class="tile"><div class="label">Tries</div><div class="val" id="pfTries">0</div></div>
+      <div class="tile"><div class="label">Best try</div><div class="val" id="pfBest">—</div></div>
+      <div class="tile"><div class="label">Streak</div><div class="val" id="pfStreak">0</div><div class="sub">days in a row</div></div>
+    </div>
+    <p class="note" id="pfModes"></p>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Privacy</h2></div>
+    <div class="privacy">
+      <h3>What is stored</h3>
+      <ul>
+        <li>Your profile name and colour, your runs, your goal, your mode and colour settings, and any friends' backup files you add.</li>
+      </ul>
+      <h3>Where it is stored</h3>
+      <ul>
+        <li>Only in this browser on this device (browser local storage). Nothing is sent to a server, because this site has no server.</li>
+        <li>There are no accounts, no ads, no analytics, and no third-party tracking scripts.</li>
+      </ul>
+      <h3>What is not protected</h3>
+      <ul>
+        <li>Anyone who uses this browser can see this data. It is not encrypted and is not behind a password.</li>
+        <li>GitHub Pages, which hosts the page, may keep standard visit logs (like IP address) as any web host does.</li>
+        <li>Clearing your browser data erases everything, so keep a JSON backup if you want to keep your history.</li>
+      </ul>
+      <h3>Your choices</h3>
+      <ul>
+        <li>Export a backup, delete your history, or delete everything at any time using the controls below.</li>
+      </ul>
+    </div>
+    <div class="dangerBox">
+      <b>Delete all my data</b>
+      <p class="muted" style="margin:6px 0 0">Removes your profile, runs, goal, colours, friends and settings from this browser. This cannot be undone.</p>
+      <div class="formRow">
+        <input type="text" id="wipeConfirm" placeholder='Type DELETE' aria-label="Type DELETE to confirm">
+        <button class="danger" id="wipeBtn">Delete everything</button>
+      </div>
+    </div>
   </section>
   </div>
 
@@ -1220,6 +1294,7 @@
     renderHistory(animate);
     renderCompare();
     renderBench();
+    renderProfile();
   }
 
   // ---- compare ----
@@ -1525,6 +1600,54 @@
   });
   applyColors();
 
+  // ---- profile, totals and data controls ----
+  const PROFILE_KEY = 'reactionlab-profile-v1';
+  let profile = readJSON(PROFILE_KEY, { name: '', color: '#8b6cff', created: null });
+  if (!profile || typeof profile !== 'object') profile = { name: '', color: '#8b6cff', created: null };
+
+  function initials(name) {
+    const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return '?';
+    return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('');
+  }
+  function renderProfile() {
+    const av = $('avatarBig');
+    av.textContent = initials(profile.name);
+    av.style.background = 'linear-gradient(135deg, ' + profile.color + ', var(--accent3))';
+    $('profName').textContent = profile.name || 'Not set';
+    const all = runs.flatMap(r => r.tries);
+    const first = runs.length ? new Date(runs[runs.length - 1].t) : null;
+    $('profSince').textContent = first ? 'Testing since ' + first.toLocaleDateString() : 'Start a run to begin your history.';
+    $('pfRuns').textContent = runs.length;
+    $('pfTries').textContent = all.length;
+    $('pfBest').textContent = all.length ? Math.min(...all) + ' ms' : '—';
+    $('pfStreak').textContent = computeStreak();
+    const counts = {};
+    runs.forEach(r => { const k = r.mode || 'simple'; counts[k] = (counts[k] || 0) + 1; });
+    const parts = Object.keys(counts).map(k => (MODES[k] ? MODES[k].label : k) + ': ' + counts[k]);
+    $('pfModes').textContent = parts.length ? 'Runs by mode. ' + parts.join(' · ') : 'No runs yet.';
+    $('profInput').value = profile.name || '';
+    $('profColor').value = profile.color;
+    const chip = $('profChip');
+    if (chip) chip.textContent = profile.name ? 'Hi, ' + profile.name : 'Set your profile';
+  }
+  $('profSave').addEventListener('click', () => {
+    const name = $('profInput').value.trim().slice(0, 20);
+    profile = { name, color: $('profColor').value, created: profile.created || new Date().toISOString() };
+    writeJSON(PROFILE_KEY, profile);
+    renderProfile();
+    toast('Profile saved');
+  });
+  $('wipeBtn').addEventListener('click', () => {
+    if ($('wipeConfirm').value.trim() !== 'DELETE') { toast('Type DELETE to confirm'); return; }
+    [RUNS_KEY, GOAL_KEY, FRIENDS_KEY, COLOR_KEY, HINT_KEY, MODE_KEY, PROFILE_KEY].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+    runs = []; goal = null; friends = []; colorsByMode = {}; audioHint = false; profile = { name: '', color: '#8b6cff', created: null };
+    currentMode = 'simple';
+    $('wipeConfirm').value = '';
+    applyColors(); renderColors(); resetRun(); renderAll(false);
+    toast('All your data was deleted');
+  });
+
   // ---- tabs ----
   const tabButtons = document.querySelectorAll('.tabs [data-tab]');
   function showTab(name) {
@@ -1534,6 +1657,7 @@
     if (name === 'progress' || name === 'stats') renderAll(false);
     if (name === 'history') renderAll(true);
     if (name === 'compare') renderCompare();
+    if (name === 'profile') renderProfile();
     if (name === 'bench') renderBench();
     if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
