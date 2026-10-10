@@ -1870,7 +1870,8 @@
     const token = ++running;
     $('gTitle2').textContent = g.name;
     $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
-    $('gScreen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const sr = $('gScreen').getBoundingClientRect();
+    if (sr.top < 0 || sr.top > window.innerHeight * 0.6) $('gScreen').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     const stage = $('gStage');
     stage.innerHTML = '';
     const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
@@ -1881,6 +1882,7 @@
     stage.appendChild(gate);
     $('gStart').addEventListener('click', () => {
       if (token !== running) return;
+      stage.style.minHeight = stage.offsetHeight + 'px';
       stage.innerHTML = '';
       GAME_FNS[id](api);
     });
@@ -1938,7 +1940,7 @@
       show.textContent = num; box.value = ''; box.disabled = true; hint.textContent = 'Memorize it…';
       await sleep(1200 + digits * 350);
       if (!api.alive()) return;
-      show.textContent = '•'.repeat(digits); box.disabled = false; box.focus(); hint.textContent = 'Type the number and press Enter';
+      show.textContent = '•'.repeat(digits); box.disabled = false; box.focus({ preventScroll: true }); hint.textContent = 'Type the number and press Enter';
       box.onkeydown = (e) => {
         if (e.key !== 'Enter') return;
         if (box.value === num) { digits++; round(); }
@@ -2084,7 +2086,7 @@
       const correct = typed.filter((w, i) => w === words[i]).length;
       api.finish(Math.round(correct / minutes));
     }
-    draw(); setTimeout(() => box.focus(), 50);
+    draw(); setTimeout(() => box.focus({ preventScroll: true }), 50);
     info.textContent = 'Type the sentence exactly. Finish it to get your score.';
   };
 
