@@ -221,6 +221,13 @@
   .addRow input[type="text"] { width: 180px; }
   .tableWrap.board-wrap { min-width: 0; }
 
+  .bench { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .bench th, .bench td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .bench th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .bench a { color: var(--accent2); }
+  .sourceNote { font-size: .8rem; color: var(--muted); line-height: 1.6; margin-top: 12px; }
+  .youLine { font-weight: 600; margin: 0 0 12px; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -272,6 +279,7 @@
     <button role="tab" aria-selected="false" aria-controls="p-stats" data-tab="stats">Stats</button>
     <button role="tab" aria-selected="false" aria-controls="p-progress" data-tab="progress">Progress</button>
     <button role="tab" aria-selected="false" aria-controls="p-compare" data-tab="compare">Compare</button>
+    <button role="tab" aria-selected="false" aria-controls="p-bench" data-tab="bench">Benchmarks</button>
     <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
   </nav>
 
@@ -414,6 +422,38 @@
     <p class="note">Saved in this browser only. Clearing site data erases everything, so keep a JSON backup if you care about the history.</p>
   </section>
 
+  </div>
+
+  <div class="panel" id="p-bench" role="tabpanel" data-panel="bench">
+  <section class="card reveal">
+    <div class="card-head"><h2>Where you sit</h2><span class="muted">Compared with published studies</span></div>
+    <p class="youLine" id="benchYou">Save a run to compare yourself.</p>
+    <div class="ladder" id="benchLadder"></div>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Published reaction-time data</h2><span class="muted">Real studies, not guesses</span></div>
+    <div class="tableWrap">
+    <table class="bench">
+      <thead><tr><th>Group</th><th>Typical value</th><th>What it measures</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td><b>Adults, 18 to 65</b> (1,469 New Zealand adults)</td><td>mean about 231 ms (about 213 ms after hardware correction)</td><td>simple visual reaction time, lab test; slows about 0.55 ms per year of age</td><td><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4374455/" target="_blank" rel="noopener">Woods et al. 2015</a></td></tr>
+        <tr><td><b>UK adults, 1987 to 1988</b></td><td>mean about 238 ms</td><td>simple reaction time, lab test</td><td><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4542533/" target="_blank" rel="noopener">Commentary pooling UK samples</a></td></tr>
+        <tr><td><b>Victorian era</b> (Galton, contested)</td><td>about 181 to 189 ms</td><td>simple reaction time, ages 18 to 60; the equipment may have had errors</td><td><a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4542533/" target="_blank" rel="noopener">Silverman, via the same commentary</a></td></tr>
+        <tr><td><b>Elite sprinters, men</b> (Beijing 2008, 425 sprinters)</td><td>fastest start mean 166 ms; fastest possible about 109 ms</td><td>reaction to the starting gun from the blocks</td><td><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0026141" target="_blank" rel="noopener">Beijing sprinter study, PLOS ONE</a></td></tr>
+        <tr><td><b>Elite sprinters, women</b> (Beijing 2008)</td><td>fastest start mean 189 ms; fastest possible about 121 ms</td><td>reaction to the starting gun from the blocks</td><td><a href="https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0026141" target="_blank" rel="noopener">Beijing sprinter study, PLOS ONE</a></td></tr>
+        <tr><td><b>Boxers vs wrestlers</b> (15 each, aged 14 to 17)</td><td>boxers slightly faster on visual reaction tests</td><td>small study; units not clearly stated in the summary</td><td><a href="https://lida.sport-iat.de/ta/Record/4074786" target="_blank" rel="noopener">Boxers vs wrestlers study</a></td></tr>
+        <tr><td><b>Online browser tests</b> (general public)</td><td>median about 270 to 273 ms</td><td>uncontrolled; your computer and screen add delay</td><td><a href="https://reactiontimetests.org/blog/human-benchmark-reaction-time" target="_blank" rel="noopener">Reaction time test benchmark article</a></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="sourceNote">Lab studies measure the reaction more precisely than browser tests, so the lab numbers are the better reference. Small studies (like the boxing ones) are only rough guides.</p>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Famous people and fictional characters</h2></div>
+    <p class="muted" style="margin:0">I searched for published reaction-time results for named celebrities and fictional characters, and found none. Because of that, they are not in this tab. Adding made-up numbers would show false information, so I've left them out.</p>
+  </section>
   </div>
 
   <footer>
@@ -833,6 +873,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     renderBadges(s);
     renderHistory(animate);
     renderCompare();
+    renderBench();
   }
 
   // ---- compare ----
@@ -1002,6 +1043,29 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     applyTheme(next); writeJSON(THEME_KEY, next);
   });
 
+  // ---- benchmarks: where your overall mean sits against published groups ----
+  const BENCH_LADDER = [
+    { name: 'Elite sprinter start (men, fastest)', ms: 166 },
+    { name: 'Lab adults, 1987 to 1988 UK',         ms: 238 },
+    { name: 'Lab adults, New Zealand (mean)',       ms: 231 },
+    { name: 'Online browser test median',           ms: 272 }
+  ];
+  function renderBench() {
+    const s = derive();
+    const you = $('benchYou');
+    if (s.mean == null) { you.textContent = 'Save a run to compare yourself.'; }
+    else {
+      const vsLab = Math.round(s.mean - 231);
+      you.textContent = 'Your overall average is ' + Math.round(s.mean) + ' ms. The New Zealand adult lab mean is about 231 ms, so you are ' +
+        Math.abs(vsLab) + ' ms ' + (vsLab <= 0 ? 'faster' : 'slower') + ' than that group.';
+    }
+    const rows = BENCH_LADDER.slice().sort((a, b) => a.ms - b.ms);
+    $('benchLadder').innerHTML = rows.map(r => {
+      const mine = s.mean != null && Math.abs(s.mean - r.ms) < 6;
+      return '<div class="tier' + (mine ? ' current' : '') + '"><div><b>' + esc(r.name) + '</b></div><div class="range">' + r.ms + ' ms</div><div class="rare">' + (mine ? 'about you' : '') + '</div></div>';
+    }).join('');
+  }
+
   // ---- tabs ----
   const tabButtons = document.querySelectorAll('.tabs [data-tab]');
   function showTab(name) {
@@ -1011,6 +1075,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     if (name === 'progress' || name === 'stats') renderAll(false);
     if (name === 'history') renderAll(true);
     if (name === 'compare') renderCompare();
+    if (name === 'bench') renderBench();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
   tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
