@@ -502,6 +502,20 @@
   .nerveZone { background: linear-gradient(90deg, transparent, rgba(239,68,68,.35), rgba(239,68,68,.9), rgba(239,68,68,.35), transparent); animation: zoneGlow 1.6s ease-in-out infinite; }
   .nerveBurst { position:absolute; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; border:3px solid #22c55e; pointer-events:none; animation: ringOut .55s ease-out forwards; }
 
+  /* desktop: tighter, more professional buttons */
+  @media (min-width: 900px) {
+    button, input, select { font-size: .9rem; padding: 8px 14px; border-radius: 10px; }
+    .cats { gap: 8px; margin-top: 18px; }
+    .cats button { padding: 9px 12px; font-size: .92rem; border-radius: 12px; }
+    .cats button small { font-size: .68rem; margin-top: 2px; }
+    .subTabs { margin-top: 8px; }
+    .subTabs button { padding: 7px 14px; font-size: .86rem; border-radius: 999px; }
+    .closeX { width: 40px; height: 40px; flex-basis: 40px; font-size: 1.3rem; }
+    .gGame { padding: 14px !important; }
+    .gGame h2 { font-size: .98rem !important; }
+    .btnrow { gap: 8px; margin-top: 12px; }
+  }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
