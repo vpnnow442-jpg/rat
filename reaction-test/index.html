@@ -1874,8 +1874,9 @@
       const tries = runs.filter(r => (r.mode || 'simple') === k).flatMap(r => r.tries);
       const best = tries.length ? Math.min(...tries) : null;
       const avg = mean(tries);
-      let rank = 'No published ranks';
+      let rank = 'Unranked';
       if (k === 'simple' && avg != null) rank = TIERS[tierIndex(avg)].name;
+      else if (k !== 'simple') rank = modeRank(k, avg).name;
       rows.push({ name: MODES[k].label + ' reaction', sub: 'Reaction mode', best: best == null ? '—' : best + ' ms',
         avg: avg == null ? '—' : Math.round(avg) + ' ms', rank: rank });
     });
@@ -2662,6 +2663,24 @@
     if (kind === 'mode') renderModeExplore(key); else renderGameExplore(key);
   }
 
+  // Reaction-mode ranks use your average ms. Audio sits near the research range;
+  // Target and Arrows are my own estimates. All are rough guides.
+  const MODE_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
+  const MODE_RANK_CUTS = {
+    audio: [300, 250, 220, 190, 160, 140],
+    target: [600, 500, 420, 350, 290, 240],
+    arrows: [1000, 800, 650, 550, 450, 380]
+  };
+  function modeRank(key, avg) {
+    if (avg == null) return { idx: -1, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + MODE_RANK_CUTS[key][0] + ' ms' };
+    const cuts = MODE_RANK_CUTS[key];
+    let idx = -1;
+    cuts.forEach((c, i) => { if (avg < c) idx = i; });
+    if (idx === cuts.length - 1) return { idx, name: MODE_RANK_NAMES[idx], next: 'Top rank reached' };
+    if (idx < 0) return { idx, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + cuts[0] + ' ms' };
+    return { idx, name: MODE_RANK_NAMES[idx], next: MODE_RANK_NAMES[idx + 1] + ' at ' + cuts[idx + 1] + ' ms' };
+  }
+
   function renderModeExplore(key) {
     const m = MODES[key];
     const list = runs.filter(r => (r.mode || 'simple') === key);
@@ -2691,8 +2710,12 @@
         '<div class="tier' + (avg != null && tierIndex(avg) === i ? ' current' : '') + '"><div><b>' + esc(t.name) + '</b></div><div class="range">' + esc(t.range) + '</div><div class="rare">' + esc(t.rare) + '</div></div>'
       ).join('') + '</div>';
     } else {
-      $('exRankNote').textContent = '';
-      $('exRanks').innerHTML = '<p class="muted" style="margin:0">No published ranks for this mode yet. We would need real player data to set them fairly.</p>';
+      const cuts = MODE_RANK_CUTS[key];
+      const mr = modeRank(key, avg);
+      $('exRankNote').textContent = key === 'audio' ? 'Rough guide, near the research range' : 'Rough guide, my own estimate';
+      $('exRanks').innerHTML = '<div class="ladder">' + MODE_RANK_NAMES.map((name, i) =>
+        '<div class="tier' + (mr.idx === i ? ' current' : '') + '"><div><b>' + esc(name) + '</b></div><div class="range">under ' + cuts[i] + ' ms</div><div class="rare">' + (mr.idx === i ? 'Your rank' : '') + '</div></div>'
+      ).join('') + '</div>';
     }
     // references
     const refs = MODE_REFS[key] || [];
