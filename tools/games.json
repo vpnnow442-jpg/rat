@@ -101,8 +101,8 @@
     {
       "id": "multi",
       "name": "Track Three",
-      "desc": "Remember the highlighted dot, then track it as it moves and pick it out.",
-      "unit": "correct of 6",
+      "desc": "Three dots light up, then all eight drift around. Pick out the three you were shown.",
+      "unit": "correct of 12",
       "higherBetter": true,
       "preview": "",
       "cat": "vision"
@@ -119,8 +119,8 @@
     {
       "id": "dual",
       "name": "Dual Mind",
-      "desc": "Two zones, two rules. Tap green on the left and blue on the right, and ignore the rest.",
-      "unit": "correct of 12",
+      "desc": "Two zones, two rules. Tap green on the left and blue on the right. Tapping the wrong one costs a point.",
+      "unit": "points of 8",
       "higherBetter": true,
       "preview": "",
       "cat": "originals"
@@ -137,7 +137,7 @@
     {
       "id": "nerve",
       "name": "Nerve",
-      "desc": "Stop the moving marker as close to the red line as you can, without going over.",
+      "desc": "Stop the moving marker as close to the red line as you can. Over or under, only the gap counts.",
       "unit": "px off (avg)",
       "higherBetter": false,
       "preview": "",
@@ -146,7 +146,7 @@
     {
       "id": "colortrap",
       "name": "Colour Trap",
-      "desc": "The word names one colour but is printed in another. Tap the ink colour.",
+      "desc": "The word names one colour but is printed in another. Tap the ink colour before the bar runs out.",
       "unit": "correct of 15",
       "higherBetter": true,
       "preview": "",
@@ -155,7 +155,7 @@
     {
       "id": "flip",
       "name": "Flip",
-      "desc": "Tap the colour named. The rule changes halfway, so stay sharp.",
+      "desc": "Tap the colour named, before the timer runs out. The rule changes halfway, so stay sharp.",
       "unit": "correct of 12",
       "higherBetter": true,
       "preview": "",
@@ -164,8 +164,8 @@
     {
       "id": "mirror",
       "name": "Mirror",
-      "desc": "A cell lights up on the left. Tap its mirror image on the right.",
-      "unit": "correct of 10",
+      "desc": "A cell lights up on the left. Tap its mirror image on the right before time runs out.",
+      "unit": "correct of 12",
       "higherBetter": true,
       "preview": "",
       "cat": "originals"
@@ -200,7 +200,7 @@
     {
       "id": "cascade",
       "name": "Cascade",
-      "desc": "Tiles fall in four lanes. Tap the lane as each tile reaches the line.",
+      "desc": "Tiles fall in four lanes. Tap the lane as each tile reaches the line. Stray taps cost a hit.",
       "unit": "hits of 20",
       "higherBetter": true,
       "preview": "",
@@ -227,8 +227,8 @@
     {
       "id": "speedround",
       "name": "Speed Round",
-      "desc": "A 30-second reaction marathon. How many clean reactions can you land?",
-      "unit": "clean reactions",
+      "desc": "Twenty green flashes in a row. Click within 280 ms to score, and do not jump the gun.",
+      "unit": "clean of 20",
       "higherBetter": true,
       "preview": "",
       "cat": "classics"
@@ -236,8 +236,8 @@
     {
       "id": "dodge",
       "name": "Dodge",
-      "desc": "Tap the green, leave the red alone. A quick go/no-go arena.",
-      "unit": "correct of 20",
+      "desc": "Tap the green, leave the red alone. A wrong tap on red costs a point, so do not just spam.",
+      "unit": "points of 12",
       "higherBetter": true,
       "preview": "",
       "cat": "classics"
@@ -270,36 +270,36 @@
       14
     ],
     "word": [
-      10,
+      12,
       14,
-      17,
+      16,
+      18,
       19,
-      20,
       20
     ],
     "vis": [
       3,
-      6,
+      5,
+      7,
       9,
-      12,
-      15,
-      18
+      11,
+      13
     ],
     "ord": [
-      3500,
-      2500,
-      1800,
-      1400,
-      1100,
-      800
+      5000,
+      4000,
+      3200,
+      2600,
+      2100,
+      1700
     ],
     "pop": [
-      600,
-      550,
-      450,
+      750,
+      620,
+      520,
+      440,
       380,
-      320,
-      280
+      330
     ],
     "type": [
       30,
@@ -334,44 +334,44 @@
       95
     ],
     "colour": [
-      3,
-      5,
-      7,
-      9,
-      11,
-      13
+      4,
+      6,
+      8,
+      10,
+      12,
+      14
     ],
     "peri": [
-      6,
-      9,
-      12,
-      15,
+      8,
+      11,
+      14,
+      16,
       18,
       20
     ],
     "multi": [
-      2,
-      3,
-      4,
-      5,
       6,
-      6
+      7,
+      9,
+      10,
+      11,
+      12
     ],
     "ghost": [
-      2,
       3,
       4,
       5,
       6,
+      7,
       8
     ],
     "dual": [
+      3,
       4,
+      5,
       6,
-      8,
-      9,
-      10,
-      12
+      7,
+      8
     ],
     "blink": [
       4,
@@ -383,67 +383,67 @@
     ],
     "nerve": [
       30,
-      20,
-      14,
-      9,
-      5,
-      2
+      22,
+      15,
+      10,
+      7,
+      5
     ],
     "colortrap": [
-      5,
-      7,
-      9,
-      11,
-      13,
+      6,
+      8,
+      10,
+      12,
+      14,
       15
     ],
     "flip": [
-      4,
-      6,
-      8,
+      5,
+      7,
       9,
+      10,
       11,
       12
     ],
     "mirror": [
-      3,
-      5,
       6,
-      7,
+      8,
       9,
-      10
+      10,
+      11,
+      12
     ],
     "pulse": [
-      200,
+      160,
       120,
-      80,
-      50,
-      30,
-      15
+      90,
+      65,
+      45,
+      30
     ],
     "schulte": [
-      30000,
-      22000,
+      45000,
+      34000,
+      26000,
+      20000,
       16000,
-      12000,
-      9000,
-      7000
+      13000
     ],
     "bullseye": [
-      40,
-      25,
-      15,
+      14,
       10,
-      6,
+      7.5,
+      5.5,
+      4,
       3
     ],
     "cascade": [
-      5,
-      8,
-      11,
-      14,
+      6,
+      9,
+      12,
+      15,
       17,
-      20
+      19
     ],
     "sprint": [
       5,
@@ -454,36 +454,36 @@
       40
     ],
     "targetrush": [
+      10,
+      14,
+      18,
+      22,
+      26,
+      30
+    ],
+    "speedround": [
       6,
       9,
       12,
       15,
       18,
-      22
-    ],
-    "speedround": [
-      5,
-      8,
-      11,
-      14,
-      17,
       20
     ],
     "dodge": [
-      6,
-      9,
-      12,
-      15,
-      18,
-      20
-    ],
-    "impossible": [
-      3,
       5,
       7,
       9,
+      10,
       11,
-      13
+      12
+    ],
+    "impossible": [
+      4,
+      6,
+      8,
+      10,
+      11,
+      12
     ]
   },
   "rankNames": [

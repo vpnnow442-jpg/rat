@@ -474,8 +474,8 @@
   .rarityKey { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:10px; }
 
   #gStage { min-height: 520px !important; }
-  #gStage #arena { height: 440px !important; }
-  #gStage #testCard { width: 100%; border: 0; box-shadow: none; background: transparent; padding: 0; }
+  #gStage #arena { height: 400px !important; }
+  #gStage #testCard { width: min(680px, 100%); margin: 0 auto; border: 0; box-shadow: none; background: transparent; padding: 0; }
   #gStage #testCard .card-head { display: none; }
   #gStage #testCard .modeRow { display: none; }
   #gScreen { padding: 26px !important; scroll-margin-top: 150px; }
@@ -685,6 +685,7 @@
       <span class="muted" style="font-weight:600">Colours for this mode:</span>
       <span id="colorFields" style="display:contents"></span>
       <label id="hintWrap" hidden><input type="checkbox" id="audioHint"> Flash hint on the beep</label>
+      <button class="ghost" id="soundTest" hidden>Test sound</button>
       <button class="ghost" id="colReset">Reset this mode</button>
     </div>
   </section>
@@ -1161,20 +1162,38 @@
     d.className = 'delta ' + (good ? 'up' : 'down');
     d.textContent = text;
   }
+  // Browsers only allow sound after a real tap, click or key press, and iPhones also need a silent
+  // sound played inside that tap. So we unlock audio on every kind of press while Audio mode is on.
+  let audioUnlocked = false;
   function ensureAudio() {
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
+      if (audioCtx.state !== 'running') audioCtx.resume();
+      if (!audioUnlocked) {
+        const src = audioCtx.createBufferSource();
+        src.buffer = audioCtx.createBuffer(1, 1, 22050);
+        src.connect(audioCtx.destination); src.start(0);
+        audioUnlocked = true;
+      }
     } catch (e) { audioCtx = null; }
   }
+  ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, () => { if (currentMode === 'audio') ensureAudio(); }, true));
+  // Plays a clear 0.3 s tone. Returns true if the browser let it play.
   function beep() {
-    if (!audioCtx) return;
+    ensureAudio();
+    if (!audioCtx || audioCtx.state !== 'running') return false;
     try {
+      const t = audioCtx.currentTime;
       const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-      o.frequency.value = 880; g.gain.value = 0.25;
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(0.7, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
       o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.15);
-    } catch (e) { /* no sound available */ }
+      o.start(t); o.stop(t + 0.32);
+      return true;
+    } catch (e) { return false; }
   }
   function removeTarget() {
     if (targetEl) { targetEl.remove(); targetEl = null; }
@@ -1225,8 +1244,9 @@
       arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
     } else if (currentMode === 'audio') {
       setArena('', '', '');
-      beep();
-      if (audioHint) {
+      const sounded = beep();
+      if (!sounded) flashDelta('Your browser blocked the sound, so a flash is shown instead', false);
+      if (audioHint || !sounded) {
         // non-sound hint: a soft glow, plus a buzz on phones that support it
         arena.classList.add('hint');
         setTimeout(() => arena.classList.remove('hint'), 750);
@@ -2048,12 +2068,18 @@
     });
     const hintWrap = $('hintWrap');
     hintWrap.hidden = currentMode !== 'audio';
+    $('soundTest').hidden = currentMode !== 'audio';
     $('audioHint').checked = audioHint;
   }
   $('colReset').addEventListener('click', () => {
     colorsByMode[currentMode] = {};
     writeJSON(COLOR_KEY, colorsByMode);
     applyColors(); renderColors(); toast('Colours reset for this mode');
+  });
+  $('soundTest').addEventListener('click', () => {
+    ensureAudio();
+    const say = () => toast(beep() ? 'Did you hear that? If not, turn the volume up and check your silent switch.' : 'Sound is blocked. Tap Test sound again, or check the browser sound settings.');
+    if (audioCtx) audioCtx.resume().then(say, say); else say();
   });
   $('audioHint').addEventListener('change', (e) => {
     audioHint = e.target.checked;
@@ -2165,22 +2191,22 @@
     { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' },
     { id:'colour', name:'Colour Spot', desc:'Find the one square with a slightly different colour. It gets harder each level.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
     { id:'peri', name:'Edge Flash', desc:'Keep your eyes on the centre dot and click the targets that flash at the edges.', unit:'hits of 20', higherBetter:true, preview:'', cat:'vision' },
-    { id:'multi', name:'Track Three', desc:'Remember the highlighted dot, then track it as it moves and pick it out.', unit:'correct of 6', higherBetter:true, preview:'', cat:'vision' },
+    { id:'multi', name:'Track Three', desc:'Three dots light up, then all eight drift around. Pick out the three you were shown.', unit:'correct of 12', higherBetter:true, preview:'', cat:'vision' },
     { id:'ghost', name:'Ghost Tap', desc:'A dot slips behind a wall. Tap the exact moment it crosses the line.', unit:'hits of 8', higherBetter:true, preview:'', cat:'originals' },
-    { id:'dual', name:'Dual Mind', desc:'Two zones, two rules. Tap green on the left and blue on the right, and ignore the rest.', unit:'correct of 12', higherBetter:true, preview:'', cat:'originals' },
+    { id:'dual', name:'Dual Mind', desc:'Two zones, two rules. Tap green on the left and blue on the right. Tapping the wrong one costs a point.', unit:'points of 8', higherBetter:true, preview:'', cat:'originals' },
     { id:'blink', name:'Blink', desc:'A number flashes for a moment, then vanishes. Type it back. It gets longer and faster.', unit:'digits', higherBetter:true, preview:'', cat:'originals' },
-    { id:'nerve', name:'Nerve', desc:'Stop the moving marker as close to the red line as you can, without going over.', unit:'px off (avg)', higherBetter:false, preview:'', cat:'originals' },
-    { id:'colortrap', name:'Colour Trap', desc:'The word names one colour but is printed in another. Tap the ink colour.', unit:'correct of 15', higherBetter:true, preview:'', cat:'originals' },
-    { id:'flip', name:'Flip', desc:'Tap the colour named. The rule changes halfway, so stay sharp.', unit:'correct of 12', higherBetter:true, preview:'', cat:'originals' },
-    { id:'mirror', name:'Mirror', desc:'A cell lights up on the left. Tap its mirror image on the right.', unit:'correct of 10', higherBetter:true, preview:'', cat:'originals' },
+    { id:'nerve', name:'Nerve', desc:'Stop the moving marker as close to the red line as you can. Over or under, only the gap counts.', unit:'px off (avg)', higherBetter:false, preview:'', cat:'originals' },
+    { id:'colortrap', name:'Colour Trap', desc:'The word names one colour but is printed in another. Tap the ink colour before the bar runs out.', unit:'correct of 15', higherBetter:true, preview:'', cat:'originals' },
+    { id:'flip', name:'Flip', desc:'Tap the colour named, before the timer runs out. The rule changes halfway, so stay sharp.', unit:'correct of 12', higherBetter:true, preview:'', cat:'originals' },
+    { id:'mirror', name:'Mirror', desc:'A cell lights up on the left. Tap its mirror image on the right before time runs out.', unit:'correct of 12', higherBetter:true, preview:'', cat:'originals' },
     { id:'pulse', name:'Pulse', desc:'Tap exactly one second after the light goes dark. No counting, just your internal clock.', unit:'ms off (avg)', higherBetter:false, preview:'', cat:'originals' },
     { id:'schulte', name:'Schulte Table', desc:'Tap the numbers 1 to 25 in order, as fast as you can.', unit:'ms', higherBetter:false, preview:'', cat:'originals' },
     { id:'bullseye', name:'Bullseye', desc:'The ring shrinks inward. Tap as it reaches the green band.', unit:'px off (avg)', higherBetter:false, preview:'', cat:'originals' },
-    { id:'cascade', name:'Cascade', desc:'Tiles fall in four lanes. Tap the lane as each tile reaches the line.', unit:'hits of 20', higherBetter:true, preview:'', cat:'originals' },
+    { id:'cascade', name:'Cascade', desc:'Tiles fall in four lanes. Tap the lane as each tile reaches the line. Stray taps cost a hit.', unit:'hits of 20', higherBetter:true, preview:'', cat:'originals' },
     { id:'sprint', name:'Sprint', desc:'An endless runner. Switch lanes to dodge the blocks. Three crashes and it ends.', unit:'blocks dodged', higherBetter:true, preview:'', cat:'originals' },
     { id:'targetrush', name:'Target Rush', desc:'Hit as many targets as you can in 15 seconds. Speed and accuracy both count.', unit:'hits in 15s', higherBetter:true, preview:'', cat:'classics' },
-    { id:'speedround', name:'Speed Round', desc:'A 30-second reaction marathon. How many clean reactions can you land?', unit:'clean reactions', higherBetter:true, preview:'', cat:'classics' },
-    { id:'dodge', name:'Dodge', desc:'Tap the green, leave the red alone. A quick go/no-go arena.', unit:'correct of 20', higherBetter:true, preview:'', cat:'classics' },
+    { id:'speedround', name:'Speed Round', desc:'Twenty green flashes in a row. Click within 280 ms to score, and do not jump the gun.', unit:'clean of 20', higherBetter:true, preview:'', cat:'classics' },
+    { id:'dodge', name:'Dodge', desc:'Tap the green, leave the red alone. A wrong tap on red costs a point, so do not just spam.', unit:'points of 12', higherBetter:true, preview:'', cat:'classics' },
     { id:'impossible', name:'Impossible Mode', desc:'The reaction window shrinks every level. One slip ends the run.', unit:'levels', higherBetter:true, preview:'', cat:'classics' },
   ];
 
@@ -2218,10 +2244,14 @@
   // Rank cut-offs per game, from Bronze up to Diamond. Each is a score you need to reach.
   const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
   const RANK_CUTS = {
-    seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [10, 14, 17, 19, 20, 20], vis: [3, 6, 9, 12, 15, 18],
-    ord: [3500, 2500, 1800, 1400, 1100, 800], pop: [600, 550, 450, 380, 320, 280],
+    seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [12, 14, 16, 18, 19, 20], vis: [3, 5, 7, 9, 11, 13],
+    ord: [5000, 4000, 3200, 2600, 2100, 1700], pop: [750, 620, 520, 440, 380, 330],
     type: [30, 50, 70, 90, 110, 130], cps: [4, 6, 7.5, 9, 11, 13], space: [25, 35, 45, 55, 65, 75], track: [30, 45, 60, 75, 90, 95],
-    colour: [3, 5, 7, 9, 11, 13], peri: [6, 9, 12, 15, 18, 20], multi: [2, 3, 4, 5, 6, 6], ghost: [2, 3, 4, 5, 6, 8], dual: [4, 6, 8, 9, 10, 12], blink: [4, 5, 6, 7, 8, 9], nerve: [30, 20, 14, 9, 5, 2], colortrap: [5, 7, 9, 11, 13, 15], flip: [4, 6, 8, 9, 11, 12], mirror: [3, 5, 6, 7, 9, 10], pulse: [200, 120, 80, 50, 30, 15], schulte: [30000, 22000, 16000, 12000, 9000, 7000], bullseye: [40, 25, 15, 10, 6, 3], cascade: [5, 8, 11, 14, 17, 20], sprint: [5, 10, 15, 20, 30, 40], targetrush: [6, 9, 12, 15, 18, 22], speedround: [5, 8, 11, 14, 17, 20], dodge: [6, 9, 12, 15, 18, 20], impossible: [3, 5, 7, 9, 11, 13]
+    colour: [4, 6, 8, 10, 12, 14], peri: [8, 11, 14, 16, 18, 20], multi: [6, 7, 9, 10, 11, 12], ghost: [3, 4, 5, 6, 7, 8], dual: [3, 4, 5, 6, 7, 8], blink: [4, 5, 6, 7, 8, 9],
+    nerve: [30, 22, 15, 10, 7, 5], colortrap: [6, 8, 10, 12, 14, 15], flip: [5, 7, 9, 10, 11, 12], mirror: [6, 8, 9, 10, 11, 12],
+    pulse: [160, 120, 90, 65, 45, 30], schulte: [45000, 34000, 26000, 20000, 16000, 13000], bullseye: [14, 10, 7.5, 5.5, 4, 3],
+    cascade: [6, 9, 12, 15, 17, 19], sprint: [5, 10, 15, 20, 30, 40], targetrush: [10, 14, 18, 22, 26, 30],
+    speedround: [6, 9, 12, 15, 18, 20], dodge: [5, 7, 9, 10, 11, 12], impossible: [4, 6, 8, 10, 11, 12]
   };
   // Rough rarity guide only. These are estimates, not measured data.
   const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%', 'Very few reach this'];
@@ -2565,11 +2595,13 @@
     api.stage.append(msg, board);
     const cells = []; for (let i = 0; i < 16; i++) { const b = document.createElement('button'); b.className = 'cellBtn'; b.disabled = true; board.appendChild(b); cells.push(b); }
     async function round() {
-      const count = Math.min(5 + level, 16);
+      if (level > 15) return api.finish(15);
+      // starts at 3 squares and stops growing at 10, so a level never turns into "tap everything"
+      const count = Math.min(2 + level, 10);
       const lit = new Set(); while (lit.size < count) lit.add(Math.floor(Math.random() * 16));
-      msg.textContent = 'Remember these squares';
+      msg.textContent = 'Level ' + level + ': remember these squares';
       cells.forEach((c, i) => { c.disabled = true; c.onclick = null; c.classList.toggle('lit', lit.has(i)); });
-      await sleep(1000);
+      await sleep(900 + count * 60);
       if (!api.alive()) return;
       cells.forEach(c => c.classList.remove('lit'));
       msg.textContent = 'Tap the ' + count + ' squares';
@@ -2587,7 +2619,7 @@
   // Target Pop: 20 targets, one at a time, each scored by its reaction
   GAME_FNS.pop = async (api) => {
     const area = document.createElement('div');
-    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--cell);border:1px solid var(--line);overflow:hidden;';
+    area.style.cssText = 'position:relative;width:min(460px,92vw);height:320px;border-radius:16px;background:var(--cell);border:1px solid var(--line);overflow:hidden;';
     const info = document.createElement('div'); info.className = 'gMuted';
     api.stage.append(area, info);
     const times = []; let total = 20;
@@ -2669,9 +2701,9 @@
     let presses = 0, started = false;
     const onKey = (e) => {
       if (e.code !== 'Space') return;
+      if (!api.alive()) return document.removeEventListener('keydown', onKey);   // you left the game, so give Space back
       e.preventDefault();
       if (e.repeat) return; // holding the key does not count as extra presses
-      if (!api.alive()) return document.removeEventListener('keydown', onKey);
       if (!started) { started = true; setTimeout(() => { document.removeEventListener('keydown', onKey); api.finish(presses); }, 5000); info.textContent = 'Keep pressing…'; }
       presses++; key.style.transform = 'scale(.96)'; setTimeout(() => key.style.transform = '', 60);
       info.textContent = presses + ' presses';
@@ -2683,7 +2715,7 @@
   // Tracking Trainer: share of time the cursor is on a moving target for 10 seconds
   GAME_FNS.track = async (api) => {
     const area = document.createElement('div');
-    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;cursor:crosshair;touch-action:none;';
+    area.style.cssText = 'position:relative;width:min(460px,92vw);height:320px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;cursor:crosshair;touch-action:none;';
     const dot = document.createElement('div');
     dot.style.cssText = 'position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:var(--accent);box-shadow:0 0 20px var(--accent);';
     area.appendChild(dot);
@@ -2757,7 +2789,7 @@
       board.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
       board.innerHTML = '';
       const hue = Math.floor(Math.random() * 360);
-      const diff = Math.max(3, 30 - level * 3);
+      const diff = Math.max(1.5, 22 - level * 1.6);   // lightness gap in points; gets close to invisible
       const odd = Math.floor(Math.random() * n * n);
       msg.textContent = 'Level ' + level + ': find the different square';
       for (let i = 0; i < n * n; i++) {
@@ -2765,7 +2797,7 @@
         c.style.background = 'hsl(' + hue + ', 70%, ' + (50 + (i === odd ? diff : 0)) + '%)';
         c.onclick = () => {
           if (!api.alive()) return;
-          if (i === odd) { level++; setTimeout(round, 250); }
+          if (i === odd) { level++; if (level > 20) return api.finish(20); setTimeout(round, 250); }
           else api.finish(level - 1);
         };
         board.appendChild(c);
@@ -2798,12 +2830,12 @@
       let done = false;
       const end = (hit) => { if (done) return; done = true; if (hit) hits++; t.remove(); setTimeout(flash, 350); };
       t.onclick = () => { if (api.alive()) end(true); };
-      setTimeout(() => end(false), 800);
+      setTimeout(() => end(false), 650);
     }
     flash();
   };
 
-  // Track Three: 3 dots are highlighted, then all 8 move and you pick out the 3
+  // Track Three: 3 of 8 dots are highlighted, then all of them drift and you pick out the 3
   GAME_FNS.multi = async (api) => {
     const area = document.createElement('div');
     area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid #94a3b8;overflow:hidden;';
@@ -2835,12 +2867,13 @@
         requestAnimationFrame(f);
       });
     }
+    const ROUNDS = 4, TARGETS = 3;
     let round = 0, total = 0;
     async function playRound() {
       if (!api.alive()) return;
       round++;
-      if (round > 6) return api.finish(total);
-      const speed = 90 + round * 20;
+      if (round > ROUNDS) return api.finish(total);
+      const speed = 70 + round * 15;
       const W = area.clientWidth, H = area.clientHeight;
       dots.forEach(d => {
         d.x = 30 + Math.random() * (W - 60); d.y = 30 + Math.random() * (H - 60);
@@ -2849,28 +2882,27 @@
         d.target = false; d.el.style.background = '#94a3b8'; d.el.onclick = null; d.el.style.cursor = 'default';
         d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
       });
-      const picks = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, 1);
-      picks.forEach(i => { dots[i].target = true; dots[i].el.style.background = 'var(--accent2)'; });
-      info.textContent = 'Round ' + round + ' of 6. Remember the highlighted dot.';
-      await wait(1500);
+      shuffled([0, 1, 2, 3, 4, 5, 6, 7]).slice(0, TARGETS).forEach(i => { dots[i].target = true; dots[i].el.style.background = 'var(--accent2)'; });
+      info.textContent = 'Round ' + round + ' of ' + ROUNDS + '. Remember the ' + TARGETS + ' highlighted dots.';
+      await wait(1800);
       if (!api.alive()) return;
       dots.forEach(d => { d.el.style.background = '#94a3b8'; });
       info.textContent = 'Tracking...';
-      if (!(await move(4500))) return;
+      if (!(await move(4000))) return;
       const chosen = [];
-      info.textContent = 'Click the dot that was highlighted.';
+      info.textContent = 'Click the ' + TARGETS + ' dots that were highlighted.';
       dots.forEach((d, i) => {
         d.el.style.cursor = 'pointer';
         d.el.onclick = () => {
-          if (!api.alive() || chosen.length >= 1) return;
+          if (!api.alive() || chosen.length >= TARGETS || chosen.includes(i)) return;
           chosen.push(i);
           d.el.style.background = 'var(--accent3)';
-          if (chosen.length === 1) {
+          if (chosen.length === TARGETS) {
             const correct = chosen.filter(j => dots[j].target).length;
             total += correct;
-            info.textContent = correct ? 'Correct!' : 'Missed it';
-            dots.forEach(x => { x.el.onclick = null; });
-            setTimeout(playRound, 1000);
+            dots.forEach(x => { x.el.onclick = null; x.el.style.cursor = 'default'; if (x.target) x.el.style.background = 'var(--accent2)'; });
+            info.textContent = correct + ' of ' + TARGETS + ' correct';
+            setTimeout(playRound, 1400);
           }
         };
       });
@@ -2884,6 +2916,14 @@
     a.style.cssText = 'position:relative;width:min(420px,92vw);height:' + h + 'px;border-radius:16px;background:var(--bg2);border:1px solid #94a3b8;overflow:hidden;touch-action:none;';
     return a;
   };
+  // a thin bar that drains over `ms`, to show how long you have
+  const newTimerBar = (w) => {
+    const el = document.createElement('div'); el.style.cssText = 'height:8px;width:' + (w || 'min(360px,90vw)') + ';border-radius:6px;background:#94a3b8;overflow:hidden;';
+    const fill = document.createElement('div'); fill.style.cssText = 'height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));';
+    el.appendChild(fill);
+    return { el, run(ms) { fill.style.transition = 'none'; fill.style.width = '100%'; void fill.offsetWidth; fill.style.transition = 'width ' + ms + 'ms linear'; fill.style.width = '0%'; }, stop() { fill.style.transition = 'none'; } };
+  };
+  const shuffled = (arr) => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
   const newNote = () => { const n = document.createElement('div'); n.className = 'gMuted'; return n; };
   const newDot = (size, color) => {
     const d = document.createElement('div');
@@ -2894,15 +2934,15 @@
   // Ghost Tap: the dot slips behind a wall; tap as it crosses the line
   GAME_FNS.ghost = async (api) => {
     const A = newArea(); const info = newNote(); api.stage.append(A, info);
-    const wall = document.createElement('div'); wall.style.cssText = 'position:absolute;left:40%;top:0;bottom:0;width:18%;background:#94a3b8;'; A.appendChild(wall);
-    const line = document.createElement('div'); line.style.cssText = 'position:absolute;left:82%;top:0;bottom:0;width:2px;background:var(--accent3);'; A.appendChild(line);
+    const wall = document.createElement('div'); wall.style.cssText = 'position:absolute;left:25%;top:0;bottom:0;width:53%;background:#94a3b8;'; A.appendChild(wall);
+    const line = document.createElement('div'); line.style.cssText = 'position:absolute;left:62%;top:0;bottom:0;width:3px;background:var(--accent3);box-shadow:0 0 8px var(--accent3);'; A.appendChild(line);
     const dot = newDot(22, 'var(--accent2)'); A.appendChild(dot);
     let round = 0, hits = 0;
     function run() {
       if (!api.alive()) return;
       if (round >= 8) return api.finish(hits);
       round++;
-      info.textContent = 'Tap as the dot crosses the line. Round ' + round + ' of 8';
+      info.textContent = 'The dot hides behind the wall. Tap as it crosses the line. Round ' + round + ' of 8';
       const speed = 220 + round * 22;
       let x = 0, done = false, rafId = 0, last = performance.now();
       dot.style.top = (A.clientHeight * (0.3 + Math.random() * 0.4)) + 'px';
@@ -2910,12 +2950,12 @@
       const finish = (click) => {
         if (done) return; done = true;
         cancelAnimationFrame(rafId); A.removeEventListener('pointerdown', onDown);
-        const dist = Math.abs(x - A.clientWidth * 0.82);
-        const ok = click && dist < 24;
+        const dist = Math.abs(x - A.clientWidth * 0.62);
+        const ok = click && dist < 22;
         if (ok) hits++;
         info.textContent = ok ? 'Nice, right on the line' : (click ? 'Off by a bit' : 'Missed it');
-        dot.style.opacity = 0;
-        setTimeout(run, 800);
+        dot.style.opacity = 1;   // show where the dot really was
+        setTimeout(run, 1100);
       };
       const onDown = () => { if (api.alive()) finish(true); };
       A.addEventListener('pointerdown', onDown);
@@ -2924,9 +2964,9 @@
         const dt = (now - last) / 1000; last = now;
         x += speed * dt;
         dot.style.left = x + 'px';
-        const inWall = x > A.clientWidth * 0.4 && x < A.clientWidth * 0.58;
+        const inWall = x > A.clientWidth * 0.25;
         dot.style.opacity = inWall ? 0 : 1;
-        if (x >= A.clientWidth * 0.82 + 24) return finish(false);
+        if (x >= A.clientWidth * 0.62 + 40) return finish(false);
         rafId = requestAnimationFrame(tick);
       };
       rafId = requestAnimationFrame(tick);
@@ -2934,34 +2974,37 @@
     run();
   };
 
-  // Dual Mind: green on the left and blue on the right are targets, everything else is not
+  // Dual Mind: green on the left and blue on the right are targets, everything else is not.
+  // 8 of the 16 dots should be tapped. A right tap scores, a wrong tap costs a point, so doing nothing scores nothing.
   GAME_FNS.dual = async (api) => {
     const A = newArea(); const info = newNote(); api.stage.append(A, info);
     const L = document.createElement('div'); L.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:50%;background:rgba(34,197,94,.08);border-right:1px dashed #94a3b8;';
     const R = document.createElement('div'); R.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:50%;background:rgba(56,189,248,.08);';
     A.append(L, R);
+    const plan = shuffled([true, true, true, true, true, true, true, true, false, false, false, false, false, false, false, false]);
     let n = 0, score = 0;
     function next() {
       if (!api.alive()) return;
-      if (n >= 12) return api.finish(score);
-      n++;
-      const left = Math.random() < 0.5, green = Math.random() < 0.5;
-      const shouldTap = (left && green) || (!left && !green);
+      if (n >= 16) return api.finish(Math.max(0, score));
+      const shouldTap = plan[n]; n++;
+      const left = Math.random() < 0.5;
+      const green = shouldTap ? left : !left;   // green-left and blue-right are the ones to tap
       const d = newDot(26, green ? '#22c55e' : '#38bdf8');
       d.style.left = (left ? 15 + Math.random() * 20 : 65 + Math.random() * 20) + '%';
       d.style.top = (15 + Math.random() * 60) + '%';
       A.appendChild(d);
       let answered = false;
       const answer = (tapped) => {
-        if (answered) return; answered = true;
-        if (tapped === shouldTap) score++;
-        info.textContent = tapped === shouldTap ? 'Correct' : 'Wrong';
+        if (answered) return; answered = true; clearTimeout(timer);
+        if (tapped && shouldTap) { score++; info.textContent = 'Correct, +1'; }
+        else if (tapped) { score--; info.textContent = 'Wrong dot, -1'; }
+        else info.textContent = shouldTap ? 'Missed one' : 'Good, you left it';
         d.remove();
         setTimeout(next, 350);
       };
       d.onpointerdown = (e) => { e.stopPropagation(); answer(true); };
-      setTimeout(() => answer(false), 1100);
-      info.textContent = 'Green on the left, blue on the right. ' + n + ' of 12';
+      const timer = setTimeout(() => answer(false), Math.max(520, 1000 - n * 30));   // gets quicker
+      info.textContent = 'Green on the left, blue on the right. ' + n + ' of 16 · points ' + Math.max(0, score);
     }
     next();
   };
@@ -3021,7 +3064,7 @@
       if (tries >= 5) return api.finish(Math.round(total / 5));
       tries++;
       info.textContent = 'Stop it right before the red line. Try ' + tries + ' of 5';
-      const speed = 1.2 + tries * 0.25; const t0 = performance.now();
+      const speed = 1.0 + tries * 0.12; const t0 = performance.now();
       let rafId = 0, stopped = false; const hist = [];
       const onDown = () => {
         if (stopped) return; stopped = true;
@@ -3082,20 +3125,22 @@
         b.onclick = () => answer(c);
         row.appendChild(b);
       });
+      const ms = Math.max(800, 1600 - n * 55);   // gets quicker
       fill.style.transition = 'none'; fill.style.width = '100%';
       void fill.offsetWidth;
-      fill.style.transition = 'width 2s linear'; fill.style.width = '0%';
-      timer = setTimeout(() => answer(null), 2000);
-      info.textContent = 'Tap the INK colour within 2 seconds. ' + n + ' of 15';
+      fill.style.transition = 'width ' + ms + 'ms linear'; fill.style.width = '0%';
+      timer = setTimeout(() => answer(null), ms);
+      info.textContent = 'Tap the INK colour before the bar runs out. ' + n + ' of 15';
     }
     next();
   };
 
-  // Flip: the rule secretly changes halfway. Stay sharp.
+  // Flip: the rule changes halfway, and each round has a timer.
   GAME_FNS.flip = async (api) => {
     const target = document.createElement('div'); target.className = 'big';
+    const bar = newTimerBar();
     const tiles = document.createElement('div'); tiles.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;justify-content:center;';
-    const info = newNote(); api.stage.append(target, tiles, info);
+    const info = newNote(); api.stage.append(target, bar.el, tiles, info);
     const C = [['green', '#22c55e'], ['blue', '#3b82f6'], ['red', '#ef4444'], ['yellow', '#eab308']];
     let n = 0, score = 0;
     function next() {
@@ -3106,18 +3151,22 @@
       const idx = Math.floor(Math.random() * 4);
       target.textContent = C[idx][0].toUpperCase();
       const correct = flipped ? C[(idx + 2) % 4] : C[idx];
+      let answered = false, timer = 0;
+      const pick = (c) => {
+        if (answered || !api.alive()) return; answered = true; clearTimeout(timer); bar.stop();
+        if (c === correct) { score++; info.textContent = 'Correct'; } else info.textContent = c ? 'Wrong' : 'Too slow';
+        tiles.querySelectorAll('button').forEach(x => { x.disabled = true; });
+        setTimeout(next, 300);
+      };
       tiles.innerHTML = '';
       C.forEach(c => {
         const b = document.createElement('button'); b.className = 'cellBtn';
         b.style.background = c[1]; b.style.width = '70px'; b.style.height = '70px';
-        b.onclick = () => {
-          if (!api.alive()) return;
-          if (c === correct) score++;
-          tiles.querySelectorAll('button').forEach(x => { x.disabled = true; });
-          setTimeout(next, 300);
-        };
+        b.onclick = () => pick(c);
         tiles.appendChild(b);
       });
+      const ms = flipped ? 2000 : 1500;
+      bar.run(ms); timer = setTimeout(() => pick(null), ms);
       info.textContent = (flipped ? 'Rule flipped: tap the colour two places along. ' : 'Tap the matching colour. ') + n + ' of 12';
     }
     next();
@@ -3134,25 +3183,28 @@
     };
     const L = grid(), R = grid();
     wrap.append(L.el, R.el); api.stage.append(wrap, info);
+    const bar = newTimerBar('min(360px,90vw)'); api.stage.insertBefore(bar.el, info);
     let n = 0, score = 0;
     function next() {
       if (!api.alive()) return;
-      if (n >= 10) return api.finish(score);
+      if (n >= 12) return api.finish(score);
       n++;
       L.cells.forEach(c => c.classList.remove('lit'));
       R.cells.forEach((c, j) => { c.classList.remove('lit'); c.disabled = false; c.onclick = null; });
       const i = Math.floor(Math.random() * 9);
       const mirror = Math.floor(i / 3) * 3 + (2 - (i % 3));
       L.cells[i].classList.add('lit');
-      info.textContent = 'Tap the mirror cell on the right. ' + n + ' of 10';
-      R.cells.forEach((c, j) => {
-        c.onclick = () => {
-          if (!api.alive()) return;
-          if (j === mirror) score++;
-          R.cells.forEach(x => { x.disabled = true; });
-          setTimeout(next, 350);
-        };
-      });
+      let answered = false, timer = 0;
+      const pick = (j) => {
+        if (answered || !api.alive()) return; answered = true; clearTimeout(timer); bar.stop();
+        if (j === mirror) { score++; info.textContent = 'Correct'; } else info.textContent = j == null ? 'Too slow' : 'Wrong cell';
+        R.cells.forEach(x => { x.disabled = true; });
+        setTimeout(next, 350);
+      };
+      R.cells.forEach((c, j) => { c.onclick = () => pick(j); });
+      const ms = Math.max(750, 1700 - n * 80);   // gets quicker
+      bar.run(ms); timer = setTimeout(() => pick(null), ms);
+      info.textContent = 'Tap the mirror cell on the right. ' + n + ' of 12';
     }
     next();
   };
@@ -3235,9 +3287,9 @@
       const finish = (r) => {
         if (done) return; done = true;
         cancelAnimationFrame(rafId); A.removeEventListener('pointerdown', onDown);
-        const err = Math.abs(r - 40);
+        const err = r == null ? 80 : Math.abs(r - 40);   // no tap at all counts as a big miss
         errs += err;
-        info.textContent = 'Off by ' + Math.round(err) + ' px';
+        info.textContent = r == null ? 'Too late, counted as a big miss' : 'Off by ' + Math.round(err) + ' px';
         ring.remove();
         setTimeout(next, 900);
       };
@@ -3248,7 +3300,7 @@
         const t = Math.min(dur, now - start);
         const r = Math.max(0, 150 * (1 - t / dur));
         ring.style.width = ring.style.height = (r * 2) + 'px';
-        if (t >= dur) return finish(0);
+        if (t >= dur) return finish(null);
         rafId = requestAnimationFrame(tick);
       };
       rafId = requestAnimationFrame(tick);
@@ -3277,13 +3329,13 @@
         if (!api.alive() || ended) return;
         z.style.background = 'rgba(139,108,255,.16)';
         setTimeout(() => { z.style.background = 'transparent'; }, 150);
-        const t = tiles.find(t => t.live && t.lane === lane && Math.abs(t.y + 12 - lineY()) <= 30);
+        const t = tiles.find(t => t.live && t.lane === lane && Math.abs(t.y + 12 - lineY()) <= 16);
         if (t) {
           t.live = false; hits++;
           t.el.style.background = 'var(--accent3)';
           setTimeout(() => t.el.remove(), 120);
           info.textContent = 'Hit! ' + hits;
-        } else info.textContent = 'Not on the line';
+        } else { hits = Math.max(0, hits - 1); info.textContent = 'Stray tap, minus one'; }
       };
       A.appendChild(z);
     }
@@ -3302,7 +3354,7 @@
       const dt = (now - last) / 1000; last = now;
       tiles.forEach(t => {
         if (!t.live) return;
-        t.y += (160 + spawned * 3) * dt;
+        t.y += (200 + spawned * 4) * dt;
         t.el.style.top = t.y + 'px';
         if (t.y > lineY() + 26) { t.live = false; t.el.remove(); }
       });
@@ -3370,68 +3422,75 @@
       if (left <= 0) { ended = true; clearInterval(clock); clearInterval(spawner); api.finish(hits); }
     }, 1000);
     const spawner = setInterval(() => {
-      if (!api.alive() || ended) return;
+      if (!api.alive() || ended) { clearInterval(spawner); return; }
       const t = document.createElement('button');
-      t.style.cssText = 'position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:0;cursor:pointer;background:var(--accent2);left:' + (30 + Math.random() * (A.clientWidth - 60)) + 'px;top:' + (30 + Math.random() * (A.clientHeight - 60)) + 'px;';
+      t.style.cssText = 'position:absolute;width:38px;height:38px;margin:-19px 0 0 -19px;border-radius:50%;border:0;cursor:pointer;background:var(--accent2);left:' + (30 + Math.random() * (A.clientWidth - 60)) + 'px;top:' + (30 + Math.random() * (A.clientHeight - 60)) + 'px;';
       A.appendChild(t);
-      const gone = setTimeout(() => t.remove(), 1300);
+      const gone = setTimeout(() => t.remove(), 850);
       t.onclick = () => { if (!api.alive() || ended) return; hits++; clearTimeout(gone); t.remove(); info.textContent = 'Time ' + left + 's · hits ' + hits; };
-    }, 600);
+    }, 450);
     info.textContent = 'Time 15s · hits 0';
   };
 
-  // Speed Round: 30 seconds of clean reactions to green
+  // Speed Round: 20 green flashes. Click within 280 ms to score; clicking early costs a point.
   GAME_FNS.speedround = async (api) => {
     const A = newArea(160); const info = newNote(); api.stage.append(A, info);
     const bar = document.createElement('div'); bar.style.cssText = 'position:absolute;left:10%;right:10%;top:20%;bottom:20%;border-radius:12px;background:var(--line);transition:background .1s;'; A.appendChild(bar);
-    const endAt = performance.now() + 30000; let clean = 0;
+    let n = 0, clean = 0;
     function cycle() {
       if (!api.alive()) return;
-      if (performance.now() >= endAt) return api.finish(clean);
+      if (n >= 20) return api.finish(clean);
+      n++;
       bar.style.background = 'var(--line)';
-      info.textContent = 'Wait for green... clean reactions: ' + clean;
-      setTimeout(() => {
-        if (!api.alive()) return;
-        bar.style.background = '#22c55e';
-        const goAt = performance.now(); let done = false;
-        const finish = (counted) => {
-          if (done) return; done = true;
-          A.removeEventListener('pointerdown', onDown); clearTimeout(timeout);
-          if (counted) { clean++; info.textContent = Math.round(performance.now() - goAt) + ' ms, clean ' + clean; }
-          else info.textContent = 'Too slow';
-          setTimeout(cycle, 600);
-        };
-        const onDown = () => finish(true);
-        const timeout = setTimeout(() => finish(false), 1500);
-        A.addEventListener('pointerdown', onDown);
-      }, 800 + Math.random() * 2200);
+      info.textContent = 'Wait for green... ' + n + ' of 20 · clean ' + clean;
+      let goAt = 0, done = false, timeout = 0;
+      const end = (msg, delta) => {
+        if (done) return; done = true;
+        clearTimeout(waitT); clearTimeout(timeout); A.removeEventListener('pointerdown', onDown);
+        clean = Math.max(0, clean + delta);
+        bar.style.background = delta < 0 ? '#ef4444' : 'var(--line)';
+        info.textContent = msg + ' · clean ' + clean;
+        setTimeout(cycle, 700);
+      };
+      const onDown = () => {
+        if (done) return;
+        if (!goAt) return end('Too early, minus one', -1);
+        const rt = Math.round(performance.now() - goAt);
+        end(rt + ' ms' + (rt <= 280 ? ', clean' : ', too slow to count'), rt <= 280 ? 1 : 0);
+      };
+      const waitT = setTimeout(() => {
+        if (done || !api.alive()) return;
+        bar.style.background = '#22c55e'; goAt = performance.now();
+        timeout = setTimeout(() => end('No click', 0), 1200);
+      }, 600 + Math.random() * 1400);
+      A.addEventListener('pointerdown', onDown);
     }
     cycle();
   };
 
-  // Dodge: tap the green, leave the red alone
+  // Dodge: tap the green, leave the red alone. 12 greens and 8 reds; a tap on red costs a point.
   GAME_FNS.dodge = async (api) => {
     const A = newArea(); const info = newNote(); api.stage.append(A, info);
+    const plan = shuffled([...Array(12).fill(true), ...Array(8).fill(false)]);
     let n = 0, score = 0;
     function next() {
       if (!api.alive()) return;
-      if (n >= 20) return api.finish(score);
-      n++;
-      const good = Math.random() < 0.6;
+      if (n >= 20) return api.finish(Math.max(0, score));
+      const good = plan[n]; n++;
       const el = document.createElement('button');
       el.style.cssText = 'position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:14px;border:0;cursor:pointer;background:' + (good ? '#22c55e' : '#ef4444') + ';left:' + (15 + Math.random() * 70) + '%;top:' + (15 + Math.random() * 65) + '%;';
       A.appendChild(el);
       let done = false;
       const finish = (tapped) => {
         if (done) return; done = true;
-        if (tapped === good) score++;
+        if (tapped) score += good ? 1 : -1;
         el.remove();
-        info.textContent = (tapped === good) ? 'Correct' : (good ? 'Missed the green' : 'Oops, that was red');
+        info.textContent = tapped ? (good ? 'Correct, +1' : 'That was red, -1') : (good ? 'Missed the green' : 'Good, you left it');
         setTimeout(next, 350);
       };
       el.onclick = () => finish(true);
-      setTimeout(() => finish(false), 1000);
-      info.textContent = 'Tap the green, dodge the red. ' + n + ' of 20';
+      setTimeout(() => finish(false), Math.max(450, 800 - n * 20));   // gets quicker
+      info.textContent = 'Tap the green, dodge the red. ' + n + ' of 20 · points ' + Math.max(0, score);
     }
     next();
   };
@@ -3442,7 +3501,7 @@
     let level = 1;
     function round() {
       if (!api.alive()) return;
-      const win = Math.max(200, 1400 - level * 110);
+      const win = Math.max(380, 1500 - level * 95);
       info.textContent = 'Level ' + level + ': get ready... (window ' + win + ' ms)';
       setTimeout(() => {
         if (!api.alive()) return;
