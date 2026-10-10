@@ -357,6 +357,12 @@
   .gSummary { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
   .gSumItem { display:inline-flex; align-items:center; gap:6px; font-size:.8rem; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:5px 11px; background:var(--panel-solid); }
   .gSumItem b { color:var(--fg); }
+  button.gSumItem { cursor:pointer; font:inherit; font-size:.8rem; font-weight:600; }
+  button.gSumItem:hover { border-color:var(--accent); }
+  button.gSumItem[aria-pressed="true"] { background:color-mix(in srgb, var(--accent) 22%, var(--panel-solid)); border-color:var(--accent); color:var(--fg); }
+  button.gSumItem.empty { opacity:.45; }
+  #p-all .gGame .rkBadge { cursor:pointer; }
+  #p-all .gGame .rkBadge:hover { border-color:var(--accent); }
   .rkLegend { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:12px; font-size:.78rem; color:var(--muted); }
   .rkLegend span { display:inline-flex; align-items:center; gap:5px; color:var(--fg); font-weight:700; }
   .rkLegend em { font-style:normal; }
@@ -854,16 +860,20 @@
   <div class="panel" id="p-all" role="tabpanel" data-panel="all">
   <section class="card reveal">
     <div class="card-head"><h2>All games</h2><span class="gMuted" id="aCount">Every game and reaction mode in one place</span></div>
-    <div class="gTools">
+    <div class="gTools" id="gTools">
       <input type="search" id="gSearch" placeholder="Search games" aria-label="Search games" autocomplete="off">
       <div class="fChips" id="gSkillChips" role="group" aria-label="Filter by skill"></div>
       <select id="gStatus" aria-label="Filter by progress">
         <option value="all">Any progress</option><option value="new">Not played yet</option>
-        <option value="played">Played</option><option value="gold">Gold rank or higher</option>
+        <option value="played">Played</option>
       </select>
+      <select id="gSort" aria-label="Sort games">
+        <option value="skill">Group by skill</option><option value="high">Rank: highest first</option>
+        <option value="low">Rank: lowest first</option><option value="name">Name A to Z</option>
+      </select>
+      <button class="ghost" id="gReset" hidden>Clear filters</button>
     </div>
-    <div class="gSummary" id="gSummary"></div>
-    <div class="rkLegend"></div>
+    <div class="gSummary" id="gSummary" aria-label="Filter by rank"></div>
     <div id="aGrid"></div>
   </section>
   </div>
@@ -1036,7 +1046,7 @@
     }
     return '<svg class="rkIcon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true" style="--rk:' + RANK_COLOURS[idx] + '">' + RANK_SHAPES[idx] + '</svg>';
   }
-  function rankBadge(idx, name) { return '<span class="rkBadge r' + (idx == null ? -1 : idx) + '">' + rankIcon(idx, 18) + esc(name) + '</span>'; }
+  function rankBadge(idx, name, title) { return '<span class="rkBadge r' + (idx == null ? -1 : idx) + '" data-idx="' + (idx == null ? -1 : idx) + '"' + (title ? ' title="' + esc(title) + '"' : '') + '>' + rankIcon(idx, 18) + esc(name) + '</span>'; }
   function rankName(idx, name) { return '<span class="rkName">' + rankIcon(idx, 20) + esc(name) + '</span>'; }
   // The reaction tiers on the first page have seven steps. They share the six symbols; the lowest step has none.
   const tierRankIdx = (i) => (i >= 0 && i <= 5 ? 5 - i : -1);
@@ -2181,7 +2191,7 @@
   const GAMES = [
     { id:'seq',  name:'Sequence Memory', desc:'Repeat an ever-growing pattern of tiles.', unit:'tiles', higherBetter:true, preview:'▦' },
     { id:'num',  name:'Number Memory',   desc:'Remember the longest number you can.', unit:'digits', higherBetter:true, preview:'#' },
-    { id:'word', name:'Word Recall',     desc:'Seen this word before, or is it new?', unit:'correct', higherBetter:true, preview:'WORD' },
+    { id:'word', name:'Word Recall',     desc:'Seen this word before, or is it new? There is no limit: you keep going until you make 3 mistakes.', unit:'words', higherBetter:true, preview:'WORD' },
     { id:'ord',  name:'Number Order',    desc:'Tap the numbers 1 to 9 in order, as fast as you can.', unit:'ms', higherBetter:false, preview:'3 · 1 · 2' },
     { id:'vis',  name:'Visual Memory',   desc:'Memorize and recall the lit squares.', unit:'level', higherBetter:true, preview:'◼ ◻' },
     { id:'pop',  name:'Target Pop',      desc:'Pop 20 targets as fast as you can.', unit:'ms avg', higherBetter:false, preview:'●' },
@@ -2244,7 +2254,7 @@
   // Rank cut-offs per game, from Bronze up to Diamond. Each is a score you need to reach.
   const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
   const RANK_CUTS = {
-    seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [12, 14, 16, 18, 19, 20], vis: [3, 5, 7, 9, 11, 13],
+    seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [10, 20, 35, 55, 80, 120], vis: [3, 5, 7, 9, 11, 13],
     ord: [5000, 4000, 3200, 2600, 2100, 1700], pop: [750, 620, 520, 440, 380, 330],
     type: [30, 50, 70, 90, 110, 130], cps: [4, 6, 7.5, 9, 11, 13], space: [25, 35, 45, 55, 65, 75], track: [30, 45, 60, 75, 90, 95],
     colour: [4, 6, 8, 10, 12, 14], peri: [8, 11, 14, 16, 18, 20], multi: [6, 7, 9, 10, 11, 12], ghost: [3, 4, 5, 6, 7, 8], dual: [3, 4, 5, 6, 7, 8], blink: [4, 5, 6, 7, 8, 9],
@@ -2333,16 +2343,29 @@
   function tileHtml(it) {
     return '<button class="gGame" data-id="' + it.id + '"><div class="preview">' + it.preview + '<span class="gTag">' + esc(skillLabel(it.id)) + '</span></div>' +
       '<h2>' + esc(it.name) + '</h2><p>' + esc(it.desc) + '</p>' +
-      '<div class="gFoot"><div class="gFootRow"><span class="best">' + esc(it.best) + '</span>' + rankBadge(it.idx, it.rank) + '</div>' +
+      '<div class="gFoot"><div class="gFootRow"><span class="best">' + esc(it.best) + '</span>' + rankBadge(it.idx, it.rank, 'On the All games page, click to show every game at this rank') + '</div>' +
       '<div class="rkBar"><b style="width:' + it.pct.toFixed(0) + '%"></b></div></div></button>';
   }
   const gameTile = (g) => tileHtml(gameItem(g));
-  let fSkill = 'all', fStatus = 'all', fQuery = '';
+  let fSkill = 'all', fStatus = 'all', fQuery = '', fRank = 'any', fSort = 'skill';
+  const SORT_LABEL = { high: 'Rank: highest first', low: 'Rank: lowest first', name: 'Name A to Z' };
   function statusOk(it) {
     if (fStatus === 'new') return !it.played;
     if (fStatus === 'played') return it.played;
-    if (fStatus === 'gold') return it.idx >= 2;
     return true;
+  }
+  function sortItems(list) {
+    const byName = (a, b) => a.name.localeCompare(b.name);
+    if (fSort === 'high') return list.slice().sort((a, b) => b.idx - a.idx || b.pct - a.pct || byName(a, b));
+    // lowest first still keeps games you have not ranked in yet at the end, so your ranked games come first
+    const lo = (it) => (it.idx < 0 ? 99 : it.idx);
+    if (fSort === 'low') return list.slice().sort((a, b) => lo(a) - lo(b) || a.pct - b.pct || byName(a, b));
+    return list.slice().sort(byName);
+  }
+  function setRankFilter(idx) {
+    fRank = (fRank === idx) ? 'any' : idx;
+    renderAllPage();
+    const t = $('gTools'); if (t && t.getBoundingClientRect().top < 0) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function renderLegend() {
     document.querySelectorAll('.rkLegend').forEach(el => {
@@ -2353,21 +2376,37 @@
   function renderAllPage() {
     const items = REACTION_TILES.map(modeItem).concat(GAMES.map(gameItem));
     const q = fQuery.trim().toLowerCase();
-    const shown = items.filter(it => (fSkill === 'all' || SKILL_OF[it.id] === fSkill) && statusOk(it) &&
+    const base = items.filter(it => (fSkill === 'all' || SKILL_OF[it.id] === fSkill) && statusOk(it) &&
       (!q || (it.name + ' ' + it.desc + ' ' + skillLabel(it.id)).toLowerCase().includes(q)));
+    const shown = base.filter(it => fRank === 'any' || it.idx === fRank);
     $('aCount').textContent = shown.length === items.length ? items.length + ' games and modes' : shown.length + ' of ' + items.length + ' shown';
-    const counts = RANK_NAMES.map((n, i) => items.filter(it => it.idx === i).length);
+    // rank buttons: highest first, with how many games sit at each rank among the current search and skill
+    const order = [5, 4, 3, 2, 1, 0, -1];
+    const rankBtn = (i) => {
+      const n = base.filter(it => it.idx === i).length;
+      const label = i < 0 ? 'Unranked' : RANK_NAMES[i];
+      return '<button class="gSumItem rkFilter' + (n === 0 && fRank !== i ? ' empty' : '') + '" data-rank="' + i + '" aria-pressed="' + (fRank === i) + '" title="' + esc('Show only ' + label) + '">' +
+        rankIcon(i, 16) + esc(label) + ' <b>' + n + '</b></button>';
+    };
     $('gSummary').innerHTML =
       '<span class="gSumItem">Played <b>' + items.filter(it => it.played).length + ' of ' + items.length + '</b></span>' +
-      counts.map((c, i) => c ? '<span class="gSumItem">' + rankIcon(i, 16) + '<b>' + c + '</b> ' + esc(RANK_NAMES[i]) + '</span>' : '').join('');
-    const groups = SKILLS.map(k => {
-      const list = shown.filter(it => SKILL_OF[it.id] === k.id);
-      if (!list.length) return '';
-      return '<div class="gGroup"><div class="gGroupHead"><h3 class="gGroupTitle">' + esc(k.label) + '</h3><span class="gCount">' + list.length + '</span>' +
-        '<span class="gBlurb">' + esc(k.blurb) + '</span></div><div class="gGrid">' + list.map(tileHtml).join('') + '</div></div>';
-    }).join('');
-    $('aGrid').innerHTML = groups || '<p class="gEmpty">No games match. Try a different word or clear the filters.</p>';
-    $('aGrid').querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
+      '<button class="gSumItem rkFilter" data-rank="any" aria-pressed="' + (fRank === 'any') + '">All ranks</button>' + order.map(rankBtn).join('');
+    const filtered = fRank !== 'any' || fSkill !== 'all' || fStatus !== 'all' || fQuery !== '' || fSort !== 'skill';
+    $('gReset').hidden = !filtered;
+    let html;
+    if (fSort === 'skill') {
+      html = SKILLS.map(k => {
+        const list = shown.filter(it => SKILL_OF[it.id] === k.id);
+        if (!list.length) return '';
+        return '<div class="gGroup"><div class="gGroupHead"><h3 class="gGroupTitle">' + esc(k.label) + '</h3><span class="gCount">' + list.length + '</span>' +
+          '<span class="gBlurb">' + esc(k.blurb) + '</span></div><div class="gGrid">' + list.map(tileHtml).join('') + '</div></div>';
+      }).join('');
+    } else if (shown.length) {
+      const rankText = fRank === 'any' ? '' : ' · ' + (fRank < 0 ? 'Unranked' : RANK_NAMES[fRank]) + ' only';
+      html = '<div class="gGroup"><div class="gGroupHead"><h3 class="gGroupTitle">' + esc(SORT_LABEL[fSort]) + esc(rankText) + '</h3><span class="gCount">' + shown.length + '</span></div>' +
+        '<div class="gGrid">' + sortItems(shown).map(tileHtml).join('') + '</div></div>';
+    }
+    $('aGrid').innerHTML = html || '<p class="gEmpty">No games match. Try a different word or clear the filters.</p>';
   }
   function initToolbar() {
     const chips = $('gSkillChips');
@@ -2380,6 +2419,24 @@
     });
     $('gSearch').addEventListener('input', (e) => { fQuery = e.target.value; renderAllPage(); });
     $('gStatus').addEventListener('change', (e) => { fStatus = e.target.value; renderAllPage(); });
+    $('gSort').addEventListener('change', (e) => { fSort = e.target.value; renderAllPage(); });
+    $('gSummary').addEventListener('click', (e) => {
+      const b = e.target.closest('.rkFilter'); if (!b) return;
+      if (b.dataset.rank === 'any') { fRank = 'any'; renderAllPage(); } else setRankFilter(Number(b.dataset.rank));
+    });
+    $('gReset').addEventListener('click', () => {
+      fSkill = 'all'; fStatus = 'all'; fQuery = ''; fRank = 'any'; fSort = 'skill';
+      $('gSearch').value = ''; $('gStatus').value = 'all'; $('gSort').value = 'skill';
+      chips.querySelectorAll('.fChip').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.skill === 'all')));
+      renderAllPage();
+    });
+    // one listener for every tile: a click on the rank badge (All games page) filters by that rank, anything else opens the game
+    document.addEventListener('click', (e) => {
+      const tile = e.target.closest('.gGame'); if (!tile) return;
+      const badge = e.target.closest('.rkBadge');
+      if (badge && tile.closest('#aGrid')) { setRankFilter(Number(badge.dataset.idx)); return; }
+      openGame(tile.dataset.id);
+    });
   }
   function renderGrid() {
     const modes = REACTION_TILES.map(modeItem);
@@ -2389,7 +2446,6 @@
     $('cGrid').innerHTML = GAMES.filter(g => g.cat === 'classics').map(gameTile).join('');
     renderAllPage();
     renderLegend();
-    document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
   }
   function renderScores() {
     if (!scores.length) { $('gScoreTable').innerHTML = '<p class="gMuted">No scores yet. Play a game to see your results here.</p>'; return; }
@@ -2548,30 +2604,33 @@
 
   // Word Recall: say whether each word has been shown before
   GAME_FNS.word = async (api) => {
-    const pool = ['river','lantern','orbit','canvas','velvet','harbor','pixel','meadow','compass','ember','quartz','thunder','saddle','pencil','glacier','violet','tunnel','anchor','puzzle','willow','rocket','mirror','cactus','engine','fabric','beacon','shadow','marble','gravel','orchid'];
-    const words = pool.slice().sort(() => Math.random() - .5).slice(0, 20);
-    const seen = new Set(); let correct = 0; let i = 0;
+    const WORDS = 'river lantern orbit canvas velvet harbor pixel meadow compass ember quartz thunder saddle pencil glacier violet tunnel anchor puzzle willow rocket mirror cactus engine fabric beacon shadow marble gravel orchid bridge candle forest island jungle kitchen ladder magnet needle ocean palace quiet ribbon silver table umbrella valley window yellow zebra apple basket cloud dragon eagle feather garden hammer iron jacket kettle lemon mountain nickel office pepper queen rabbit sunset tiger uniform vessel wagon yogurt zipper arrow button camera desert envelope flower guitar helmet insect jewel kite lamp mango napkin olive pillow quilt radio spoon tractor urchin violin whistle bottle carpet donkey elbow fossil goblin hollow ivory jigsaw kernel lizard mitten nutmeg oyster parrot quiver rooster saucer thimble utensil velcro walnut yarn zenith acorn blanket cookie dinner eclipse falcon ginger hurdle icicle kayak locket muffin noodle orange pebble quarry ribcage sailor teapot unicorn vapor wallet xylophone yawn zigzag amber badge cabin dollar fiddle glove harp igloo jelly koala lotus nugget opal pickle quokka raven shovel turtle upload vanilla wizard yacht zeppelin almond barrel castle dolphin flute goose hockey inkwell jumper knight lagoon mosaic nectar oasis piano quartet rhythm statue trophy utopia vortex whale xenon yonder zephyr anvil bamboo cheese diamond emerald fountain gallery harvest impulse journal kingdom library melody nursery orchard pirate quest rainbow spiral temple umpire village weather yearn zombie album bishop clover dagger elevator fiction gadget hamster jester keyboard lemonade monkey notebook octopus parcel quicksand rhinoceros sandwich telescope volcano waffle xerox yellowstone zucchini aroma bicycle crystal doorway echo funnel giraffe horizon illusion jukebox kiosk lighthouse monsoon ostrich penguin quilted raisin satellite tornado universe velocity wombat yodel zodiac'.split(' ');
+    let pool = shuffled(WORDS), nextNew = 0;
+    let seenWords = [], score = 0, lives = 3;
     const show = document.createElement('div'); show.className = 'big';
     const row = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '10px';
     const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = 'Seen before';
     const no = document.createElement('button'); no.className = 'btn primary'; no.textContent = 'New';
     const count = document.createElement('div'); count.className = 'gMuted';
     row.append(yes, no); api.stage.append(show, row, count);
+    const status = () => 'Score ' + score + ' · lives ' + '♥'.repeat(lives) + '♡'.repeat(3 - lives);
+    // No limit: keep going until you have used all 3 lives
     function next() {
-      if (i >= words.length) return api.finish(correct);
-      // about a third of the words repeat an earlier one
-      let w;
-      if (seen.size && Math.random() < 0.35) w = [...seen][Math.floor(Math.random() * seen.size)];
-      else { w = words[i]; }
-      show.textContent = w; count.textContent = 'Word ' + (i + 1) + ' of ' + words.length;
-      const isOld = seen.has(w);
+      if (!api.alive()) return;
+      let w, isOld;
+      if (seenWords.length && Math.random() < 0.4) { w = seenWords[Math.floor(Math.random() * seenWords.length)]; isOld = true; }
+      else {
+        if (nextNew >= pool.length) return api.finish(score);   // you have seen every word in the list: a perfect, endless run
+        w = pool[nextNew++]; isOld = false; seenWords.push(w);
+      }
+      show.textContent = w; count.textContent = status();
       const answer = (choice) => {
         if (!api.alive()) return;
-        if ((choice === 'old') === isOld) correct++;
-        seen.add(w); i++; next();
+        if ((choice === 'old') === isOld) score++;
+        else { lives--; if (lives <= 0) return api.finish(score); }
+        next();
       };
       yes.onclick = () => answer('old'); no.onclick = () => answer('new');
-      if (!isOld) i = i; // new words are taken in order
     }
     next();
   };

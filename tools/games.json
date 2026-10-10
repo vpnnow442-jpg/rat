@@ -19,8 +19,8 @@
     {
       "id": "word",
       "name": "Word Recall",
-      "desc": "Seen this word before, or is it new?",
-      "unit": "correct",
+      "desc": "Seen this word before, or is it new? There is no limit: you keep going until you make 3 mistakes.",
+      "unit": "words",
       "higherBetter": true,
       "preview": "WORD"
     },
@@ -270,12 +270,12 @@
       14
     ],
     "word": [
-      12,
-      14,
-      16,
-      18,
-      19,
-      20
+      10,
+      20,
+      35,
+      55,
+      80,
+      120
     ],
     "vis": [
       3,
