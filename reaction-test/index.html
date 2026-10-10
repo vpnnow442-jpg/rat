@@ -250,6 +250,11 @@
   .tabs button:hover { color: var(--fg); border-color: transparent; }
   .tabs button { transition: transform .2s cubic-bezier(.3,1.5,.5,1), background-color .2s, color .2s; }
   .tabs button[aria-selected="true"] { background: var(--panel-solid); color: var(--fg); border-color: var(--line); transform: scale(1.04); }
+  .cats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 22px; }
+  .cats button { padding: 14px 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 1rem; font-weight: 800; }
+  .cats button small { display: block; font-size: .72rem; font-weight: 600; margin-top: 4px; opacity: .8; }
+  .cats button[aria-selected="true"] { color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent3)); border-color: transparent; box-shadow: 0 10px 24px -12px var(--accent); }
+  .subTabs { margin-top: 10px; }
   .panel { display: none; }
   .panel.on { display: block; animation: panelIn .45s cubic-bezier(.2,.8,.2,1) both; }
   @media (max-width: 560px) { .tabs button { padding: 9px 12px; font-size: .9rem; } }
@@ -434,17 +439,8 @@
     </div>
   </header>
 
-<nav class="tabs" role="tablist" aria-label="Sections">
-    <button role="tab" aria-selected="true" aria-controls="p-test" data-tab="test">Test</button>
-    <button role="tab" aria-selected="false" aria-controls="p-stats" data-tab="stats">Stats</button>
-    <button role="tab" aria-selected="false" aria-controls="p-progress" data-tab="progress">Progress</button>
-    <button role="tab" aria-selected="false" aria-controls="p-compare" data-tab="compare">Compare</button>
-    <button role="tab" aria-selected="false" aria-controls="p-bench" data-tab="bench">Benchmarks</button>
-    <button role="tab" aria-selected="false" aria-controls="p-fan" data-tab="fan">Fan estimates</button>
-    <button role="tab" aria-selected="false" aria-controls="p-games" data-tab="games">Brain games</button>
-    <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
-    <button role="tab" aria-selected="false" aria-controls="p-profile" data-tab="profile">Profile</button>
-  </nav>
+<nav class="cats" id="catBar" aria-label="Sections"></nav>
+  <nav class="tabs subTabs" id="subBar" role="tablist" aria-label="Pages"></nav>
 
   <div class="panel on" id="p-test" role="tabpanel" data-panel="test">
   <section class="card">
@@ -2189,10 +2185,40 @@
   renderScores();
   })();
 
-  // ---- tabs ----
-  const tabButtons = document.querySelectorAll('.tabs [data-tab]');
+  // ---- navigation: three categories, each with its own pages ----
+  const CATS = [
+    { id: 'play', label: 'Play', hint: 'Test and games', tabs: [['test', 'Test'], ['games', 'Brain games'], ['fan', 'Fan estimates']] },
+    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History']] },
+    { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
+  ];
+  const catBar = $('catBar'), subBar = $('subBar');
+  function renderCats(activeCat) {
+    catBar.innerHTML = '';
+    CATS.forEach(c => {
+      const b = document.createElement('button');
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(c.id === activeCat));
+      b.innerHTML = c.label + '<small>' + c.hint + '</small>';
+      b.addEventListener('click', () => showTab(c.tabs[0][0]));
+      catBar.appendChild(b);
+    });
+  }
+  function renderSubs(cat, active) {
+    subBar.innerHTML = '';
+    cat.tabs.forEach(([id, label]) => {
+      const b = document.createElement('button');
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(id === active));
+      b.textContent = label;
+      b.addEventListener('click', () => showTab(id));
+      subBar.appendChild(b);
+    });
+  }
   function showTab(name) {
-    tabButtons.forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+    const cat = CATS.find(c => c.tabs.some(t => t[0] === name));
+    if (!cat) return;
+    renderCats(cat.id);
+    renderSubs(cat, name);
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === name));
     // charts were drawn while hidden, so redraw them now that they are visible
     if (name === 'progress' || name === 'stats') renderAll(false);
@@ -2203,7 +2229,7 @@
     if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
-  tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  showTab('test');
 
   renderColors();
   resetRun();
