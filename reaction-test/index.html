@@ -447,7 +447,7 @@
 
   /* while one game is open, hide every other tile and heading */
   body.game-open .gGrid, body.game-open .rarityKey { display: none !important; }
-  body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head, body.game-open #p-originals > .card > .card-head, body.game-open #p-classics > .card > .card-head { display: none !important; }
+  body.game-open #p-all > .card > .card-head, body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head, body.game-open #p-originals > .card > .card-head, body.game-open #p-classics > .card > .card-head { display: none !important; }
 
   .closeX { width:48px; height:48px; flex:0 0 48px; border-radius:50%; border:2px solid #ef4444; background:transparent;
             color:#ef4444; font-size:1.6rem; line-height:1; font-weight:800; padding:0; display:grid; place-items:center; }
@@ -490,6 +490,17 @@
     .tier { grid-template-columns: 1fr; gap: 2px; }
     .target { width: 48px; height: 48px; }
   }
+
+  /* motion design */
+  @keyframes ringOut { to { transform: scale(7); opacity: 0; } }
+  @keyframes popIn { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes targetIn { from { transform: scale(.2); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes zoneGlow { 0%, 100% { opacity: .65; box-shadow: 0 0 10px rgba(239,68,68,.25); } 50% { opacity: 1; box-shadow: 0 0 22px rgba(239,68,68,.6); } }
+  .ringPulse { position:absolute; left:50%; top:50%; width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:50%; border:3px solid rgba(255,255,255,.7); pointer-events:none; animation: ringOut .7s ease-out forwards; }
+  #bigNum.pop { animation: popIn .35s cubic-bezier(.3,1.6,.5,1) both; }
+  .target { animation: targetIn .35s cubic-bezier(.3,1.6,.5,1) both; }
+  .nerveZone { background: linear-gradient(90deg, transparent, rgba(239,68,68,.35), rgba(239,68,68,.9), rgba(239,68,68,.35), transparent); animation: zoneGlow 1.6s ease-in-out infinite; }
+  .nerveBurst { position:absolute; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; border:3px solid #22c55e; pointer-events:none; animation: ringOut .55s ease-out forwards; }
 
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
@@ -761,6 +772,13 @@
   <section class="card reveal">
     <div class="card-head"><h2>Reaction classics</h2><span class="gMuted">The classic speed drills, in our style.</span></div>
     <div class="gGrid" id="cGrid"></div>
+  </section>
+  </div>
+
+  <div class="panel" id="p-all" role="tabpanel" data-panel="all">
+  <section class="card reveal">
+    <div class="card-head"><h2>All games</h2><span class="gMuted">Every game and reaction mode in one place</span></div>
+    <div class="gGrid" id="aGrid"></div>
   </section>
   </div>
 
@@ -1051,6 +1069,8 @@
     state = 'ready';
     if (currentMode === 'simple') {
       setArena('go', 'CLICK!', '');
+      const ring = document.createElement('div'); ring.className = 'ringPulse';
+      arena.appendChild(ring); setTimeout(() => ring.remove(), 800);
     } else if (currentMode === 'audio') {
       setArena('', '', '');
       beep();
@@ -1134,6 +1154,7 @@
       const ms = Math.round(performance.now() - readyAt);
       current.push(ms);
       bigNum.textContent = ms + ' ms';
+      bigNum.classList.remove('pop'); void bigNum.offsetWidth; bigNum.classList.add('pop');
       const prev = current.length > 1 ? current[current.length - 2] : null;
       if (prev == null) $('delta').textContent = '';
       else {
@@ -2101,6 +2122,7 @@
     ).join('') + GAMES.filter(g => (g.cat || 'brain') === 'brain').map(gameTile).join('');
     $('vGrid').innerHTML = GAMES.filter(g => g.cat === 'vision').map(gameTile).join('');
     $('oGrid').innerHTML = GAMES.filter(g => g.cat === 'originals').map(gameTile).join('');
+    $('aGrid').innerHTML = GAMES.map(gameTile).join('');
     $('cGrid').innerHTML = GAMES.filter(g => g.cat === 'classics').map(gameTile).join('');
     document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
   }
@@ -2132,7 +2154,8 @@
   function openGame(id) {
     if (id.indexOf('r-') === 0) { placeScreen('gGrid'); return window.ReactionLabBridge.open(id.slice(2)); }
     const g = GAMES.find(x => x.id === id);
-    placeScreen({ vision: 'vGrid', originals: 'oGrid', classics: 'cGrid' }[g.cat] || 'gGrid');
+    // the game opens above the page the user is on (All games, or its own page)
+    placeScreen($('p-all').classList.contains('on') ? 'aGrid' : ({ vision: 'vGrid', originals: 'oGrid', classics: 'cGrid' }[g.cat] || 'gGrid'));
     const token = ++running;
     $('gTitle2').textContent = g.name;
     $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
@@ -2700,35 +2723,59 @@
     round();
   };
 
-  // Nerve: stop the moving marker as close to the red line as you can, without going over
+  // Nerve: stop the marker just before the red line. Glowing zone, trail and a burst on each stop.
   GAME_FNS.nerve = async (api) => {
-    const A = newArea(); const info = newNote(); api.stage.append(A, info);
-    const track = document.createElement('div'); track.style.cssText = 'position:absolute;left:8%;right:8%;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:var(--line);'; A.appendChild(track);
-    const goal = document.createElement('div'); goal.style.cssText = 'position:absolute;left:80%;top:40%;width:4px;height:26px;background:var(--accent3);'; A.appendChild(goal);
-    const mk = newDot(22, 'var(--accent2)'); mk.style.top = '50%'; A.appendChild(mk);
-    let tries = 0, total = 0;
+    const A = newArea(260); const info = newNote();
+    const pips = document.createElement('div'); pips.style.cssText = 'display:flex;gap:8px;justify-content:center;';
+    api.stage.append(A, pips, info);
+    const track = document.createElement('div');
+    track.style.cssText = 'position:absolute;left:7%;right:7%;top:50%;height:14px;margin-top:-7px;border-radius:7px;background:linear-gradient(90deg,var(--line),var(--bg2));box-shadow:inset 0 2px 6px rgba(0,0,0,.35);';
+    A.appendChild(track);
+    const zone = document.createElement('div'); zone.className = 'nerveZone';
+    zone.style.cssText = 'position:absolute;top:50%;height:52px;margin-top:-26px;left:72%;width:14%;border-radius:12px;';
+    A.appendChild(zone);
+    const line = document.createElement('div');
+    line.style.cssText = 'position:absolute;top:50%;left:80%;width:3px;height:34px;margin:-17px 0 0 -1px;border-radius:2px;background:#ef4444;box-shadow:0 0 12px #ef4444;';
+    A.appendChild(line);
+    const trail = [0, 1, 2].map(i => { const d = newDot(18 - i * 4, 'var(--accent2)'); d.style.top = '50%'; d.style.opacity = String(0.45 - i * 0.13); A.appendChild(d); return d; });
+    const mk = newDot(26, 'var(--accent2)'); mk.style.top = '50%'; A.appendChild(mk);
+    let tries = 0, total = 0; const results = [];
+    const drawPips = () => {
+      pips.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const p = document.createElement('i');
+        const c = i < results.length ? (results[i] <= 15 ? '#22c55e' : '#f59e0b') : 'var(--line)';
+        p.style.cssText = 'width:10px;height:10px;border-radius:50%;background:' + c + ';';
+        pips.appendChild(p);
+      }
+    };
     function attempt() {
       if (!api.alive()) return;
       if (tries >= 5) return api.finish(Math.round(total / 5));
       tries++;
-      info.textContent = 'Stop it close to the red line. Try ' + tries + ' of 5';
+      info.textContent = 'Stop it right before the red line. Try ' + tries + ' of 5';
       const speed = 1.2 + tries * 0.25; const t0 = performance.now();
-      let rafId = 0, stopped = false;
+      let rafId = 0, stopped = false; const hist = [];
       const onDown = () => {
         if (stopped) return; stopped = true;
         cancelAnimationFrame(rafId); A.removeEventListener('pointerdown', onDown);
         const x = parseFloat(mk.style.left);
         const d = Math.abs(x - A.clientWidth * 0.8);
-        total += d;
-        info.textContent = 'Off by ' + Math.round(d) + ' px';
-        setTimeout(attempt, 900);
+        total += d; results.push(Math.round(d)); drawPips();
+        const b = document.createElement('div'); b.className = 'nerveBurst';
+        b.style.left = x + 'px'; A.appendChild(b); setTimeout(() => b.remove(), 600);
+        info.textContent = d <= 15 ? 'Great stop, ' + Math.round(d) + ' px off' : 'Off by ' + Math.round(d) + ' px';
+        setTimeout(attempt, 1000);
       };
       A.addEventListener('pointerdown', onDown);
       const tick = (now) => {
         if (!api.alive() || stopped) return;
         const t = (now - t0) / 1000;
         const p = 0.5 + 0.5 * Math.sin(t * speed * 2 * Math.PI / 2.5);
-        mk.style.left = (A.clientWidth * 0.08 + p * A.clientWidth * 0.84) + 'px';
+        const x = A.clientWidth * 0.07 + p * A.clientWidth * 0.86;
+        mk.style.left = x + 'px';
+        hist.unshift(x); if (hist.length > 12) hist.length = 12;
+        trail.forEach((d, i) => { const v = hist[(i + 1) * 3]; if (v != null) d.style.left = v + 'px'; });
         rafId = requestAnimationFrame(tick);
       };
       rafId = requestAnimationFrame(tick);
@@ -2736,33 +2783,43 @@
     attempt();
   };
 
-  // Color Trap: the word names one colour but is printed in another. Tap the ink colour.
+  // Color Trap: the word names one colour but is printed in another. Tap the ink colour within 2 seconds.
   GAME_FNS.colortrap = async (api) => {
     const word = document.createElement('div'); word.className = 'big'; word.style.fontSize = '3rem';
+    const bar = document.createElement('div'); bar.style.cssText = 'height:8px;width:min(360px,90vw);border-radius:6px;background:var(--line);overflow:hidden;';
+    const fill = document.createElement('div'); fill.style.cssText = 'height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));';
+    bar.appendChild(fill);
     const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;';
-    const info = newNote(); api.stage.append(word, row, info);
+    const info = newNote(); api.stage.append(word, bar, row, info);
     const C = [['RED', '#ef4444'], ['BLUE', '#3b82f6'], ['GREEN', '#22c55e'], ['YELLOW', '#eab308']];
-    let n = 0, score = 0;
+    let n = 0, score = 0, ink = null, answered = false, timer = 0;
+    function answer(c) {
+      if (answered || !api.alive()) return;
+      answered = true; clearTimeout(timer);
+      const ok = c !== null && c === ink;
+      if (ok) score++;
+      info.textContent = ok ? 'Correct' : (c === null ? 'Too slow' : 'Wrong, tap the ink colour');
+      row.querySelectorAll('button').forEach(x => { x.disabled = true; });
+      setTimeout(next, 350);
+    }
     function next() {
       if (!api.alive()) return;
       if (n >= 15) return api.finish(score);
-      n++;
+      n++; answered = false;
       const w = C[Math.floor(Math.random() * 4)];
-      let ink = C[Math.floor(Math.random() * 4)]; while (ink === w) ink = C[Math.floor(Math.random() * 4)];
+      ink = C[Math.floor(Math.random() * 4)]; while (ink === w) ink = C[Math.floor(Math.random() * 4)];
       word.textContent = w[0]; word.style.color = ink[1];
       row.innerHTML = '';
       C.forEach(c => {
         const b = document.createElement('button'); b.className = 'btn'; b.textContent = c[0]; b.style.color = c[1];
-        b.onclick = () => {
-          if (!api.alive()) return;
-          if (c === ink) score++;
-          info.textContent = c === ink ? 'Correct' : 'Wrong, tap the ink colour';
-          row.querySelectorAll('button').forEach(x => { x.disabled = true; });
-          setTimeout(next, 300);
-        };
+        b.onclick = () => answer(c);
         row.appendChild(b);
       });
-      info.textContent = 'Tap the INK colour, not the word. ' + n + ' of 15';
+      fill.style.transition = 'none'; fill.style.width = '100%';
+      void fill.offsetWidth;
+      fill.style.transition = 'width 2s linear'; fill.style.width = '0%';
+      timer = setTimeout(() => answer(null), 2000);
+      info.textContent = 'Tap the INK colour within 2 seconds. ' + n + ' of 15';
     }
     next();
   };
@@ -3133,7 +3190,7 @@
 
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
-    { id: 'play', label: 'Brain games', hint: 'Reaction, memory and vision', tabs: [['test', 'Brain games'], ['vision', 'Vision tests'], ['originals', 'Originals'], ['classics', 'Reaction classics'], ['fan', 'Fan estimates']] },
+    { id: 'play', label: 'Brain games', hint: 'Reaction, memory and vision', tabs: [['all', 'All games'], ['test', 'Brain games'], ['vision', 'Vision tests'], ['originals', 'Originals'], ['classics', 'Reaction classics'], ['fan', 'Fan estimates']] },
     { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
