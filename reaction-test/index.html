@@ -395,6 +395,7 @@
   .rkBadge { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
   .rkBadge.r0 { color:#d6893a; border-color:#d6893a; } .rkBadge.r1 { color:#cbd5e1; border-color:#cbd5e1; }
   .rkBadge.r2 { color:#facc15; border-color:#facc15; } .rkBadge.r3 { color:#22d3ee; border-color:#22d3ee; }
+  .rkBadge.r5 { color:#fb7185; border-color:#fb7185; box-shadow:0 0 12px -2px #fb7185; }
   .rkBadge.r4 { color:#c4b5fd; border-color:#c4b5fd; box-shadow:0 0 12px -2px #a78bfa; }
   .rkNote { font-size:.7rem; color:var(--muted); }
   .rkBar { height:8px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:8px; }
@@ -674,37 +675,6 @@
 
   </div>
 
-  <div class="panel" id="p-compare" role="tabpanel" data-panel="compare">
-  <section class="card reveal">
-    <div class="card-head"><h2>This week vs last week</h2><span class="muted">Average of run means</span></div>
-    <div class="cmpGrid">
-      <div class="tile"><div class="label">This week</div><div class="val" id="cThis">—</div><div class="sub" id="cThisSub">runs so far</div></div>
-      <div class="tile"><div class="label">Last week</div><div class="val" id="cLast">—</div><div class="sub" id="cLastSub">runs</div></div>
-      <div class="tile"><div class="label">Change</div><div class="val" id="cDelta">—</div><div class="sub">negative means faster</div></div>
-    </div>
-  </section>
-
-  <section class="card reveal">
-    <div class="card-head"><h2>Personal bests</h2></div>
-    <div class="cmpGrid">
-      <div class="tile"><div class="label">Best single try</div><div class="val" id="pTry">—</div></div>
-      <div class="tile"><div class="label">Best run average</div><div class="val" id="pRun">—</div></div>
-      <div class="tile"><div class="label">Best week</div><div class="val" id="pWeek">—</div></div>
-    </div>
-  </section>
-
-  <section class="card reveal">
-    <div class="card-head"><h2>Friends board</h2><span class="muted">Ranked by overall average, fastest first</span></div>
-    <div class="addRow">
-      <input type="text" id="friendName" maxlength="24" placeholder="Friend's name" aria-label="Friend's name">
-      <button class="primary" id="friendAddBtn">Add friend backup</button>
-      <input type="file" id="friendFile" accept="application/json,.json" hidden>
-    </div>
-    <div class="tableWrap" id="board"></div>
-    <p class="note">There is no live online leaderboard yet, because that needs a server. Ask a friend to send you their backup file (they press Backup (JSON) in their History tab). Type their name, then add the file here and you will both be ranked. Their file is stored only in your browser.</p>
-  </section>
-  </div>
-
   <div class="panel" id="p-history" role="tabpanel" data-panel="history">
   <section class="card reveal">
     <div class="card-head"><h2>History</h2><span class="muted">Newest first</span></div>
@@ -780,6 +750,17 @@
   </div>
 
   <div class="panel" id="p-profile" role="tabpanel" data-panel="profile">
+  <section class="card reveal">
+    <div class="card-head"><h2>Friends board</h2><span class="muted">Ranked by overall average, fastest first</span></div>
+    <div class="addRow">
+      <input type="text" id="friendName" maxlength="24" placeholder="Friend's name" aria-label="Friend's name">
+      <button class="primary" id="friendAddBtn">Add friend backup</button>
+      <input type="file" id="friendFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="tableWrap" id="board"></div>
+    <p class="note">There is no live online leaderboard yet, because that needs a server. Ask a friend to send you their backup file (they press Backup (JSON) in their History tab). Type their name, then add the file here and you will both be ranked. Their file is stored only in your browser.</p>
+  </section>
+
   <section class="card reveal">
     <div class="card-head"><h2>Your profile</h2><span class="muted">Saved only in this browser</span></div>
     <div class="profHead">
@@ -1566,7 +1547,7 @@
     renderHist(s.all);
     renderBadges(s);
     renderHistory(animate);
-    renderCompare();
+    renderBoard();
     renderBench();
     renderProfile();
     renderGameStats();
@@ -1678,7 +1659,7 @@
         friends.push({ name, runs: list.slice(0, 2000) });
         writeJSON(FRIENDS_KEY, friends);
         $('friendName').value = '';
-        renderCompare();
+        renderBoard();
         toast('Added ' + name + ' to the board');
       } catch (err) { toast('That is not a Reaction Lab backup file.'); }
     };
@@ -2054,15 +2035,15 @@
     multi: '<div class="pv"><div class="pv-dot"></div></div>'
   };
   // Rank cut-offs per game, from Bronze up to Diamond. Each is a score you need to reach.
-  const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
+  const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Champion'];
   const RANK_CUTS = {
-    seq: [4, 7, 10, 13, 16], num: [4, 6, 8, 10, 12], word: [10, 14, 17, 19, 20], vis: [3, 6, 9, 12, 15],
-    ord: [3500, 2500, 1800, 1400, 1100], pop: [600, 550, 450, 380, 320],
-    type: [30, 50, 70, 90, 110], cps: [4, 6, 7.5, 9, 11], space: [25, 35, 45, 55, 65], track: [30, 45, 60, 75, 90],
-    colour: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [2, 3, 4, 5, 6]
+    seq: [4, 7, 10, 13, 16, 20], num: [4, 6, 8, 10, 12, 14], word: [10, 14, 17, 19, 20, 20], vis: [3, 6, 9, 12, 15, 18],
+    ord: [3500, 2500, 1800, 1400, 1100, 800], pop: [600, 550, 450, 380, 320, 280],
+    type: [30, 50, 70, 90, 110, 130], cps: [4, 6, 7.5, 9, 11, 13], space: [25, 35, 45, 55, 65, 75], track: [30, 45, 60, 75, 90, 95],
+    colour: [3, 5, 7, 9, 11, 13], peri: [6, 9, 12, 15, 18, 20], multi: [2, 3, 4, 5, 6, 6]
   };
   // Rough rarity guide only. These are estimates, not measured data.
-  const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%'];
+  const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%', 'Very few reach this'];
   function rankInfo(g, best) {
     const cuts = RANK_CUTS[g.id];
     if (best == null) return { idx: -1, name: 'Unranked', note: 'Play to get a rank', pct: 0, next: 'Bronze at ' + cuts[0] + ' ' + g.unit };
@@ -2630,7 +2611,7 @@
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
     { id: 'play', label: 'Brain games', hint: 'Reaction, memory and vision', tabs: [['test', 'Brain games'], ['vision', 'Vision tests'], ['fan', 'Fan estimates']] },
-    { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['compare', 'Compare weeks'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
+    { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
   const catBar = $('catBar'), subBar = $('subBar');
@@ -2846,7 +2827,6 @@
     // charts were drawn while hidden, so redraw them now that they are visible
     if (name === 'progress' || name === 'stats') renderAll(false);
     if (name === 'history') renderAll(true);
-    if (name === 'compare') renderCompare();
     if (name === 'profile') renderProfile();
     if (name === 'bench') renderBench();
     if (name === 'explore') { closeInfo(); renderExplore(); }
