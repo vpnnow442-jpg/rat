@@ -519,6 +519,22 @@
     .btnrow { gap: 8px; margin-top: 12px; }
   }
 
+  /* game start and result screens */
+  .gGate, .gResult { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; max-width: 440px; margin: 0 auto; padding: 8px 0 12px; }
+  .gGatePreview { position: relative; width: 150px; height: 90px; border-radius: 16px; background: var(--bg2); border: 1px solid var(--line); overflow: hidden; }
+  .gGateTitle { margin: 4px 0 0; font-size: 1.4rem; letter-spacing: -.02em; }
+  .gGateDesc { margin: 0; color: var(--muted); line-height: 1.6; }
+  .gGateTip { margin: 0; font-size: .85rem; color: var(--muted); line-height: 1.6; background: var(--bg2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+  .gGateStats { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; font-size: .9rem; }
+  .gStartBtn { padding: 12px 34px !important; font-size: 1rem !important; }
+  .gGateHint { margin: 0; font-size: .75rem; color: var(--muted); }
+  .gResultLabel { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .gResultScore { margin: 0; animation: popIn .4s cubic-bezier(.3,1.6,.5,1) both; }
+  .gResultBest { color: #22c55e; font-weight: 800; }
+  .gResultSub { color: var(--muted); font-size: .9rem; }
+  .gResultRank { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .gResultBtns { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -2191,8 +2207,18 @@
     const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
     // show a start screen first; the game only begins when Start is pressed
     const gate = document.createElement('div');
-    gate.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:16px;';
-    gate.innerHTML = '<p class="gMuted" style="max-width:420px;margin:0">' + esc(g.desc) + '</p><button class="btn primary" id="gStart">Start</button>';
+    gate.className = 'gGate';
+    const bestNow = bestOf(g.id);
+    const rk = rankInfo(g, bestNow);
+    gate.innerHTML =
+      '<div class="gGatePreview">' + (PREVIEW[g.id] || '') + '</div>' +
+      '<h3 class="gGateTitle">' + esc(g.name) + '</h3>' +
+      '<p class="gGateDesc">' + esc(g.desc) + '</p>' +
+      (TIPS[g.id] ? '<p class="gGateTip"><b>Tip:</b> ' + esc(TIPS[g.id]) + '</p>' : '') +
+      '<div class="gGateStats"><span>Best: <b>' + (bestNow == null ? '—' : esc(bestNow + ' ' + g.unit)) + '</b></span>' +
+      '<span class="rkBadge r' + rk.idx + '">' + esc(rk.name) + '</span></div>' +
+      '<button class="btn primary gStartBtn" id="gStart">Start</button>' +
+      '<p class="gGateHint">Press Enter or tap Start</p>';
     stage.appendChild(gate);
     $('gStart').addEventListener('click', () => {
       if (token !== running) return;
@@ -2201,15 +2227,29 @@
       GAME_FNS[id](api);
     });
   }
+  document.addEventListener('keydown', (e) => {
+    const start = document.getElementById('gStart');
+    if (e.key === 'Enter' && start && $('gScreen').classList.contains('on') && !['INPUT', 'BUTTON'].includes(document.activeElement.tagName)) { e.preventDefault(); start.click(); }
+  });
   $('gQuit2').addEventListener('click', () => { running++; if (window.ReactionLabBridge) window.ReactionLabBridge.close(); $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
 
   function showResult(g, score) {
     const best = bestOf(g.id);
-    const shown = g.unit === 'ms' || g.unit === 'ms avg' ? score + ' ms' : score + ' ' + g.unit;
-    $('gStage').innerHTML = '<div class="big">' + esc(shown) + '</div>' +
-      '<div class="result">' + (best === score ? 'New best!' : 'Your best is ' + best + ' ' + esc(g.unit)) + '</div>' +
-      '<button class="btn primary" id="again">Play again</button>';
+    const isBest = best === score;
+    const rk = rankInfo(g, best);
+    const shown = score + ' ' + g.unit;
+    $('gStage').innerHTML =
+      '<div class="gResult">' +
+      '<div class="gResultLabel">Your score</div>' +
+      '<div class="big gResultScore">' + esc(shown) + '</div>' +
+      (isBest ? '<div class="gResultBest">New personal best</div>' : '<div class="gResultSub">Personal best: ' + esc(best + ' ' + g.unit) + '</div>') +
+      '<div class="gResultRank"><span class="rkBadge r' + rk.idx + '">' + esc(rk.name) + '</span><span class="rkNote">' + esc(rk.note) + '</span></div>' +
+      '<div class="rkBar" style="width:min(320px,80vw)"><b style="width:' + rk.pct.toFixed(0) + '%"></b></div>' +
+      '<div class="rkNext">' + esc(rk.next) + '</div>' +
+      '<div class="gResultBtns"><button class="btn primary" id="again">Play again</button><button class="btn" id="gBack">Back to games</button></div>' +
+      '</div>';
     $('again').addEventListener('click', () => openGame(g.id));
+    $('gBack').addEventListener('click', () => $('gQuit2').click());
   }
 
   // ----- the games -----
