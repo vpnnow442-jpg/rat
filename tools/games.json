@@ -1,0 +1,517 @@
+{
+  "games": [
+    {
+      "id": "seq",
+      "name": "Sequence Memory",
+      "desc": "Repeat an ever-growing pattern of tiles.",
+      "unit": "tiles",
+      "higherBetter": true,
+      "preview": "▦"
+    },
+    {
+      "id": "num",
+      "name": "Number Memory",
+      "desc": "Remember the longest number you can.",
+      "unit": "digits",
+      "higherBetter": true,
+      "preview": "#"
+    },
+    {
+      "id": "word",
+      "name": "Word Recall",
+      "desc": "Seen this word before, or is it new?",
+      "unit": "correct",
+      "higherBetter": true,
+      "preview": "WORD"
+    },
+    {
+      "id": "ord",
+      "name": "Number Order",
+      "desc": "Tap the numbers 1 to 9 in order, as fast as you can.",
+      "unit": "ms",
+      "higherBetter": false,
+      "preview": "3 · 1 · 2"
+    },
+    {
+      "id": "vis",
+      "name": "Visual Memory",
+      "desc": "Memorize and recall the lit squares.",
+      "unit": "level",
+      "higherBetter": true,
+      "preview": "◼ ◻"
+    },
+    {
+      "id": "pop",
+      "name": "Target Pop",
+      "desc": "Pop 20 targets as fast as you can.",
+      "unit": "ms avg",
+      "higherBetter": false,
+      "preview": "●"
+    },
+    {
+      "id": "type",
+      "name": "Typing Speed",
+      "desc": "How many words per minute can you type?",
+      "unit": "wpm",
+      "higherBetter": true,
+      "preview": "type"
+    },
+    {
+      "id": "cps",
+      "name": "CPS Test",
+      "desc": "Clicks per second in 5 seconds. The classic click-speed test.",
+      "unit": "CPS",
+      "higherBetter": true,
+      "preview": "CPS"
+    },
+    {
+      "id": "space",
+      "name": "Spacebar Speed",
+      "desc": "Smash the spacebar as many times as you can in 5 seconds.",
+      "unit": "presses",
+      "higherBetter": true,
+      "preview": "SPACE"
+    },
+    {
+      "id": "track",
+      "name": "Tracking Trainer",
+      "desc": "Keep your cursor on a drifting target for 10 seconds.",
+      "unit": "% on target",
+      "higherBetter": true,
+      "preview": "◎"
+    },
+    {
+      "id": "colour",
+      "name": "Colour Spot",
+      "desc": "Find the one square with a slightly different colour. It gets harder each level.",
+      "unit": "levels",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "vision"
+    },
+    {
+      "id": "peri",
+      "name": "Edge Flash",
+      "desc": "Keep your eyes on the centre dot and click the targets that flash at the edges.",
+      "unit": "hits of 20",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "vision"
+    },
+    {
+      "id": "multi",
+      "name": "Track Three",
+      "desc": "Remember the highlighted dot, then track it as it moves and pick it out.",
+      "unit": "correct of 6",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "vision"
+    },
+    {
+      "id": "ghost",
+      "name": "Ghost Tap",
+      "desc": "A dot slips behind a wall. Tap the exact moment it crosses the line.",
+      "unit": "hits of 8",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "dual",
+      "name": "Dual Mind",
+      "desc": "Two zones, two rules. Tap green on the left and blue on the right, and ignore the rest.",
+      "unit": "correct of 12",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "blink",
+      "name": "Blink",
+      "desc": "A number flashes for a moment, then vanishes. Type it back. It gets longer and faster.",
+      "unit": "digits",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "nerve",
+      "name": "Nerve",
+      "desc": "Stop the moving marker as close to the red line as you can, without going over.",
+      "unit": "px off (avg)",
+      "higherBetter": false,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "colortrap",
+      "name": "Colour Trap",
+      "desc": "The word names one colour but is printed in another. Tap the ink colour.",
+      "unit": "correct of 15",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "flip",
+      "name": "Flip",
+      "desc": "Tap the colour named. The rule changes halfway, so stay sharp.",
+      "unit": "correct of 12",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "mirror",
+      "name": "Mirror",
+      "desc": "A cell lights up on the left. Tap its mirror image on the right.",
+      "unit": "correct of 10",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "pulse",
+      "name": "Pulse",
+      "desc": "Tap exactly one second after the light goes dark. No counting, just your internal clock.",
+      "unit": "ms off (avg)",
+      "higherBetter": false,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "schulte",
+      "name": "Schulte Table",
+      "desc": "Tap the numbers 1 to 25 in order, as fast as you can.",
+      "unit": "ms",
+      "higherBetter": false,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "bullseye",
+      "name": "Bullseye",
+      "desc": "The ring shrinks inward. Tap as it reaches the green band.",
+      "unit": "px off (avg)",
+      "higherBetter": false,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "cascade",
+      "name": "Cascade",
+      "desc": "Tiles fall in four lanes. Tap the lane as each tile reaches the line.",
+      "unit": "hits of 20",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "sprint",
+      "name": "Sprint",
+      "desc": "An endless runner. Switch lanes to dodge the blocks. Three crashes and it ends.",
+      "unit": "blocks dodged",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "originals"
+    },
+    {
+      "id": "targetrush",
+      "name": "Target Rush",
+      "desc": "Hit as many targets as you can in 15 seconds. Speed and accuracy both count.",
+      "unit": "hits in 15s",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "classics"
+    },
+    {
+      "id": "speedround",
+      "name": "Speed Round",
+      "desc": "A 30-second reaction marathon. How many clean reactions can you land?",
+      "unit": "clean reactions",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "classics"
+    },
+    {
+      "id": "dodge",
+      "name": "Dodge",
+      "desc": "Tap the green, leave the red alone. A quick go/no-go arena.",
+      "unit": "correct of 20",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "classics"
+    },
+    {
+      "id": "impossible",
+      "name": "Impossible Mode",
+      "desc": "The reaction window shrinks every level. One slip ends the run.",
+      "unit": "levels",
+      "higherBetter": true,
+      "preview": "",
+      "cat": "classics"
+    }
+  ],
+  "cuts": {
+    "seq": [
+      4,
+      7,
+      10,
+      13,
+      16,
+      20
+    ],
+    "num": [
+      4,
+      6,
+      8,
+      10,
+      12,
+      14
+    ],
+    "word": [
+      10,
+      14,
+      17,
+      19,
+      20,
+      20
+    ],
+    "vis": [
+      3,
+      6,
+      9,
+      12,
+      15,
+      18
+    ],
+    "ord": [
+      3500,
+      2500,
+      1800,
+      1400,
+      1100,
+      800
+    ],
+    "pop": [
+      600,
+      550,
+      450,
+      380,
+      320,
+      280
+    ],
+    "type": [
+      30,
+      50,
+      70,
+      90,
+      110,
+      130
+    ],
+    "cps": [
+      4,
+      6,
+      7.5,
+      9,
+      11,
+      13
+    ],
+    "space": [
+      25,
+      35,
+      45,
+      55,
+      65,
+      75
+    ],
+    "track": [
+      30,
+      45,
+      60,
+      75,
+      90,
+      95
+    ],
+    "colour": [
+      3,
+      5,
+      7,
+      9,
+      11,
+      13
+    ],
+    "peri": [
+      6,
+      9,
+      12,
+      15,
+      18,
+      20
+    ],
+    "multi": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      6
+    ],
+    "ghost": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      8
+    ],
+    "dual": [
+      4,
+      6,
+      8,
+      9,
+      10,
+      12
+    ],
+    "blink": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "nerve": [
+      30,
+      20,
+      14,
+      9,
+      5,
+      2
+    ],
+    "colortrap": [
+      5,
+      7,
+      9,
+      11,
+      13,
+      15
+    ],
+    "flip": [
+      4,
+      6,
+      8,
+      9,
+      11,
+      12
+    ],
+    "mirror": [
+      3,
+      5,
+      6,
+      7,
+      9,
+      10
+    ],
+    "pulse": [
+      200,
+      120,
+      80,
+      50,
+      30,
+      15
+    ],
+    "schulte": [
+      30000,
+      22000,
+      16000,
+      12000,
+      9000,
+      7000
+    ],
+    "bullseye": [
+      40,
+      25,
+      15,
+      10,
+      6,
+      3
+    ],
+    "cascade": [
+      5,
+      8,
+      11,
+      14,
+      17,
+      20
+    ],
+    "sprint": [
+      5,
+      10,
+      15,
+      20,
+      30,
+      40
+    ],
+    "targetrush": [
+      6,
+      9,
+      12,
+      15,
+      18,
+      22
+    ],
+    "speedround": [
+      5,
+      8,
+      11,
+      14,
+      17,
+      20
+    ],
+    "dodge": [
+      6,
+      9,
+      12,
+      15,
+      18,
+      20
+    ],
+    "impossible": [
+      3,
+      5,
+      7,
+      9,
+      11,
+      13
+    ]
+  },
+  "rankNames": [
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Champion"
+  ],
+  "rarity": [
+    "Most players reach this",
+    "Roughly top 30%",
+    "Roughly top 10%",
+    "Roughly top 3%",
+    "Roughly top 1%",
+    "Very few reach this"
+  ],
+  "tips": {
+    "seq": "Learn the shape of the pattern, not each tile on its own.",
+    "num": "Group the digits into pairs or small chunks, like 47 · 92.",
+    "word": "Make a quick picture or short story for each word you see.",
+    "ord": "Scan the whole board first, then tap in order without searching again.",
+    "vis": "Group the lit squares into shapes, like a corner or a row, and remember the shape.",
+    "pop": "Keep your eyes moving ahead of the target, so you click as soon as it appears.",
+    "type": "Keep your eyes on the text, not the keyboard, and use all ten fingers.",
+    "cps": "Use a steady rhythm. Relax your hand and avoid tensing up.",
+    "space": "Use quick, light taps. Holding the key does not count as extra presses.",
+    "track": "Follow the centre of the target, not its edge, and keep the cursor close."
+  }
+}

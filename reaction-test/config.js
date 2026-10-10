@@ -2,6 +2,7 @@
 // The values below are safe to publish: the Supabase "anon" key is meant to be public.
 // NEVER put the Supabase "service_role" key here.
 window.SITE_CONFIG = {
+  siteName: 'Reflexir',  // shown in the header and the page title
   supabaseUrl: '',      // Supabase: Project Settings > API > Project URL
   supabaseAnonKey: '',  // Supabase: Project Settings > API > anon public key
   donateUrl: ''         // for example your Ko-fi link. Must start with https://

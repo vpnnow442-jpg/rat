@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reaction Lab</title>
+<title>Reflexir: reaction time test and brain games</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="description" content="Free reaction time test and brain games: test your reflexes, memory and vision, track your progress, and see your rank.">
 <meta name="theme-color" content="#8b6cff">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Reaction Lab: reaction time test and brain games">
+<meta property="og:title" content="Reflexir: reaction time test and brain games">
 <meta property="og:description" content="Free reaction time test and brain games. Test your reflexes, memory and vision, and see your rank.">
 <meta name="twitter:card" content="summary">
 <style>
@@ -55,6 +56,7 @@
   header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
            animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
   .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.3rem; letter-spacing: -.03em; }
+  .logoSvg { width: 36px; height: 36px; flex: 0 0 36px; filter: drop-shadow(0 6px 12px rgba(139,108,255,.35)); }
   .logo .mark { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
                 background: linear-gradient(135deg, var(--accent), var(--accent3)); box-shadow: 0 8px 20px -6px var(--accent); }
   .logo .mark i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: blink 2.4s ease-in-out infinite; }
@@ -546,6 +548,12 @@
   .acCheck a { color: var(--accent2); }
   .donateBtn { display: inline-block; padding: 12px 28px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; font-weight: 800; text-decoration: none; }
 
+  .footLinks { margin-bottom: 8px; }
+  .footLinks a { color: var(--muted); margin: 0 8px; }
+  .cellBtn { border: 1px solid color-mix(in srgb, var(--muted) 35%, var(--line)); background: color-mix(in srgb, var(--muted) 9%, var(--bg2)); }
+  .cellBtn.lit { background: var(--lit); }
+  .cellBtn.bad { background: #dc2626; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -615,7 +623,7 @@
 <div class="wrap">
 
   <header>
-    <div class="logo"><div class="mark"><i></i></div>Reaction<span style="color:var(--accent)">Lab</span></div>
+    <div class="logo"><svg class="logoSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lgLiq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#8b6cff"/></linearGradient><linearGradient id="lgBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b1d2e"/><stop offset="1" stop-color="#0f1018"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#lgBg)"/><path d="M25.4 41h13.2l4.4 8A2.6 2.6 0 0 1 40.7 52.2H23.3a2.6 2.6 0 0 1-2.3-3.9z" fill="url(#lgLiq)"/><path d="M27 11h10v14l11 19.6A6 6 0 0 1 43 53H21a6 6 0 0 1-5.2-8.4L27 25z" fill="none" stroke="#f2f3f7" stroke-width="2.6" stroke-linejoin="round"/><rect x="24.5" y="8" width="15" height="4.5" rx="2.2" fill="#f2f3f7"/><circle cx="30" cy="46" r="2.1" fill="#fff" opacity=".85"/><circle cx="36" cy="43.5" r="1.4" fill="#f472b6"/><circle cx="33.2" cy="33" r="1.7" fill="#2dd4bf"/><circle cx="35.5" cy="25.5" r="1.1" fill="#fff" opacity=".7"/></svg><span id="brandName">Reflexir</span></div>
     <div class="head-right">
       <div class="chip" id="profChip">Set your profile</div>
       <div class="chip" id="modeChip">Mode: Simple</div>
@@ -953,6 +961,7 @@
   </div>
 
   <footer>
+    <div class="footLinks"><a href="play/">All games</a><a href="guides/">Guides</a><a href="terms.html">Terms</a></div>
     Built for fun and self-tracking, not medical advice. Stop training if you feel dizzy, see double or get a headache.
   </footer>
 </div>
@@ -1701,7 +1710,7 @@
     download('reaction-runs.csv', 'text/csv', rows.join('\n') + '\n');
   });
   $('exportJsonBtn').addEventListener('click', () => {
-    download('reaction-lab-backup.json', 'application/json', JSON.stringify({ version: 1, runs, goal }, null, 2));
+    download('reflexir-backup.json', 'application/json', JSON.stringify({ version: 1, runs, goal }, null, 2));
   });
   $('importBtn').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', (e) => {
@@ -1720,7 +1729,7 @@
         if (typeof data.goal === 'number' && goal == null) { goal = data.goal; writeJSON(GOAL_KEY, goal); }
         renderAll(true);
         toast('Restored ' + added.length + ' runs');
-      } catch (err) { toast('That file is not a Reaction Lab backup.'); }
+      } catch (err) { toast('That file is not a Reflexir backup.'); }
       e.target.value = '';
     };
     reader.readAsText(file);
@@ -2284,10 +2293,18 @@
       '<div class="gResultRank"><span class="rkBadge r' + rk.idx + '">' + esc(rk.name) + '</span><span class="rkNote">' + esc(rk.note) + '</span></div>' +
       '<div class="rkBar" style="width:min(320px,80vw)"><b style="width:' + rk.pct.toFixed(0) + '%"></b></div>' +
       '<div class="rkNext">' + esc(rk.next) + '</div>' +
-      '<div class="gResultBtns"><button class="btn primary" id="again">Play again</button><button class="btn" id="gBack">Back to games</button></div>' +
+      '<div class="gResultBtns"><button class="btn primary" id="again">Play again</button><button class="btn" id="gShare">Share score</button><button class="btn" id="gBack">Back to games</button></div>' +
       '</div>';
     $('again').addEventListener('click', () => openGame(g.id));
     $('gBack').addEventListener('click', () => $('gQuit2').click());
+    $('gShare').addEventListener('click', async () => {
+      const url = location.origin + location.pathname + '#game=' + g.id;
+      const text = 'I scored ' + shown + ' in ' + g.name + '. Can you beat it?';
+      try { if (navigator.share) { await navigator.share({ title: g.name, text: text, url: url }); return; } }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+      try { await navigator.clipboard.writeText(text + ' ' + url); toast('Copied. Paste it to share.'); }
+      catch (e) { toast(text + ' ' + url); }
+    });
   }
 
   // ----- the games -----
@@ -2642,13 +2659,13 @@
   // Track Three: 3 dots are highlighted, then all 8 move and you pick out the 3
   GAME_FNS.multi = async (api) => {
     const area = document.createElement('div');
-    area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;';
+    area.style.cssText = 'position:relative;width:min(420px,92vw);height:300px;border-radius:16px;background:var(--bg2);border:1px solid #94a3b8;overflow:hidden;';
     const info = document.createElement('div'); info.className = 'gMuted';
     api.stage.append(area, info);
     const dots = [];
     for (let i = 0; i < 8; i++) {
       const el = document.createElement('div');
-      el.style.cssText = 'position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:var(--line);';
+      el.style.cssText = 'position:absolute;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;background:#94a3b8;';
       area.appendChild(el);
       dots.push({ el, x: 0, y: 0, vx: 0, vy: 0, target: false });
     }
@@ -2682,7 +2699,7 @@
         d.x = 30 + Math.random() * (W - 60); d.y = 30 + Math.random() * (H - 60);
         const a = Math.random() * Math.PI * 2;
         d.vx = Math.cos(a) * speed; d.vy = Math.sin(a) * speed;
-        d.target = false; d.el.style.background = 'var(--line)'; d.el.onclick = null; d.el.style.cursor = 'default';
+        d.target = false; d.el.style.background = '#94a3b8'; d.el.onclick = null; d.el.style.cursor = 'default';
         d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
       });
       const picks = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, 1);
@@ -2690,7 +2707,7 @@
       info.textContent = 'Round ' + round + ' of 6. Remember the highlighted dot.';
       await wait(1500);
       if (!api.alive()) return;
-      dots.forEach(d => { d.el.style.background = 'var(--line)'; });
+      dots.forEach(d => { d.el.style.background = '#94a3b8'; });
       info.textContent = 'Tracking...';
       if (!(await move(4500))) return;
       const chosen = [];
@@ -2717,7 +2734,7 @@
   // ---- new games: helpers ----
   const newArea = (h = 300) => {
     const a = document.createElement('div');
-    a.style.cssText = 'position:relative;width:min(420px,92vw);height:' + h + 'px;border-radius:16px;background:var(--bg2);border:1px solid var(--line);overflow:hidden;touch-action:none;';
+    a.style.cssText = 'position:relative;width:min(420px,92vw);height:' + h + 'px;border-radius:16px;background:var(--bg2);border:1px solid #94a3b8;overflow:hidden;touch-action:none;';
     return a;
   };
   const newNote = () => { const n = document.createElement('div'); n.className = 'gMuted'; return n; };
@@ -2730,7 +2747,7 @@
   // Ghost Tap: the dot slips behind a wall; tap as it crosses the line
   GAME_FNS.ghost = async (api) => {
     const A = newArea(); const info = newNote(); api.stage.append(A, info);
-    const wall = document.createElement('div'); wall.style.cssText = 'position:absolute;left:40%;top:0;bottom:0;width:18%;background:var(--line);'; A.appendChild(wall);
+    const wall = document.createElement('div'); wall.style.cssText = 'position:absolute;left:40%;top:0;bottom:0;width:18%;background:#94a3b8;'; A.appendChild(wall);
     const line = document.createElement('div'); line.style.cssText = 'position:absolute;left:82%;top:0;bottom:0;width:2px;background:var(--accent3);'; A.appendChild(line);
     const dot = newDot(22, 'var(--accent2)'); A.appendChild(dot);
     let round = 0, hits = 0;
@@ -2773,7 +2790,7 @@
   // Dual Mind: green on the left and blue on the right are targets, everything else is not
   GAME_FNS.dual = async (api) => {
     const A = newArea(); const info = newNote(); api.stage.append(A, info);
-    const L = document.createElement('div'); L.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:50%;background:rgba(34,197,94,.08);border-right:1px dashed var(--line);';
+    const L = document.createElement('div'); L.style.cssText = 'position:absolute;left:0;top:0;bottom:0;width:50%;background:rgba(34,197,94,.08);border-right:1px dashed #94a3b8;';
     const R = document.createElement('div'); R.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:50%;background:rgba(56,189,248,.08);';
     A.append(L, R);
     let n = 0, score = 0;
@@ -2832,7 +2849,7 @@
     const pips = document.createElement('div'); pips.style.cssText = 'display:flex;gap:8px;justify-content:center;';
     api.stage.append(A, pips, info);
     const track = document.createElement('div');
-    track.style.cssText = 'position:absolute;left:7%;right:7%;top:50%;height:14px;margin-top:-7px;border-radius:7px;background:linear-gradient(90deg,var(--line),var(--bg2));box-shadow:inset 0 2px 6px rgba(0,0,0,.35);';
+    track.style.cssText = 'position:absolute;left:7%;right:7%;top:50%;height:14px;margin-top:-7px;border-radius:7px;background:linear-gradient(90deg,#94a3b8,var(--bg2));box-shadow:inset 0 2px 6px rgba(0,0,0,.35);';
     A.appendChild(track);
     const zone = document.createElement('div'); zone.className = 'nerveZone';
     zone.style.cssText = 'position:absolute;top:50%;height:52px;margin-top:-26px;left:72%;width:14%;border-radius:12px;';
@@ -2847,7 +2864,7 @@
       pips.innerHTML = '';
       for (let i = 0; i < 5; i++) {
         const p = document.createElement('i');
-        const c = i < results.length ? (results[i] <= 15 ? '#22c55e' : '#f59e0b') : 'var(--line)';
+        const c = i < results.length ? (results[i] <= 15 ? '#22c55e' : '#f59e0b') : '#94a3b8';
         p.style.cssText = 'width:10px;height:10px;border-radius:50%;background:' + c + ';';
         pips.appendChild(p);
       }
@@ -2889,7 +2906,7 @@
   // Color Trap: the word names one colour but is printed in another. Tap the ink colour within 2 seconds.
   GAME_FNS.colortrap = async (api) => {
     const word = document.createElement('div'); word.className = 'big'; word.style.fontSize = '3rem';
-    const bar = document.createElement('div'); bar.style.cssText = 'height:8px;width:min(360px,90vw);border-radius:6px;background:var(--line);overflow:hidden;';
+    const bar = document.createElement('div'); bar.style.cssText = 'height:8px;width:min(360px,90vw);border-radius:6px;background:#94a3b8;overflow:hidden;';
     const fill = document.createElement('div'); fill.style.cssText = 'height:100%;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));';
     bar.appendChild(fill);
     const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center;';
@@ -3097,7 +3114,7 @@
     const A = newArea(340); const info = newNote(); api.stage.append(A, info);
     for (let lane = 1; lane < 4; lane++) {
       const dv = document.createElement('div');
-      dv.style.cssText = 'position:absolute;top:0;bottom:0;left:' + (lane * 25) + '%;width:1px;background:var(--line);';
+      dv.style.cssText = 'position:absolute;top:0;bottom:0;left:' + (lane * 25) + '%;width:1px;background:#94a3b8;';
       A.appendChild(dv);
     }
     const line = document.createElement('div');
@@ -3278,25 +3295,29 @@
     let level = 1;
     function round() {
       if (!api.alive()) return;
-      const win = Math.max(180, 1000 - level * 90);
-      info.textContent = 'Level ' + level + ' · window ' + win + ' ms';
-      const b = document.createElement('button');
-      b.style.cssText = 'position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:0;cursor:pointer;background:var(--accent2);left:' + (30 + Math.random() * (A.clientWidth - 60)) + 'px;top:' + (30 + Math.random() * (A.clientHeight - 60)) + 'px;';
-      A.appendChild(b);
-      const shown = performance.now(); let done = false;
-      const expire = setTimeout(() => { if (done) return; done = true; b.remove(); api.finish(level - 1); }, win);
-      b.onclick = () => {
-        if (done) return; done = true; clearTimeout(expire); b.remove();
-        if (performance.now() - shown > win) return api.finish(level - 1);
-        level++; setTimeout(round, 400);
-      };
+      const win = Math.max(200, 1400 - level * 110);
+      info.textContent = 'Level ' + level + ': get ready... (window ' + win + ' ms)';
+      setTimeout(() => {
+        if (!api.alive()) return;
+        info.textContent = 'Level ' + level + ': tap it! (window ' + win + ' ms)';
+        const b = document.createElement('button');
+        b.style.cssText = 'position:absolute;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;border:0;cursor:pointer;background:var(--accent2);left:' + (30 + Math.random() * (A.clientWidth - 60)) + 'px;top:' + (30 + Math.random() * (A.clientHeight - 60)) + 'px;';
+        A.appendChild(b);
+        const shown = performance.now(); let done = false;
+        const expire = setTimeout(() => { if (done) return; done = true; b.remove(); api.finish(level - 1); }, win);
+        b.onclick = () => {
+          if (done) return; done = true; clearTimeout(expire); b.remove();
+          if (performance.now() - shown > win) return api.finish(level - 1);
+          level++; setTimeout(round, 300);
+        };
+      }, 900 + Math.random() * 900);
     }
     round();
   };
 
   renderGrid();
   renderScores();
-  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY,
+  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY, TIPS, open: openGame,
     stop() {
       if (!document.getElementById('gScreen').classList.contains('on')) return;
       running++;
@@ -3308,6 +3329,10 @@
 
   // ---- accounts, leaderboards and donations (switched on by config.js) ----
   const CFG = window.SITE_CONFIG || {};
+  const BRAND = String(CFG.siteName || 'Reflexir');
+  document.getElementById('brandName').textContent = BRAND;
+  document.title = BRAND + ': reaction time test and brain games';
+  const ogt = document.querySelector('meta[property="og:title"]'); if (ogt) ogt.setAttribute('content', document.title);
   const accountsOn = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
   let sb = null, authUser = null, authProfile = null;
 
@@ -3680,6 +3705,16 @@
   initAccounts();
   renderSupport();
   showTab('test');
+  function openFromHash() {
+    const m = /^#game=([a-z0-9-]+)$/i.exec(location.hash);
+    if (!m) return;
+    const id = m[1];
+    if (id.indexOf('r-') !== 0 && !window.ReactionLabGames.GAMES.some(x => x.id === id)) return;
+    showTab('all');
+    window.ReactionLabGames.open(id);
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
 
   renderColors();
   resetRun();

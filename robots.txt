@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
 
-# Update this line to your final address when you publish.
 Sitemap: https://vpnnow442-jpg.github.io/rat/sitemap.xml

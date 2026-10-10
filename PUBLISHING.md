@@ -18,7 +18,7 @@ I could not check whether any of these are free or trademarked. Before you commi
 2. Check the `.com` at a registrar (Cloudflare Registrar, Namecheap, Porkbun). Expect roughly 10 to 15 pounds a year.
 3. Check that the social handles (TikTok, YouTube, Instagram, Discord) are free, because you will want the same name everywhere.
 
-The site is currently called Reaction Lab. Once you have chosen a name, ask for a rename and it will be changed in the page title, header, and share tags.
+The site is currently called **Reflexir** (reflex + elixir). The name is one setting, `siteName` in `reaction-test/config.js`, and you can pass `--name` to `tools/build_pages.py` to rename the generated pages. Check that Reflexir is free to use (Google, trademark search, domain, social handles) before you commit to it.
 
 ## 2. Put it on a real domain
 
