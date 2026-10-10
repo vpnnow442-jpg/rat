@@ -450,6 +450,11 @@
             color:#ef4444; font-size:1.6rem; line-height:1; font-weight:800; padding:0; display:grid; place-items:center; }
   .closeX:hover { background:#ef4444; color:#fff; }
 
+  .cats button, .subTabs button { border: 2px solid var(--accent) !important; font-weight: 800; }
+  .cats button[aria-selected="true"], .subTabs button[aria-selected="true"] { border-color: var(--accent3) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent3) 35%, transparent); }
+  .subTabs button { background: var(--panel-solid); color: var(--fg); }
+  .subTabs button[aria-selected="true"] { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -2642,7 +2647,14 @@
 
   renderGrid();
   renderScores();
-  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY };
+  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY,
+    stop() {
+      if (!document.getElementById('gScreen').classList.contains('on')) return;
+      running++;
+      if (window.ReactionLabBridge) window.ReactionLabBridge.close();
+      $('gScreen').classList.remove('on');
+      $('gStage').innerHTML = '';
+    } };
   })();
 
   // ---- navigation: three categories, each with its own pages ----
@@ -2857,6 +2869,7 @@
   function showTab(name) {
     const cat = CATS.find(c => c.tabs.some(t => t[0] === name));
     if (!cat) return;
+    if (window.ReactionLabGames) window.ReactionLabGames.stop();
     renderCats(cat.id);
     renderSubs(cat, name);
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === name));
