@@ -396,6 +396,10 @@
   .rkBar { height:8px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:8px; }
   .rkBar b { display:block; height:100%; width:0; border-radius:6px; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .9s cubic-bezier(.2,.8,.2,1); }
   .rkNext { font-size:.72rem; color:var(--muted); margin-top:6px; }
+  .rkInfo { margin-top:10px; font-size:.8rem; color:var(--muted); }
+  .rkInfo summary { cursor:pointer; color:var(--accent2); font-weight:700; }
+  .rkInfo ul { margin:8px 0 0; padding-left:18px; line-height:1.7; color:var(--fg); }
+  .rkTip { margin:8px 0 0; line-height:1.5; }
   .rarityKey { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:10px; }
 
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
@@ -1918,11 +1922,35 @@
       pct, next: RANK_NAMES[idx + 1] + ' at ' + to + ' ' + g.unit
     };
   }
+  // Tips for getting a better score in each game
+  const TIPS = {
+    seq: 'Learn the shape of the pattern, not each tile on its own.',
+    num: 'Group the digits into pairs or small chunks, like 47 · 92.',
+    word: 'Make a quick picture or short story for each word you see.',
+    ord: 'Scan the whole board first, then tap in order without searching again.',
+    vis: 'Group the lit squares into shapes, like a corner or a row, and remember the shape.',
+    pop: 'Keep your eyes moving ahead of the target, so you click as soon as it appears.',
+    type: 'Keep your eyes on the text, not the keyboard, and use all ten fingers.',
+    cps: 'Use a steady rhythm. Relax your hand and avoid tensing up.',
+    space: 'Use quick, light taps. Holding the key does not count as extra presses.',
+    track: 'Follow the centre of the target, not its edge, and keep the cursor close.'
+  };
+  // a short list of every rank and what score it needs
+  function rankGuide(g) {
+    const cuts = RANK_CUTS[g.id];
+    const rows = RANK_NAMES.map((name, i) => {
+      const need = g.higherBetter ? cuts[i] + ' ' + g.unit + ' or more' : 'under ' + cuts[i] + ' ' + g.unit;
+      return '<li><b>' + esc(name) + '</b>: ' + esc(need) + ' <span class="rkNote">(' + esc(RARITY[i]) + ', rough guide)</span></li>';
+    }).join('');
+    return '<details class="rkInfo"><summary>How to get each rank</summary>' +
+      '<ul>' + rows + '</ul>' +
+      '<p class="rkTip"><b>Tip:</b> ' + esc(TIPS[g.id] || '') + '</p></details>';
+  }
   function rankHtml(g, best) {
     const r = rankInfo(g, best);
     return '<div class="rk"><div class="rkTop"><span class="rkBadge r' + r.idx + '">' + esc(r.name) + '</span><span class="rkNote">' + esc(r.note) + '</span></div>' +
       '<div class="rkBar"><b style="width:' + r.pct.toFixed(0) + '%"></b></div>' +
-      '<div class="rkNext">' + esc(r.next) + '</div></div>';
+      '<div class="rkNext">' + esc(r.next) + '</div>' + rankGuide(g) + '</div>';
   }
   function bestOf(id) {
     const g = GAMES.find(x => x.id === id);
