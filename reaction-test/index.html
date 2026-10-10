@@ -1111,7 +1111,9 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
   ];
   function renderFictional() {
     const host = $('fic');
-    host.innerHTML = FICTIONAL.map(c =>
+    // sorted from lowest to highest estimated reaction time
+    const sorted = FICTIONAL.slice().sort((a, b) => a.ms - b.ms);
+    host.innerHTML = sorted.map(c =>
       '<div class="ficCard">' +
         '<div class="ficTop"><div class="ficAv">' + c.av + '</div><div><div class="ficName">' + esc(c.name) + '</div><div class="ficFrom">' + esc(c.from) + '</div></div></div>' +
         '<div class="ficScore"><div class="meter2"><b data-w="' + Math.round(Math.max(8, Math.min(100, (250 - c.ms) / 150 * 100))) + '"></b></div><span>est. ~' + c.ms + ' ms</span></div>' +
