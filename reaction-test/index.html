@@ -343,7 +343,7 @@
 
   <div class="panel" id="p-stats" role="tabpanel" data-panel="stats">
   <section class="card reveal">
-    <div class="card-head"><h2>Your numbers</h2><span class="muted">Every saved try counts.</span></div>
+    <div class="card-head"><h2>Your numbers</h2><span class="muted">Anomalies are left out of the overall average. Raw results are still saved.</span></div>
     <div class="stats">
       <div class="tile"><div class="label">Overall mean</div><div class="val" id="sMean">—</div><div class="sub" id="sMeanSub">all tries</div></div>
       <div class="tile"><div class="label">Last 10 runs</div><div class="val" id="sRoll">—</div><div class="sub" id="sRollSub">rolling mean</div></div>
@@ -563,6 +563,21 @@
   const mean = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
   const stdev = (arr) => { if (arr.length < 2) return null; const m = mean(arr); return Math.sqrt(mean(arr.map(x => (x - m) ** 2))); };
   const fmt = (n) => (n == null ? '—' : Math.round(n) + ' ms');
+  // Anomaly = a try far outside your usual range (Tukey fence: 1.5 x IQR).
+  // Needs at least 10 tries, otherwise there is not enough data to judge.
+  function quantile(sorted, q) {
+    const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  function splitAnomalies(arr) {
+    if (arr.length < 10) return { kept: arr.slice(), anomalies: [] };
+    const sorted = arr.slice().sort((a, b) => a - b);
+    const q1 = quantile(sorted, 0.25), q3 = quantile(sorted, 0.75), iqr = q3 - q1;
+    const lo = q1 - 1.5 * iqr, hi = q3 + 1.5 * iqr;
+    const kept = [], anomalies = [];
+    arr.forEach(v => (v < lo || v > hi ? anomalies : kept).push(v));
+    return { kept, anomalies };
+  }
   const tierIndex = (ms) => TIERS.findIndex(t => ms < t.max);
   const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -667,12 +682,15 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
   // ---- derived numbers ----
   function derive() {
     const all = runs.flatMap(r => r.tries);
+    const { kept, anomalies } = splitAnomalies(all);
     const streak = computeStreak();
     return {
       runs: runs.length,
       tries: all.length,
       all,
-      mean: mean(all),
+      kept,
+      anomalies: anomalies.length,
+      mean: mean(kept),
       best: all.length ? Math.min(...all) : null,
       spread: stdev(all),
       roll: mean(runs.slice(0, 10).map(r => r.mean)),
@@ -708,7 +726,9 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
 
   function renderStats(s) {
     countUp($('sMean'), s.mean, ' ms');
-    $('sMeanSub').textContent = s.tries + ' tries in total';
+    $('sMeanSub').textContent = s.anomalies
+      ? s.anomalies + ' anomal' + (s.anomalies === 1 ? 'y' : 'ies') + ' left out'
+      : s.tries + ' tries, none left out';
     countUp($('sRoll'), s.roll, ' ms');
     $('sRollSub').textContent = s.rollCount ? 'mean of your last ' + s.rollCount + ' runs' : 'save a run to start';
     $('sBest').textContent = s.best == null ? '—' : s.best + ' ms';
