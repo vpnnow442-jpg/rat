@@ -231,14 +231,15 @@
   .fic { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
   .ficCard { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: var(--panel-solid); }
   .ficTop { display: flex; gap: 12px; align-items: center; }
-  .ficAv { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 1.5rem;
-           background: linear-gradient(135deg, var(--accent), var(--accent3)); flex: 0 0 46px; }
+  .ficAv { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex: 0 0 46px; overflow: hidden; }
+  .ficAv svg { display: block; width: 100%; height: 100%; }
   .ficName { font-weight: 800; }
   .ficFrom { font-size: .78rem; color: var(--muted); }
   .ficScore { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
   .ficScore .meter2 { flex: 1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
   .ficScore .meter2 b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .9s cubic-bezier(.2,.8,.2,1); }
   .ficScore span { font-weight: 800; font-variant-numeric: tabular-nums; min-width: 42px; text-align: right; }
+  .ficGoal { margin-top: 12px; width: 100%; }
   .ficWhy { font-size: .8rem; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
   .fakeTag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 4px 10px; border-radius: 999px;
              background: var(--warn); color: #111; margin-bottom: 12px; }
@@ -1089,12 +1090,12 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
 
   // ---- fictional showdown: fan opinion, clearly labelled, not measured data ----
   const FICTIONAL = [
-    { av: '🕶️', name: 'Neo', from: 'The Matrix', ms: 110, why: 'Dodges bullets in slow motion. The film sells him as faster than the machines.' },
-    { av: '⚔️', name: 'Levi Ackerman', from: 'Attack on Titan', ms: 135, why: 'Famous for his speed and precise blade work, often shown reacting before others see the threat.' },
-    { av: '🔍', name: 'Kiyotaka Ayanokoji', from: 'Classroom of the Elite', ms: 160, why: 'Shown reading people and situations very quickly, though the story is about perception more than raw speed.' },
-    { av: '🕸️', name: 'Spider-Man', from: 'Marvel', ms: 120, why: 'His spider-sense warns him of danger before it happens, which makes him look very quick.' },
-    { av: '🗡️', name: 'Roronoa Zoro', from: 'One Piece', ms: 150, why: 'Known for lightning-fast sword strikes. Quick, but the show rarely focuses on his reaction speed.' },
-    { av: '🏹', name: 'Katniss Everdeen', from: 'The Hunger Games', ms: 175, why: 'A skilled archer who reacts to danger fast, shown more through hunting and survival than speed.' }
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#111827"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><rect x="14" y="26" width="32" height="8" rx="3" fill="#0b0f19"/><path d="M14 22 Q30 6 46 22 L46 26 L14 26 Z" fill="#0b0f19"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Neo', from: 'The Matrix', ms: 110, why: 'Dodges bullets in slow motion. The film sells him as faster than the machines.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#374151"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 24 Q30 8 46 24 L46 28 L14 28 Z" fill="#1f2937"/><rect x="22" y="36" width="16" height="3" rx="1.5" fill="#9ca3af"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Levi Ackerman', from: 'Attack on Titan', ms: 135, why: 'Famous for his speed and precise blade work, often shown reacting before others see the threat.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#1e3a8a"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M15 24 Q30 10 45 24 L45 28 L15 28 Z" fill="#0f172a"/><rect x="18" y="26" width="24" height="4" rx="2" fill="#93c5fd"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Kiyotaka Ayanokoji', from: 'Classroom of the Elite', ms: 160, why: 'Shown reading people and situations very quickly, though the story is about perception more than raw speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#b91c1c"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 22 Q30 8 46 22 L46 30 L14 30 Z" fill="#7f1d1d"/><ellipse cx="22" cy="30" rx="6" ry="4" fill="#fff"/><ellipse cx="38" cy="30" rx="6" ry="4" fill="#fff"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Spider-Man', from: 'Marvel', ms: 120, why: 'His spider-sense warns him of danger before it happens, which makes him look very quick.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#166534"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 24 Q30 10 46 24 L46 28 L14 28 Z" fill="#14532d"/><path d="M40 36 L52 30" stroke="#e5e7eb" stroke-width="3" stroke-linecap="round"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Roronoa Zoro', from: 'One Piece', ms: 150, why: 'Known for lightning-fast sword strikes. Quick, but the show rarely focuses on his reaction speed.' },
+    { av: '<svg viewBox="0 0 60 60" width="46" height="46" aria-hidden="true"><rect width="60" height="60" rx="14" fill="#78350f"/><circle cx="30" cy="34" r="13" fill="#f5d0b0"/><rect x="25" y="44" width="10" height="8" fill="#f5d0b0"/><path d="M14 26 Q30 8 46 26 L46 30 L14 30 Z" fill="#451a03"/><path d="M48 14 Q56 30 48 46" stroke="#d6a86b" stroke-width="2.5" fill="none"/><circle cx="25" cy="35" r="1.6" fill="#1f2937"/><circle cx="35" cy="35" r="1.6" fill="#1f2937"/></svg>', name: 'Katniss Everdeen', from: 'The Hunger Games', ms: 175, why: 'A skilled archer who reacts to danger fast, shown more through hunting and survival than speed.' }
   ];
   function renderFictional() {
     const host = $('fic');
@@ -1103,8 +1104,17 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
         '<div class="ficTop"><div class="ficAv">' + c.av + '</div><div><div class="ficName">' + esc(c.name) + '</div><div class="ficFrom">' + esc(c.from) + '</div></div></div>' +
         '<div class="ficScore"><div class="meter2"><b data-w="' + Math.round(Math.max(8, Math.min(100, (250 - c.ms) / 150 * 100))) + '"></b></div><span>est. ~' + c.ms + ' ms</span></div>' +
         '<p class="ficWhy">' + esc(c.why) + '</p>' +
+        '<button class="ficGoal" data-goal="' + c.ms + '" data-name="' + esc(c.name) + '">Set my goal to ' + c.ms + ' ms</button>' +
       '</div>'
     ).join('');
+    host.querySelectorAll('.ficGoal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        goal = Number(btn.dataset.goal);
+        writeJSON(GOAL_KEY, goal);
+        renderAll(false);
+        toast('Goal set to ' + goal + ' ms (' + btn.dataset.name + ' estimate)');
+      });
+    });
     requestAnimationFrame(() => requestAnimationFrame(() => {
       host.querySelectorAll('.meter2 b').forEach(b => { b.style.width = b.dataset.w + '%'; });
     }));
