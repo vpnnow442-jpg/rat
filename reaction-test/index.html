@@ -74,16 +74,20 @@
   @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
 
   /* arena */
+  :root {
+    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309;
+  }
   #arena {
     position: relative; height: 320px; border-radius: 16px; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px;
-    background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 18%, var(--bg2)), var(--bg2));
+    background: var(--a-idle);
     border: 1px solid var(--line); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
     transition: background .12s linear, color .12s linear;
   }
   #arena:focus-visible { outline: 3px solid var(--accent2); outline-offset: 3px; }
-  #arena.wait { background: linear-gradient(160deg, var(--wait), #7f1d1d); color: #fff; }
-  #arena.go { background: linear-gradient(160deg, #22c55e, var(--go)); color: #fff; }
+  #arena.wait { background: linear-gradient(160deg, var(--a-wait), color-mix(in srgb, var(--a-wait) 60%, #000)); color: #fff; }
+  #arena.go { background: linear-gradient(160deg, color-mix(in srgb, var(--a-go) 70%, #fff), var(--a-go)); color: #fff; }
+  #arena.early { background: var(--a-early); color: #fff; }
   #arena.early { animation: shake .45s ease; }
   #arenaTitle { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
   #arenaMsg { margin: 0; font-size: 1rem; opacity: .85; }
@@ -92,6 +96,9 @@
   .dots { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
   .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); transition: background-color .15s; }
   .dots i.done { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .colorRow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .colorRow label { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); font-weight: 600; }
+  .colorRow input[type="color"] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
   .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
   /* buttons and inputs */
@@ -322,6 +329,13 @@
     <div class="btnrow">
       <button class="primary" id="saveRunBtn" hidden>Save run</button>
       <button id="resetBtn" hidden>Discard run</button>
+    </div>
+    <div class="colorRow" aria-label="Arena colours">
+      <label>Start <input type="color" id="colIdle" value="#1b1d27"></label>
+      <label>Wait <input type="color" id="colWait" value="#c2262f"></label>
+      <label>Go <input type="color" id="colGo" value="#16a34a"></label>
+      <label>Too early <input type="color" id="colEarly" value="#b45309"></label>
+      <button class="ghost" id="colReset">Reset colours</button>
     </div>
   </section>
 
@@ -1167,6 +1181,31 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       host.querySelectorAll('.meter2 b').forEach(b => { b.style.width = b.dataset.w + '%'; });
     }));
   }
+
+  // ---- arena colours: start, wait, go and too-early ----
+  const COLOR_KEY = 'reactionlab-arena-colors-v1';
+  const COLOR_VARS = { idle: '--a-idle', wait: '--a-wait', go: '--a-go', early: '--a-early' };
+  const COLOR_INPUTS = { idle: 'colIdle', wait: 'colWait', go: 'colGo', early: 'colEarly' };
+  const COLOR_DEFAULTS = { idle: '#1b1d27', wait: '#c2262f', go: '#16a34a', early: '#b45309' };
+  let colors = readJSON(COLOR_KEY, {});
+  function applyColors() {
+    Object.keys(COLOR_VARS).forEach(k => {
+      const v = colors[k] || COLOR_DEFAULTS[k];
+      document.documentElement.style.setProperty(COLOR_VARS[k], v);
+      $(COLOR_INPUTS[k]).value = v;
+    });
+  }
+  Object.keys(COLOR_INPUTS).forEach(k => {
+    $(COLOR_INPUTS[k]).addEventListener('input', (e) => {
+      colors[k] = e.target.value;
+      document.documentElement.style.setProperty(COLOR_VARS[k], e.target.value);
+      writeJSON(COLOR_KEY, colors);
+    });
+  });
+  $('colReset').addEventListener('click', () => {
+    colors = {}; writeJSON(COLOR_KEY, colors); applyColors(); toast('Arena colours reset');
+  });
+  applyColors();
 
   // ---- tabs ----
   const tabButtons = document.querySelectorAll('.tabs [data-tab]');
