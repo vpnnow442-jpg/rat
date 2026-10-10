@@ -778,6 +778,11 @@
   </section>
 
   <section class="card reveal">
+    <div class="card-head"><h2>Your ranks and best scores</h2><span class="muted">Every mode and game</span></div>
+    <div class="gstatList" id="profRanks"></div>
+  </section>
+
+  <section class="card reveal">
     <div class="card-head"><h2>Your totals</h2><span class="muted">All modes together</span></div>
     <div class="stats">
       <div class="tile"><div class="label">Runs</div><div class="val" id="pfRuns">0</div></div>
@@ -1952,7 +1957,36 @@
     if (!parts.length) return '?';
     return parts.slice(0, 2).map(p => p[0].toUpperCase()).join('');
   }
+  function renderProfileRanks() {
+    const host = $('profRanks');
+    if (!host) return;
+    const rows = [];
+    Object.keys(MODES).forEach(k => {
+      const tries = runs.filter(r => (r.mode || 'simple') === k).flatMap(r => r.tries);
+      const best = tries.length ? Math.min(...tries) : null;
+      const avg = mean(tries);
+      let rank = 'No published ranks';
+      if (k === 'simple' && avg != null) rank = TIERS[tierIndex(avg)].name;
+      rows.push({ name: MODES[k].label + ' reaction', sub: 'Reaction mode', best: best == null ? '—' : best + ' ms',
+        avg: avg == null ? '—' : Math.round(avg) + ' ms', rank: rank });
+    });
+    const scores = gameScoresList();
+    window.ReactionLabGames.GAMES.forEach(g => {
+      const vals = scores.filter(s => s.game === g.id).map(s => s.score);
+      const best = vals.length ? (g.higherBetter ? Math.max(...vals) : Math.min(...vals)) : null;
+      const r = window.ReactionLabGames.rankInfo(g, best);
+      rows.push({ name: g.name, sub: g.cat === 'vision' ? 'Vision test' : 'Brain game',
+        best: best == null ? '—' : best + ' ' + g.unit, avg: '', rank: r.name });
+    });
+    host.innerHTML = rows.map(r =>
+      '<div class="gstatRow"><div><div class="gname">' + esc(r.name) + '</div><div class="gsub">' + esc(r.sub) + '</div></div>' +
+      '<div><div class="gsub">Best</div><div class="gnum">' + esc(r.best) + '</div></div>' +
+      '<div><div class="gsub">Average</div><div class="gnum">' + esc(r.avg || '—') + '</div></div>' +
+      '<div><div class="gsub">Rank</div><span class="rkBadge">' + esc(r.rank) + '</span></div></div>'
+    ).join('');
+  }
   function renderProfile() {
+    renderProfileRanks();
     const av = $('avatarBig');
     av.textContent = initials(profile.name);
     av.style.background = 'linear-gradient(135deg, ' + profile.color + ', var(--accent3))';
