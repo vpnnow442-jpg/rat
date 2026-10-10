@@ -663,7 +663,7 @@
   }
   function startTry() {
     state = 'waiting';
-    setArena('wait', 'Wait for it...', 'Do not click until the screen turns green.');
+    setArena('wait', 'Wait...', 'Do not click until the screen changes to your go colour.');
     bigNum.textContent = '';
     $('delta').textContent = '';
     const delay = 2000 + Math.random() * 3000; // random so you cannot guess the moment
