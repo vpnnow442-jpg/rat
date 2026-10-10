@@ -639,10 +639,6 @@
       <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
       <div class="stage" id="gStage"></div>
     </section>
-    <section class="gScoresBox">
-      <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
-      <div id="gScoreTable"></div>
-    </section>
   </section>
   </div>
 
@@ -686,6 +682,15 @@
     <span class="fakeTag">FAN ESTIMATE, NOT MEASURED</span>
     <p class="muted" style="margin:0 0 14px">No one has measured these characters, so these numbers are invented guesses for fun. They are based on how each character is shown in their series. Do not compare them with the real studies above.</p>
     <div class="fic" id="fic"></div>
+  </section>
+  </div>
+
+  <div class="panel" id="p-gscores" role="tabpanel" data-panel="gscores">
+  <section class="card reveal">
+    <section class="gScoresBox">
+      <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
+      <div id="gScoreTable"></div>
+    </section>
   </section>
   </div>
 
@@ -2277,7 +2282,7 @@
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
     { id: 'play', label: 'Play', hint: 'Test and games', tabs: [['test', 'Test'], ['games', 'Brain games'], ['fan', 'Fan estimates']] },
-    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History']] },
+    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History'], ['gscores', 'Game scores']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
   const catBar = $('catBar'), subBar = $('subBar');
