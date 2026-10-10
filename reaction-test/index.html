@@ -315,6 +315,46 @@
   .dangerBox { border: 1px solid var(--wait); border-radius: 14px; padding: 14px; margin-top: 16px; }
   .dangerBox input[type="text"] { width: 160px; }
 
+  .gMuted { color:var(--muted); font-size:.92rem; }
+  .gGrid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:14px; margin-top:20px; }
+  .gGame { background:var(--panel-solid); border:1px solid var(--line); border-radius:16px; padding:14px; cursor:pointer; text-align:left; color:var(--fg); font:inherit; transition: border-color .15s; }
+  .gGame:hover, .gGame:focus-visible { border-color: var(--accent); outline:none; }
+  .gGame h2 { margin:10px 0 4px; font-size:1.02rem; }
+  .gGame p { margin:0; color:var(--muted); font-size:.88rem; line-height:1.5; }
+  .preview { height:100px; border-radius:12px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-weight:800; color:var(--accent2); font-size:1.1rem; position:relative; overflow:hidden; box-shadow: inset 0 -30px 40px -30px rgba(139,108,255,.35); }
+  .preview .dot { width:14px; height:14px; border-radius:50%; background:var(--accent); box-shadow:0 0 18px var(--accent); }
+  .gGame .tag { display:inline-block; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent2); }
+  .best { margin-top:10px; font-size:.8rem; color:var(--accent2); font-weight:700; }
+  /* game screen */
+  #gScreen { display:none; margin-top:20px; background:var(--panel-solid); border:1px solid var(--line); border-radius:18px; padding:20px; }
+  #gScreen.on { display:block; animation: rise .4s cubic-bezier(.2,.8,.2,1) both; }
+  .gHead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .gHead h2 { margin:0; font-size:1.2rem; }
+  .stage { min-height: 300px; margin-top: 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; }
+  .big { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+  .board { display:grid; gap:8px; width: min(320px, 90vw); }
+  .board.s3 { grid-template-columns: repeat(3, 1fr); }
+  .board.s4 { grid-template-columns: repeat(4, 1fr); }
+  .board.s5 { grid-template-columns: repeat(5, 1fr); }
+  .cellBtn { aspect-ratio: 1; border-radius: 12px; border: 1px solid var(--line); background: var(--bg2); cursor: pointer; transition: transform .1s, background-color .15s; padding:0; }
+  .cellBtn:active { transform: scale(.94); }
+  .cellBtn.lit { background: var(--accent2); box-shadow: 0 0 18px -4px var(--accent2); }
+  .spaceKey { font-weight:800; letter-spacing:.2em; padding: 14px 26px; border:2px solid var(--accent); border-radius:10px; color:var(--accent); box-shadow:0 0 22px -6px var(--accent); }
+  .cellBtn.bad { background: #dc2626; }
+  .cellBtn.num { font-weight:800; font-size:1.1rem; color:var(--fg); }
+  .btn { font: inherit; font-weight: 700; padding: 11px 18px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-solid); color: var(--fg); cursor: pointer; }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent3)); color:#fff; border-color: transparent; }
+  input.typebox { font: inherit; font-size: 1.1rem; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); width: min(420px, 90vw); }
+  .prompt { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.05rem; line-height: 1.8; max-width: 640px; word-wrap: break-word; text-align: left; }
+  .prompt .ok { color: var(--accent2); } .prompt .no { color: #f87171; text-decoration: underline; } .prompt .cur { background: var(--line); }
+  .result { font-size: 1.1rem; font-weight: 700; }
+  .gScoresBox { margin-top: 26px; background: var(--panel-solid); border:1px solid var(--line); border-radius: 18px; padding: 18px; }
+  .gScoresBox table { width:100%; border-collapse: collapse; font-size: .92rem; }
+  .gScoresBox td, .gScoresBox th { text-align:left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  .gScoresBox th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+  .note { font-size: .8rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+  @keyframes rise { from { opacity:0; transform: translateY(12px);} to { opacity:1; transform:none; } }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -386,7 +426,6 @@
   <header>
     <div class="logo"><div class="mark"><i></i></div>Reaction<span style="color:var(--accent)">Lab</span></div>
     <div class="head-right">
-      <a class="chip" href="./games.html" style="text-decoration:none;color:inherit">Brain games →</a>
       <div class="chip" id="profChip">Set your profile</div>
       <div class="chip" id="modeChip">Mode: Simple</div>
       <div class="chip" id="streakChip">Streak <b>0</b> days</div>
@@ -436,6 +475,20 @@
       <button class="ghost" id="colReset">Reset this mode</button>
     </div>
   </section>
+
+  <section class="card reveal" id="gamesCard">
+    <div class="card-head"><h2>Brain games</h2><span class="gMuted">Memory and speed games. Scores are tracked below.</span></div>
+    <div class="gGrid" id="gGrid"></div>
+    <section id="gScreen" aria-live="polite">
+      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
+      <div class="stage" id="gStage"></div>
+    </section>
+    <section class="gScoresBox">
+      <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
+      <div id="gScoreTable"></div>
+    </section>
+  </section>
+
 
   </div>
 
@@ -962,6 +1015,7 @@
   arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress('any'); } });
   document.addEventListener('keydown', (e) => {
     if (['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+    if ($('gScreen').classList.contains('on')) return;
     if (e.code === 'Space') { e.preventDefault(); onPress('any'); }
     const keyDir = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }[e.code];
     if (keyDir) { e.preventDefault(); onPress(keyDir); }
@@ -1755,6 +1809,350 @@
     applyColors(); renderColors(); resetRun(); renderAll(false);
     toast('All your data was deleted');
   });
+
+  // ---- brain games (own scope) ----
+  (function () {
+
+  const KEY = 'reactionlab-games-v1';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  let scores = read();
+  let running = 0; // guards against an old game still running after Quit
+
+  function read() { try { const v = JSON.parse(localStorage.getItem(KEY)); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function write() { try { localStorage.setItem(KEY, JSON.stringify(scores)); } catch (e) {} }
+
+  const GAMES = [
+    { id:'seq',  name:'Sequence Memory', desc:'Repeat an ever-growing pattern of tiles.', unit:'tiles', higherBetter:true, preview:'▦' },
+    { id:'num',  name:'Number Memory',   desc:'Remember the longest number you can.', unit:'digits', higherBetter:true, preview:'#' },
+    { id:'word', name:'Word Recall',     desc:'Seen this word before, or is it new?', unit:'correct', higherBetter:true, preview:'WORD' },
+    { id:'ord',  name:'Number Order',    desc:'Tap the numbers 1 to 9 in order, as fast as you can.', unit:'ms', higherBetter:false, preview:'3 · 1 · 2' },
+    { id:'vis',  name:'Visual Memory',   desc:'Memorize and recall the lit squares.', unit:'level', higherBetter:true, preview:'◼ ◻' },
+    { id:'pop',  name:'Target Pop',      desc:'Pop 20 targets as fast as you can.', unit:'ms avg', higherBetter:false, preview:'●' },
+    { id:'type', name:'Typing Speed',    desc:'How many words per minute can you type?', unit:'wpm', higherBetter:true, preview:'type' },
+    { id:'cps',  name:'CPS Test',        desc:'Clicks per second in 5 seconds. The classic click-speed test.', unit:'CPS', higherBetter:true, preview:'CPS' },
+    { id:'space',name:'Spacebar Speed',  desc:'Smash the spacebar as many times as you can in 5 seconds.', unit:'presses', higherBetter:true, preview:'SPACE' },
+    { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' }
+  ];
+
+  function bestOf(id) {
+    const g = GAMES.find(x => x.id === id);
+    const list = scores.filter(s => s.game === id);
+    if (!list.length) return null;
+    return g.higherBetter ? Math.max(...list.map(s => s.score)) : Math.min(...list.map(s => s.score));
+  }
+  function renderGrid() {
+    $('gGrid').innerHTML = GAMES.map(g => {
+      const b = bestOf(g.id);
+      return '<button class="gGame" data-id="' + g.id + '"><div class="preview"><span class="dot"></span>' + esc(g.preview) + '</div>' +
+        '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
+        '<div class="best">' + (b == null ? 'Not played yet' : 'Best: ' + b + ' ' + esc(GAMES.find(x => x.id === g.id).unit)) + '</div></button>';
+    }).join('');
+    document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
+  }
+  function renderScores() {
+    if (!scores.length) { $('gScoreTable').innerHTML = '<p class="gMuted">No scores yet. Play a game to see your results here.</p>'; return; }
+    const rows = scores.slice(0, 30).map(s => {
+      const g = GAMES.find(x => x.id === s.game);
+      return '<tr><td>' + esc(g ? g.name : s.game) + '</td><td>' + s.score + ' ' + esc(g ? g.unit : '') + '</td><td>' + new Date(s.t).toLocaleString() + '</td></tr>';
+    }).join('');
+    $('gScoreTable').innerHTML = '<table><thead><tr><th>Game</th><th>Score</th><th>When</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  function record(id, score) {
+    scores.unshift({ game: id, score, t: new Date().toISOString() });
+    write(); renderGrid(); renderScores();
+  }
+  $('gClear').addEventListener('click', () => { if (confirm('Delete all brain game scores?')) { scores = []; write(); renderGrid(); renderScores(); } });
+
+  function openGame(id) {
+    const g = GAMES.find(x => x.id === id);
+    const token = ++running;
+    $('gTitle2').textContent = g.name;
+    $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
+    $('gScreen').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const stage = $('gStage');
+    stage.innerHTML = '';
+    const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
+    GAME_FNS[id](api);
+  }
+  $('gQuit2').addEventListener('click', () => { running++; $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
+
+  function showResult(g, score) {
+    const best = bestOf(g.id);
+    const shown = g.unit === 'ms' || g.unit === 'ms avg' ? score + ' ms' : score + ' ' + g.unit;
+    $('gStage').innerHTML = '<div class="big">' + esc(shown) + '</div>' +
+      '<div class="result">' + (best === score ? 'New best!' : 'Your best is ' + best + ' ' + esc(g.unit)) + '</div>' +
+      '<button class="btn primary" id="again">Play again</button>';
+    $('again').addEventListener('click', () => openGame(g.id));
+  }
+
+  // ----- the games -----
+  const GAME_FNS = {};
+
+  // Sequence Memory: repeat the pattern of lit tiles
+  GAME_FNS.seq = async (api) => {
+    const n = 3; let len = 3; let tiles = [];
+    const board = document.createElement('div'); board.className = 'board s3';
+    const msg = document.createElement('div'); msg.className = 'big'; msg.style.fontSize = '1.2rem';
+    api.stage.append(msg, board);
+    for (let i = 0; i < n * n; i++) { const b = document.createElement('button'); b.className = 'cellBtn'; b.disabled = true; board.appendChild(b); }
+    const cells = [...board.children];
+    async function flash(i) { cells[i].classList.add('lit'); await sleep(420); cells[i].classList.remove('lit'); await sleep(180); }
+    async function round() {
+      msg.textContent = 'Watch the pattern';
+      tiles = Array.from({ length: len }, () => Math.floor(Math.random() * n * n));
+      cells.forEach(c => c.disabled = true);
+      await sleep(500);
+      for (const i of tiles) { if (!api.alive()) return; await flash(i); }
+      msg.textContent = 'Your turn: repeat it';
+      let step = 0;
+      cells.forEach((c, i) => { c.disabled = false; c.onclick = () => {
+        if (!api.alive()) return;
+        if (i !== tiles[step]) { c.classList.add('bad'); cells.forEach(x => x.disabled = true); return api.finish(len - 1); }
+        step++; c.classList.add('lit'); setTimeout(() => c.classList.remove('lit'), 200);
+        if (step === tiles.length) { len++; cells.forEach(x => { x.disabled = true; x.onclick = null; }); msg.textContent = 'Nice!'; setTimeout(round, 700); }
+      }; });
+    }
+    round();
+  };
+
+  // Number Memory: read a number, then type it back. Gets one digit longer on each success.
+  GAME_FNS.num = async (api) => {
+    let digits = 3;
+    const show = document.createElement('div'); show.className = 'big';
+    const box = document.createElement('input'); box.className = 'typebox'; box.inputMode = 'numeric'; box.autocomplete = 'off';
+    const hint = document.createElement('div'); hint.className = 'gMuted';
+    api.stage.append(show, box, hint);
+    async function round() {
+      let num = ''; for (let i = 0; i < digits; i++) num += Math.floor(Math.random() * 10);
+      show.textContent = num; box.value = ''; box.disabled = true; hint.textContent = 'Memorize it…';
+      await sleep(1200 + digits * 350);
+      if (!api.alive()) return;
+      show.textContent = '•'.repeat(digits); box.disabled = false; box.focus(); hint.textContent = 'Type the number and press Enter';
+      box.onkeydown = (e) => {
+        if (e.key !== 'Enter') return;
+        if (box.value === num) { digits++; round(); }
+        else { api.finish(digits - 1); }
+      };
+    }
+    round();
+  };
+
+  // Word Recall: say whether each word has been shown before
+  GAME_FNS.word = async (api) => {
+    const pool = ['river','lantern','orbit','canvas','velvet','harbor','pixel','meadow','compass','ember','quartz','thunder','saddle','pencil','glacier','violet','tunnel','anchor','puzzle','willow','rocket','mirror','cactus','engine','fabric','beacon','shadow','marble','gravel','orchid'];
+    const words = pool.slice().sort(() => Math.random() - .5).slice(0, 20);
+    const seen = new Set(); let correct = 0; let i = 0;
+    const show = document.createElement('div'); show.className = 'big';
+    const row = document.createElement('div'); row.style.display = 'flex'; row.style.gap = '10px';
+    const yes = document.createElement('button'); yes.className = 'btn'; yes.textContent = 'Seen before';
+    const no = document.createElement('button'); no.className = 'btn primary'; no.textContent = 'New';
+    const count = document.createElement('div'); count.className = 'gMuted';
+    row.append(yes, no); api.stage.append(show, row, count);
+    function next() {
+      if (i >= words.length) return api.finish(correct);
+      // about a third of the words repeat an earlier one
+      let w;
+      if (seen.size && Math.random() < 0.35) w = [...seen][Math.floor(Math.random() * seen.size)];
+      else { w = words[i]; }
+      show.textContent = w; count.textContent = 'Word ' + (i + 1) + ' of ' + words.length;
+      const isOld = seen.has(w);
+      const answer = (choice) => {
+        if (!api.alive()) return;
+        if ((choice === 'old') === isOld) correct++;
+        seen.add(w); i++; next();
+      };
+      yes.onclick = () => answer('old'); no.onclick = () => answer('new');
+      if (!isOld) i = i; // new words are taken in order
+    }
+    next();
+  };
+
+  // Number Order: tap 1 to 9 in order on a shuffled board
+  GAME_FNS.ord = async (api) => {
+    const nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - .5);
+    const board = document.createElement('div'); board.className = 'board s3';
+    const msg = document.createElement('div'); msg.className = 'gMuted';
+    api.stage.append(board, msg);
+    let next = 1; const t0 = performance.now(); let mistakes = 0;
+    msg.textContent = 'Tap 1, then 2, then 3…';
+    nums.forEach(n => {
+      const b = document.createElement('button'); b.className = 'cellBtn num'; b.textContent = n;
+      b.onclick = () => {
+        if (!api.alive()) return;
+        if (n === next) {
+          b.disabled = true; b.style.opacity = .35; next++;
+          if (next > 9) api.finish(Math.round((performance.now() - t0) / 1) + mistakes * 300);
+        } else { mistakes++; b.classList.add('bad'); setTimeout(() => b.classList.remove('bad'), 250); msg.textContent = 'Wrong number, +0.3s penalty each time'; }
+      };
+      board.appendChild(b);
+    });
+  };
+
+  // Visual Memory: remember which squares lit up
+  GAME_FNS.vis = async (api) => {
+    let level = 1;
+    const board = document.createElement('div'); board.className = 'board s4';
+    const msg = document.createElement('div'); msg.className = 'big'; msg.style.fontSize = '1.1rem';
+    api.stage.append(msg, board);
+    const cells = []; for (let i = 0; i < 16; i++) { const b = document.createElement('button'); b.className = 'cellBtn'; b.disabled = true; board.appendChild(b); cells.push(b); }
+    async function round() {
+      const count = Math.min(3 + level, 14);
+      const lit = new Set(); while (lit.size < count) lit.add(Math.floor(Math.random() * 16));
+      msg.textContent = 'Remember these squares';
+      cells.forEach((c, i) => { c.disabled = true; c.onclick = null; c.classList.toggle('lit', lit.has(i)); });
+      await sleep(1400);
+      if (!api.alive()) return;
+      cells.forEach(c => c.classList.remove('lit'));
+      msg.textContent = 'Tap the ' + count + ' squares';
+      const picked = new Set();
+      cells.forEach((c, i) => { c.disabled = false; c.onclick = () => {
+        if (!api.alive() || picked.has(i)) return;
+        if (!lit.has(i)) { c.classList.add('bad'); cells.forEach(x => x.disabled = true); return api.finish(level - 1); }
+        picked.add(i); c.classList.add('lit');
+        if (picked.size === count) { level++; msg.textContent = 'Correct!'; setTimeout(round, 800); }
+      }; });
+    }
+    round();
+  };
+
+  // Target Pop: 20 targets, one at a time, each scored by its reaction
+  GAME_FNS.pop = async (api) => {
+    const area = document.createElement('div');
+    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--cell);border:1px solid var(--line);overflow:hidden;';
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(area, info);
+    const times = []; let total = 20;
+    function spawn() {
+      if (!api.alive()) return;
+      if (times.length >= total) { const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length); return api.finish(avg); }
+      info.textContent = 'Target ' + (times.length + 1) + ' of ' + total;
+      const t = document.createElement('button');
+      const size = 56;
+      t.style.cssText = 'position:absolute;width:' + size + 'px;height:' + size + 'px;border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 35% 30%,#fff,var(--accent2));left:' + (8 + Math.random() * (area.clientWidth - size - 16)) + 'px;top:' + (8 + Math.random() * (area.clientHeight - size - 16)) + 'px;';
+      area.appendChild(t);
+      const shown = performance.now();
+      t.onclick = () => { if (!api.alive()) return; times.push(performance.now() - shown); t.remove(); setTimeout(spawn, 250); };
+    }
+    spawn();
+  };
+
+  // Typing Speed: type a passage; words per minute counts only correct words
+  GAME_FNS.type = async (api) => {
+    const passages = [
+      'the quick brown fox jumps over the lazy dog while the sun rises slowly above the quiet hills',
+      'practice makes steady progress when you focus on accuracy first and speed will follow naturally',
+      'a calm mind and relaxed hands help you type clearly, so keep your eyes on the screen and breathe'
+    ];
+    const text = passages[Math.floor(Math.random() * passages.length)];
+    const words = text.split(' ');
+    const prompt = document.createElement('div'); prompt.className = 'prompt';
+    const box = document.createElement('input'); box.className = 'typebox'; box.placeholder = 'Start typing here…'; box.autocomplete = 'off'; box.spellcheck = false;
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(prompt, box, info);
+    const draw = () => {
+      const typed = box.value.split(' ');
+      prompt.innerHTML = words.map((w, i) => {
+        if (i < typed.length - 1 || (i === typed.length - 1 && box.value.endsWith(' '))) {
+          return '<span class="' + (typed[i] === w ? 'ok' : 'no') + '">' + esc(w) + '</span>';
+        }
+        if (i === typed.length - 1) return '<span class="cur">' + esc(w) + '</span>';
+        return '<span>' + esc(w) + '</span>';
+      }).join(' ');
+    };
+    let started = 0; let finished = false;
+    box.addEventListener('input', () => {
+      if (!started) started = performance.now();
+      draw();
+      if (box.value.trim() === text) finish();
+    });
+    function finish() {
+      if (finished || !api.alive()) return;
+      finished = true;
+      const minutes = (performance.now() - started) / 60000;
+      const typed = box.value.trim().split(' ');
+      const correct = typed.filter((w, i) => w === words[i]).length;
+      api.finish(Math.round(correct / minutes));
+    }
+    draw(); setTimeout(() => box.focus(), 50);
+    info.textContent = 'Type the sentence exactly. Finish it to get your score.';
+  };
+
+  // CPS Test: clicks in 5 seconds
+  GAME_FNS.cps = async (api) => {
+    const btn = document.createElement('button'); btn.className = 'cellBtn'; btn.style.width = '220px'; btn.style.aspectRatio = '1.6'; btn.textContent = 'Click here';
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(btn, info);
+    let clicks = 0, start = 0, timer = null;
+    btn.onclick = () => {
+      if (!api.alive()) return;
+      if (!start) { start = performance.now(); timer = setTimeout(() => done(), 5000); info.textContent = 'Keep going…'; }
+      clicks++; info.textContent = clicks + ' clicks';
+    };
+    function done() { if (api.alive()) api.finish(Math.round((clicks / 5) * 10) / 10); }
+    info.textContent = 'Click the box as fast as you can for 5 seconds. The timer starts on your first click.';
+  };
+
+  // Spacebar Speed: presses in 5 seconds
+  GAME_FNS.space = async (api) => {
+    const key = document.createElement('div'); key.className = 'spaceKey'; key.textContent = 'SPACE';
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(key, info);
+    let presses = 0, started = false;
+    const onKey = (e) => {
+      if (e.code !== 'Space') return;
+      e.preventDefault();
+      if (!api.alive()) return document.removeEventListener('keydown', onKey);
+      if (!started) { started = true; setTimeout(() => { document.removeEventListener('keydown', onKey); api.finish(presses); }, 5000); info.textContent = 'Keep pressing…'; }
+      presses++; key.style.transform = 'scale(.96)'; setTimeout(() => key.style.transform = '', 60);
+      info.textContent = presses + ' presses';
+    };
+    document.addEventListener('keydown', onKey);
+    info.textContent = 'Press Space. The 5-second timer starts on your first press.';
+  };
+
+  // Tracking Trainer: share of time the cursor is on a moving target for 10 seconds
+  GAME_FNS.track = async (api) => {
+    const area = document.createElement('div');
+    area.style.cssText = 'position:relative;width:min(560px,92vw);height:300px;border-radius:16px;background:var(--cell);border:1px solid var(--line);overflow:hidden;cursor:crosshair;touch-action:none;';
+    const dot = document.createElement('div');
+    dot.style.cssText = 'position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:var(--accent);box-shadow:0 0 22px var(--accent);';
+    area.appendChild(dot);
+    const info = document.createElement('div'); info.className = 'gMuted';
+    api.stage.append(area, info);
+    let cx = 0, cy = 0, on = 0, ticks = 0, started = 0, timer = null;
+    const t0 = performance.now();
+    const move = () => {
+      const t = (performance.now() - t0) / 1000;
+      const w = area.clientWidth, hgt = area.clientHeight;
+      const x = w / 2 + Math.sin(t * 0.9) * (w * 0.36) + Math.sin(t * 2.3) * 30;
+      const y = hgt / 2 + Math.cos(t * 0.7) * (hgt * 0.34) + Math.cos(t * 1.9) * 24;
+      dot.style.left = x + 'px'; dot.style.top = y + 'px';
+      return { x, y };
+    };
+    let pointer = null;
+    area.addEventListener('pointermove', (e) => { const b = area.getBoundingClientRect(); pointer = { x: e.clientX - b.left, y: e.clientY - b.top }; });
+    area.addEventListener('pointerleave', () => { pointer = null; });
+    let rafId = 0;
+    const loop = () => {
+      if (!api.alive()) return;
+      if (!started) { started = performance.now(); timer = setTimeout(end, 10000); }
+      const d = move();
+      ticks++;
+      if (pointer && Math.hypot(pointer.x - d.x, pointer.y - d.y) < 26) on++;
+      info.textContent = Math.round((on / Math.max(1, ticks)) * 100) + '% on target';
+      rafId = requestAnimationFrame(loop);
+    };
+    function end() { cancelAnimationFrame(rafId); if (api.alive()) api.finish(Math.round((on / Math.max(1, ticks)) * 100)); }
+    info.textContent = 'Move your mouse onto the moving circle. The 10-second timer starts now.';
+    rafId = requestAnimationFrame(loop);
+  };
+
+
+  renderGrid();
+  renderScores();
+  })();
 
   // ---- tabs ----
   const tabButtons = document.querySelectorAll('.tabs [data-tab]');
