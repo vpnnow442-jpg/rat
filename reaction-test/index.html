@@ -295,6 +295,7 @@
     <button role="tab" aria-selected="false" aria-controls="p-progress" data-tab="progress">Progress</button>
     <button role="tab" aria-selected="false" aria-controls="p-compare" data-tab="compare">Compare</button>
     <button role="tab" aria-selected="false" aria-controls="p-bench" data-tab="bench">Benchmarks</button>
+    <button role="tab" aria-selected="false" aria-controls="p-fan" data-tab="fan">Fan estimates</button>
     <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
   </nav>
 
@@ -465,6 +466,9 @@
     <p class="sourceNote">Lab studies measure the reaction more precisely than browser tests, so the lab numbers are the better reference. Small studies (like the boxing ones) are only rough guides.</p>
   </section>
 
+  </div>
+
+  <div class="panel" id="p-fan" role="tabpanel" data-panel="fan">
   <section class="card reveal">
     <div class="card-head"><h2>Fictional showdown</h2><span class="muted">Fun, not science</span></div>
     <span class="fakeTag">FAN ESTIMATE, NOT MEASURED</span>
@@ -1115,7 +1119,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     if (name === 'progress' || name === 'stats') renderAll(false);
     if (name === 'history') renderAll(true);
     if (name === 'compare') renderCompare();
-    if (name === 'bench') { renderBench(); renderFictional(); }
+    if (name === 'bench') renderBench();
+    if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
   tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
