@@ -4,7 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reaction Lab</title>
-<meta name="description" content="Test your reaction time, save every run, track trends, goals and achievements, and see how your speed compares to elite tiers.">
+<meta name="description" content="Free reaction time test and brain games: test your reflexes, memory and vision, track your progress, and see your rank.">
+<meta name="theme-color" content="#8b6cff">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Reaction Lab: reaction time test and brain games">
+<meta property="og:description" content="Free reaction time test and brain games. Test your reflexes, memory and vision, and see your rank.">
+<meta name="twitter:card" content="summary">
 <style>
   :root {
     --bg: #09090d; --bg2: #11121a; --panel: rgba(255,255,255,.035); --panel-solid: #14151d;
@@ -535,6 +540,12 @@
   .gResultRank { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
   .gResultBtns { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
 
+  .authForm { display: grid; gap: 8px; max-width: 420px; }
+  .authForm input[type="text"], .authForm input[type="password"] { width: 100%; }
+  .acCheck { display: flex; gap: 8px; align-items: flex-start; font-size: .85rem; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+  .acCheck a { color: var(--accent2); }
+  .donateBtn { display: inline-block; padding: 12px 28px; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; font-weight: 800; text-decoration: none; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -847,6 +858,31 @@
   </div>
   </div>
 
+  <div class="panel" id="p-leaderboard" role="tabpanel" data-panel="leaderboard">
+  <section class="card reveal">
+    <div class="card-head"><h2>Leaderboards</h2><span class="muted">Best score per player, per game</span></div>
+    <select id="lbPick" class="expSelect" aria-label="Choose a game"></select>
+    <div id="lbBody" style="margin-top:14px"></div>
+    <p class="note">Scores are checked on the server and impossible values are rejected. No browser game can be made completely cheat-proof, so treat the boards as for fun.</p>
+  </section>
+  </div>
+
+  <div class="panel" id="p-account" role="tabpanel" data-panel="account">
+  <section class="card reveal">
+    <div class="card-head"><h2>Account</h2><span class="muted" id="acctState"></span></div>
+    <div id="acctBody"></div>
+  </section>
+  </div>
+
+  <div class="panel" id="p-support" role="tabpanel" data-panel="support">
+  <section class="card reveal">
+    <div class="card-head"><h2>Support the site</h2></div>
+    <p style="margin:0 0 12px;line-height:1.7">This site is free to use. If you enjoy it, a donation helps cover the domain and hosting and keeps it free for everyone.</p>
+    <div id="donateBody"></div>
+    <p class="note">Donations are optional gifts. They do not unlock anything and are handled by the payment page you are sent to, not by this site.</p>
+  </section>
+  </div>
+
   <div class="panel" id="p-profile" role="tabpanel" data-panel="profile">
 
   <section class="card reveal">
@@ -890,8 +926,9 @@
       </ul>
       <h3>Where it is stored</h3>
       <ul>
-        <li>Only in this browser on this device (browser local storage). Nothing is sent to a server, because this site has no server.</li>
-        <li>There are no accounts, no ads, no analytics, and no third-party tracking scripts.</li>
+        <li>Without an account, only in this browser on this device (browser local storage). Nothing leaves your device.</li>
+        <li>If accounts are switched on and you create one, your email, username and leaderboard scores are stored with our sign-in provider (Supabase). Your username and best scores are shown publicly on the leaderboards. Your email is not shown.</li>
+        <li>No ads, no analytics, and no third-party tracking scripts are used at the moment. If that changes, this notice will be updated and you will be asked first.</li>
       </ul>
       <h3>What is not protected</h3>
       <ul>
@@ -922,6 +959,7 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="config.js"></script>
 <script>
   const RUNS_KEY = 'reactionlab-runs-v1';
   const GOAL_KEY = 'reactionlab-goal-v1';
@@ -2177,7 +2215,7 @@
   }
   function record(id, score) {
     scores.unshift({ game: id, score, t: new Date().toISOString() });
-    write(); renderGrid(); renderScores();
+    write(); renderGrid(); renderScores();    if (window.ReactionLabAccount) window.ReactionLabAccount.submit(id, score);
   }
   $('gClear').addEventListener('click', () => { if (confirm('Delete all brain game scores?')) { scores = []; write(); renderGrid(); renderScores(); } });
 
@@ -3268,11 +3306,132 @@
     } };
   })();
 
+  // ---- accounts, leaderboards and donations (switched on by config.js) ----
+  const CFG = window.SITE_CONFIG || {};
+  const accountsOn = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  let sb = null, authUser = null, authProfile = null;
+
+  function loadSupabase() {
+    return new Promise((resolve, reject) => {
+      if (window.supabase && window.supabase.createClient) return resolve();
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Could not load the sign-in service'));
+      document.head.appendChild(s);
+    });
+  }
+  async function initAccounts() {
+    if (accountsOn) {
+      try {
+        await loadSupabase();
+        sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+        const { data } = await sb.auth.getSession();
+        await setAuth(data.session);
+        // defer: calling the service inside this callback can freeze it
+        sb.auth.onAuthStateChange((_event, session) => { setTimeout(() => setAuth(session), 0); });
+      } catch (e) { toast(e.message || 'Accounts are unavailable right now'); }
+    }
+    renderAccount();
+  }
+  async function setAuth(session) {
+    authUser = session ? session.user : null;
+    authProfile = null;
+    if (authUser) {
+      const { data } = await sb.from('profiles').select('username').eq('id', authUser.id).maybeSingle();
+      if (data) authProfile = data;
+      else if (authUser.user_metadata && authUser.user_metadata.username) {
+        const { error } = await sb.from('profiles').insert({ id: authUser.id, username: authUser.user_metadata.username });
+        if (!error) authProfile = { username: authUser.user_metadata.username };
+      }
+    }
+    renderAccount();
+  }
+
+  function renderAccount() {
+    const body = $('acctBody'), state = $('acctState');
+    if (!body) return;
+    if (!accountsOn) {
+      state.textContent = 'Not switched on yet';
+      body.innerHTML = '<p class="muted" style="margin:0">Accounts are not switched on yet. When they are, you will be able to pick a unique username, sign in on any device, and appear on the leaderboards.</p>' +
+        '<p class="note">Site owner: add your Supabase keys in <b>config.js</b> and run the setup in <b>supabase/schema.sql</b>. The steps are in <b>PUBLISHING.md</b>.</p>';
+      return;
+    }
+    if (authUser) {
+      state.textContent = 'Signed in';
+      body.innerHTML = '<div class="profHead"><div class="avatar" style="background:linear-gradient(135deg,var(--accent),var(--accent3))">' + esc(initials(authProfile ? authProfile.username : authUser.email)) + '</div>' +
+        '<div><div style="font-size:1.2rem;font-weight:800">' + esc(authProfile ? authProfile.username : 'Choose a username') + '</div><div class="muted">' + esc(authUser.email || '') + '</div></div></div>' +
+        '<div class="formRow"><button id="acctOut">Sign out</button></div>' +
+        '<p class="note">Your scores are submitted to the leaderboards while you are signed in. Scores are checked on the server, and impossible values are rejected.</p>';
+      $('acctOut').addEventListener('click', async () => { await sb.auth.signOut(); toast('Signed out'); });
+      return;
+    }
+    state.textContent = 'Signed out';
+    body.innerHTML =
+      '<div class="authForm">' +
+      '<label class="muted">Email</label><input type="text" id="acEmail" autocomplete="email" inputmode="email">' +
+      '<label class="muted">Password</label><input type="password" id="acPass" autocomplete="current-password">' +
+      '<label class="muted">Username (new accounts only, 3 to 16 letters, numbers or underscores)</label><input type="text" id="acUser" maxlength="16" autocomplete="username">' +
+      '<label class="acCheck"><input type="checkbox" id="acAgree"> I am 13 or over and accept the <a href="./terms.html" target="_blank" rel="noopener">Terms</a> and the privacy notice.</label>' +
+      '<div class="formRow"><button class="primary" id="acIn">Sign in</button><button id="acUp">Create account</button></div>' +
+      '</div>' +
+      '<p class="note">When you create an account, your email, username and scores are stored with the sign-in provider. Your own browser data stays on your device.</p>';
+    $('acIn').addEventListener('click', async () => {
+      const { error } = await sb.auth.signInWithPassword({ email: $('acEmail').value.trim(), password: $('acPass').value });
+      toast(error ? error.message : 'Signed in');
+    });
+    $('acUp').addEventListener('click', async () => {
+      const email = $('acEmail').value.trim(), password = $('acPass').value, username = $('acUser').value.trim();
+      if (!/^[A-Za-z0-9_]{3,16}$/.test(username)) return toast('Username: 3 to 16 letters, numbers or underscores');
+      if (password.length < 8) return toast('Password needs at least 8 characters');
+      if (!$('acAgree').checked) return toast('Please accept the terms first');
+      const free = await sb.rpc('username_available', { p_username: username });
+      if (free.error) return toast(free.error.message);
+      if (!free.data) return toast('That username is taken');
+      const { error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+      toast(error ? error.message : 'Check your email to confirm your account, then sign in.');
+    });
+  }
+
+  async function submitScore(game, score) {
+    if (!sb || !authUser || !authProfile) return;
+    const { error } = await sb.rpc('submit_score', { p_game: game, p_score: score });
+    if (error) console.warn('Score not submitted:', error.message);
+  }
+  window.ReactionLabAccount = { submit: submitScore };
+
+  async function renderLeaderboard() {
+    const body = $('lbBody'), sel = $('lbPick');
+    if (!sel.options.length) {
+      window.ReactionLabGames.GAMES.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+      sel.addEventListener('change', renderLeaderboard);
+    }
+    if (!accountsOn || !sb) { body.innerHTML = '<p class="muted" style="margin:0">Leaderboards need accounts, which are not switched on yet.</p>'; return; }
+    body.innerHTML = '<p class="muted" style="margin:0">Loading...</p>';
+    const g = window.ReactionLabGames.GAMES.find(x => x.id === sel.value);
+    const { data, error } = await sb.rpc('top_scores', { p_game: sel.value, p_limit: 20 });
+    if (error) { body.innerHTML = '<p class="muted" style="margin:0">Could not load this leaderboard.</p>'; return; }
+    if (!data || !data.length) { body.innerHTML = '<p class="muted" style="margin:0">No scores yet. Be the first.</p>'; return; }
+    const rows = data.map((r, i) => '<tr><td class="rank' + (i === 0 ? ' top' : '') + '">' + (i + 1) + '</td><td>' + esc(r.username) + '</td><td>' + esc(r.score + ' ' + g.unit) + '</td></tr>').join('');
+    body.innerHTML = '<table class="board"><thead><tr><th class="rank">#</th><th>Player</th><th>Best</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderSupport() {
+    const body = $('donateBody');
+    if (!body) return;
+    const url = String(CFG.donateUrl || '');
+    if (/^https:\/\//i.test(url)) {
+      body.innerHTML = '<a class="donateBtn" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">Support the site</a>';
+    } else {
+      body.innerHTML = '<p class="muted" style="margin:0">The donation link has not been set up yet.</p>';
+    }
+  }
+
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
     { id: 'play', label: 'Brain games', hint: 'Reaction, memory and vision', tabs: [['all', 'All games'], ['test', 'Brain games'], ['vision', 'Vision tests'], ['originals', 'Originals'], ['classics', 'Reaction classics'], ['fan', 'Fan estimates']] },
-    { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
-    { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
+    { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['leaderboard', 'Leaderboards'], ['progress', 'Weekly charts'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
+    { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile'], ['account', 'Account'], ['support', 'Support']] }
   ];
   const catBar = $('catBar'), subBar = $('subBar');
   function renderCats(activeCat) {
@@ -3512,9 +3671,14 @@
     if (name === 'profile') renderProfile();
     if (name === 'bench') renderBench();
     if (name === 'explore') { closeInfo(); renderExplore(); }
+    if (name === 'leaderboard') renderLeaderboard();
+    if (name === 'account') renderAccount();
+    if (name === 'support') renderSupport();
     if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
+  initAccounts();
+  renderSupport();
   showTab('test');
 
   renderColors();
