@@ -43,7 +43,6 @@
       radial-gradient(40% 30% at 15% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
       radial-gradient(35% 28% at 85% 20%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 70%),
       radial-gradient(40% 35% at 60% 100%, color-mix(in srgb, var(--accent3) 12%, transparent), transparent 70%);
-    animation: drift 18s ease-in-out infinite alternate;
   }
   .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 70px; }
 
@@ -56,15 +55,15 @@
   .logo .mark i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: blink 2.4s ease-in-out infinite; }
   .head-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .chip { font-size: .8rem; color: var(--muted); border: 1px solid var(--line); padding: 7px 12px; border-radius: 999px;
-          background: var(--panel); backdrop-filter: blur(10px); }
+          background: var(--panel); }
   .chip b { color: var(--fg); }
 
   /* cards */
   .card {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 22px; margin-top: 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    padding: 22px; margin-top: 18px;
     box-shadow: var(--shadow); animation: rise .7s cubic-bezier(.2,.8,.2,1) both;
-    transition: border-color .3s, transform .3s;
+    transition: border-color .2s;
   }
   .card:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
   .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -80,21 +79,19 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px;
     background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 18%, var(--bg2)), var(--bg2));
     border: 1px solid var(--line); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
-    transition: background .3s ease, color .3s ease, box-shadow .3s ease;
+    transition: background .12s linear, color .12s linear;
   }
   #arena:focus-visible { outline: 3px solid var(--accent2); outline-offset: 3px; }
   #arena.wait { background: linear-gradient(160deg, var(--wait), #7f1d1d); color: #fff; }
-  #arena.go { background: linear-gradient(160deg, #22c55e, var(--go)); color: #fff; box-shadow: 0 0 80px -10px var(--go); animation: pulse 1s ease-in-out infinite; }
+  #arena.go { background: linear-gradient(160deg, #22c55e, var(--go)); color: #fff; }
   #arena.early { animation: shake .45s ease; }
-  #arena .ripple { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.55);
-                   transform: translate(-50%,-50%) scale(0); pointer-events: none; animation: ripple .6s ease-out forwards; }
   #arenaTitle { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
   #arenaMsg { margin: 0; font-size: 1rem; opacity: .85; }
   #bigNum { font-size: clamp(3rem, 9vw, 4.6rem); font-weight: 800; letter-spacing: -.04em; margin-top: 10px;
             font-variant-numeric: tabular-nums; min-height: 1.1em; }
   .dots { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
-  .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); transition: transform .4s cubic-bezier(.3,1.6,.5,1), background .3s; }
-  .dots i.done { background: linear-gradient(135deg, var(--accent), var(--accent2)); transform: scale(1.25); }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); transition: background-color .15s; }
+  .dots i.done { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
   .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
   /* buttons and inputs */
@@ -102,12 +99,12 @@
     font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line);
     background: var(--panel-solid); color: var(--fg);
   }
-  button { cursor: pointer; transition: transform .2s cubic-bezier(.3,1.6,.5,1), border-color .2s, background .2s, box-shadow .2s; }
-  button:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 10px 20px -12px var(--accent); }
-  button:active { transform: translateY(0) scale(.98); }
+  button { cursor: pointer; transition: border-color .15s, background-color .15s, color .15s; }
+  button:hover { border-color: var(--accent); }
+  button:active { opacity: .8; }
   button:focus-visible, input:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
   button.primary { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; border-color: transparent; }
-  button.danger:hover { border-color: var(--wait); color: var(--wait); box-shadow: none; }
+  button.danger:hover { border-color: var(--wait); color: var(--wait); }
   button.ghost { background: transparent; }
   input { font-weight: 500; width: 140px; }
   button[hidden] { display: none; }
@@ -115,8 +112,7 @@
   /* stats */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
   .tile { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: var(--panel-solid);
-          animation: rise .6s cubic-bezier(.2,.8,.2,1) both; transition: transform .3s; }
-  .tile:hover { transform: translateY(-3px); }
+          animation: rise .6s cubic-bezier(.2,.8,.2,1) both; }
   .tile .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
   .tile .val { font-size: 1.75rem; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
   .tile .sub { font-size: .8rem; color: var(--muted); margin-top: 4px; }
@@ -142,8 +138,8 @@
   .ladder { display: grid; gap: 8px; margin-top: 16px; }
   .tier { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px;
           padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); font-size: .9rem; background: var(--panel-solid);
-          transition: transform .35s cubic-bezier(.3,1.4,.5,1), border-color .3s, background .3s; }
-  .tier.current { border-color: var(--accent2); transform: translateX(6px);
+          transition: border-color .2s, background-color .2s; }
+  .tier.current { border-color: var(--accent2);
                   background: color-mix(in srgb, var(--accent2) 14%, var(--panel-solid)); }
   .tier .range { color: var(--muted); font-variant-numeric: tabular-nums; }
   .tier .rare { font-weight: 700; color: var(--accent2); text-align: right; font-size: .85rem; }
@@ -184,7 +180,6 @@
   .badge.on { border-color: color-mix(in srgb, var(--accent3) 40%, var(--line)); }
   .badge b { font-size: .92rem; display: block; }
   .badge small { color: var(--muted); font-size: .76rem; }
-  .badge:hover { transform: translateY(-2px); }
 
   /* history */
   .tableWrap { overflow-x: auto; }
@@ -215,9 +210,7 @@
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.01); } }
   @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
-  @keyframes ripple { to { transform: translate(-50%,-50%) scale(40); opacity: 0; } }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-  @keyframes drift { to { transform: translate3d(3%, -2%, 0) scale(1.05); } }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -438,15 +431,6 @@
       dots.appendChild(d);
     }
   }
-  function ripple(e) {
-    const r = document.createElement('span'); r.className = 'ripple';
-    const b = arena.getBoundingClientRect();
-    const x = (e && e.clientX != null) ? e.clientX - b.left : b.width / 2;
-    const y = (e && e.clientY != null) ? e.clientY - b.top : b.height / 2;
-    r.style.left = x + 'px'; r.style.top = y + 'px';
-    arena.appendChild(r);
-    setTimeout(() => r.remove(), 650);
-  }
   function startTry() {
     state = 'waiting';
     setArena('wait', 'Wait for it...', 'Do not click until the screen turns green.');
@@ -487,10 +471,10 @@
       setArena('', 'Nice, ' + ms + ' ms', 'Click for try ' + (current.length + 1) + ' of ' + TRIES_PER_RUN + '.');
     }
   }
-  function onPress(e) {
-    if (state === 'idle') { if (e) ripple(e); startTry(); }
+  function onPress() {
+    if (state === 'idle') startTry();
     else if (state === 'waiting') tooEarly();
-    else if (state === 'ready') { ripple(e); gotTry(); }
+    else if (state === 'ready') gotTry();
   }
   function discardRun() {
     clearTimeout(timer);
@@ -508,10 +492,11 @@
     toast('Run saved: ' + fmt(runs[0].mean) + ' average');
   }
 
-  arena.addEventListener('click', (e) => onPress(e));
-  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(null); } });
+  // pointerdown fires the moment you press, instead of waiting for the click to finish
+arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); });
+  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(); } });
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(null); }
+    if (e.code === 'Space' && !['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(); }
   });
   saveRunBtn.addEventListener('click', saveRun);
   resetBtn.addEventListener('click', discardRun);
