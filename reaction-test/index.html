@@ -153,7 +153,13 @@
 
   /* weekly chart */
   .chart { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding-top: 10px;
-           border-bottom: 1px solid var(--line); }
+           border-bottom: 1px solid var(--line); position: relative; }
+  .goalLine { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--go); pointer-events: none; }
+  .goalLine span { position: absolute; right: 0; top: -22px; font-size: .75rem; font-weight: 800; color: var(--go); background: var(--panel-solid); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--go); }
+  .targetBox { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px solid var(--go); border-radius: 16px; padding: 16px 18px; margin-bottom: 4px; background: color-mix(in srgb, var(--go) 10%, var(--panel-solid)); }
+  .targetBox .big { font-size: 2.1rem; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .targetBox .txt { flex: 1; min-width: 200px; line-height: 1.5; }
+  .targetBox .txt b { font-size: 1.05rem; }
   .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
   .col .bar { width: 100%; max-width: 52px; border-radius: 10px 10px 4px 4px; height: 0;
               background: linear-gradient(180deg, var(--accent2), var(--accent));
@@ -375,6 +381,12 @@
   </div>
 
   <div class="panel" id="p-progress" role="tabpanel" data-panel="progress">
+  <section class="card reveal">
+    <div class="targetBox" id="targetBox">
+      <div class="big" id="targetBig">—</div>
+      <div class="txt" id="targetTxt">Set a goal on the Stats tab (or pick a fan character) to see your target here.</div>
+    </div>
+  </section>
   <section class="card reveal">
     <div class="card-head"><h2>Weekly progress</h2><span class="muted">Average run speed per week, last 8 weeks. Taller is faster.</span></div>
     <div class="chart" id="chart"></div>
@@ -789,8 +801,11 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     });
     const avgs = weeks.map(w => mean(w.means));
     const valid = avgs.filter(v => v != null);
-    const lo = valid.length ? Math.min(...valid) : 0;
-    const hi = valid.length ? Math.max(...valid) : 260;
+    const scale = valid.slice();
+    if (goal != null) scale.push(goal);
+    const lo = scale.length ? Math.min(...scale) : 0;
+    const hi = scale.length ? Math.max(...scale) : 260;
+    const toH = (ms) => hi === lo ? 70 : 30 + 70 * (hi - ms) / (hi - lo);
     host.innerHTML = '';
     weeks.forEach((w, i) => {
       const col = document.createElement('div'); col.className = 'col';
@@ -803,12 +818,21 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       else {
         v.textContent = Math.round(avgs[i]) + ' ms';
         // map speed to height: fastest week gets the tallest bar
-        h = hi === lo ? 70 : 30 + 70 * (hi - avgs[i]) / (hi - lo);
+        h = toH(avgs[i]);
       }
       col.append(v, bar, lbl);
       host.appendChild(col);
       requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
     });
+    if (goal != null) {
+      const line = document.createElement('div');
+      line.className = 'goalLine';
+      line.style.bottom = toH(goal) + '%';
+      const tag = document.createElement('span');
+      tag.textContent = 'Goal ' + goal + ' ms';
+      line.appendChild(tag);
+      host.appendChild(line);
+    }
   }
 
   // ---- histogram of all tries ----
@@ -885,8 +909,18 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     host.appendChild(table);
   }
 
+  function renderTarget(s) {
+    const big = $('targetBig'), txt = $('targetTxt');
+    if (goal == null) { big.textContent = '—'; txt.textContent = 'Set a goal on the Stats tab (or pick a fan character) to see your target here.'; return; }
+    big.textContent = goal + ' ms';
+    if (s.mean == null) { txt.innerHTML = '<b>Your target is ' + goal + ' ms.</b><br>Save a run to see how far you are from it.'; return; }
+    if (s.mean <= goal) { txt.innerHTML = '<b>Target reached!</b><br>Your overall average is ' + Math.round(s.mean) + ' ms, which is at or under your target.'; return; }
+    txt.innerHTML = '<b>' + Math.round(s.mean - goal) + ' ms to go.</b><br>Your overall average is ' + Math.round(s.mean) + ' ms. Keep going.';
+  }
+
   function renderAll(animate) {
     const s = derive();
+    renderTarget(s);
     renderStats(s);
     renderTier(s);
     renderGoal(s);
