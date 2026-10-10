@@ -174,6 +174,16 @@
   .col .bar.none { background: var(--line); }
   .col .val { font-size: .75rem; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .col .lbl { font-size: .72rem; color: var(--muted); margin-top: 8px; white-space: nowrap; }
+  .col .n { font-size: .68rem; color: var(--muted); white-space: nowrap; }
+  .chartWrap { display: flex; gap: 10px; }
+  .yAxis { position: relative; width: 56px; height: 200px; padding-top: 10px; flex: 0 0 56px; }
+  .yAxis span { position: absolute; right: 0; transform: translateY(50%); font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chartBox { position: relative; flex: 1; min-width: 0; }
+  .grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); pointer-events: none; }
+  .chartSummary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chartSummary .pill2 { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--panel-solid); font-size: .85rem; }
+  .chartSummary .pill2 b { display: block; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .chartKey { font-size: .8rem; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
   /* histogram */
   .hist { display: flex; align-items: flex-end; gap: 6px; height: 160px; }
@@ -403,7 +413,12 @@
   </section>
   <section class="card reveal">
     <div class="card-head"><h2>Weekly progress</h2><span class="muted">Average run speed per week, last 8 weeks. Taller is faster.</span></div>
-    <div class="chart" id="chart"></div>
+    <div class="chartSummary" id="chartSummary"></div>
+    <div class="chartWrap">
+      <div class="yAxis" id="yAxis"></div>
+      <div class="chartBox"><div class="chart" id="chart"></div></div>
+    </div>
+    <p class="chartKey">Taller bar = faster week. The numbers on the left are milliseconds. Each bar shows its average and how many runs were saved that week. The dashed green line is your goal.</p>
   </section>
 
   <div class="grid2">
@@ -835,33 +850,74 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     });
     const avgs = weeks.map(w => mean(w.means));
     const valid = avgs.filter(v => v != null);
+
+    // scale: pad the data (and the goal) so bars never touch the top or bottom
     const scale = valid.slice();
     if (goal != null) scale.push(goal);
-    const lo = scale.length ? Math.min(...scale) : 0;
-    const hi = scale.length ? Math.max(...scale) : 260;
-    const toH = (ms) => hi === lo ? 70 : 30 + 70 * (hi - ms) / (hi - lo);
+    let lo = scale.length ? Math.min(...scale) : 150;
+    let hi = scale.length ? Math.max(...scale) : 250;
+    if (hi - lo < 30) { const mid = (hi + lo) / 2; lo = mid - 15; hi = mid + 15; }
+    lo -= 10; hi += 10;
+    // taller = faster, so the top of the scale is the lowest (fastest) ms
+    const toH = (ms) => 100 * (hi - ms) / (hi - lo);
+
+    // y-axis labels and dashed gridlines at 4 evenly spaced ms values
+    const axis = $('yAxis');
+    const chartBox = host.parentElement;
+    axis.innerHTML = '';
+    chartBox.querySelectorAll('.grid').forEach(g => g.remove());
+    for (let k = 0; k <= 3; k++) {
+      const ms = hi - (hi - lo) * k / 3;
+      const pos = 100 * k / 3;
+      const label = document.createElement('span');
+      label.textContent = Math.round(ms) + ' ms';
+      label.style.top = 'calc(10px + ' + pos + '% * (200px - 10px) / 100)';
+      axis.appendChild(label);
+      const g = document.createElement('div');
+      g.className = 'grid';
+      g.style.top = (10 + pos * 0.9) + 'px';
+      chartBox.appendChild(g);
+    }
+
+    // summary above the chart
+    const best = valid.length ? Math.min(...valid) : null;
+    const overallRecent = mean(valid);
+    const weeksWithRuns = valid.length;
+    $('chartSummary').innerHTML =
+      '<div class="pill2">Average over the last 8 weeks<b>' + (overallRecent == null ? '—' : Math.round(overallRecent) + ' ms') + '</b></div>' +
+      '<div class="pill2">Fastest week<b>' + (best == null ? '—' : Math.round(best) + ' ms') + '</b></div>' +
+      '<div class="pill2">Weeks with runs<b>' + weeksWithRuns + ' of 8</b></div>' +
+      '<div class="pill2">Goal<b>' + (goal == null ? 'not set' : goal + ' ms') + '</b></div>';
+
     host.innerHTML = '';
     weeks.forEach((w, i) => {
       const col = document.createElement('div'); col.className = 'col';
       const v = document.createElement('div'); v.className = 'val';
       const bar = document.createElement('div'); bar.className = 'bar';
+      const n = document.createElement('div'); n.className = 'n';
       const lbl = document.createElement('div'); lbl.className = 'lbl';
       lbl.textContent = w.start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-      let h = 4;
-      if (avgs[i] == null) { bar.classList.add('none'); }
-      else {
+      let h2 = 3;
+      if (avgs[i] == null) {
+        bar.classList.add('none');
+        v.textContent = 'no runs';
+        v.style.color = 'var(--muted)';
+        v.style.fontWeight = '600';
+      } else {
         v.textContent = Math.round(avgs[i]) + ' ms';
-        // map speed to height: fastest week gets the tallest bar
-        h = toH(avgs[i]);
+        h2 = toH(avgs[i]);
+        n.textContent = w.means.length + (w.means.length === 1 ? ' run' : ' runs');
       }
-      col.append(v, bar, lbl);
+      col.append(v, bar, n, lbl);
       host.appendChild(col);
-      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h2 + '%'; }));
     });
+
+    // goal line on the same scale as the bars
     if (goal != null) {
       const line = document.createElement('div');
       line.className = 'goalLine';
-      line.style.bottom = toH(goal) + '%';
+      line.style.bottom = (100 - toH(goal)) + '%';
       const tag = document.createElement('span');
       tag.textContent = 'Goal ' + goal + ' ms';
       line.appendChild(tag);
