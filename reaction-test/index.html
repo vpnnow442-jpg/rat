@@ -290,6 +290,9 @@
   .bDot.you { background: var(--accent2); width: 20px; height: 20px; z-index: 2; }
   .bDot .tip { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .7rem;
                font-weight: 800; background: var(--panel-solid); border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; color: var(--fg); }
+  .benchFilter { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .benchFilter button { padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:var(--panel-solid); color:var(--muted); font-weight:700; font-size:.85rem; }
+  .benchFilter button[aria-selected="true"] { color:#fff; background:linear-gradient(135deg, var(--accent), var(--accent3)); border-color:transparent; }
   .bench a { color: var(--accent2); }
   .sourceNote { font-size: .8rem; color: var(--muted); line-height: 1.6; margin-top: 12px; }
   .youLine { font-weight: 600; margin: 0 0 12px; }
@@ -400,6 +403,14 @@
   .rkInfo summary { cursor:pointer; color:var(--accent2); font-weight:700; }
   .rkInfo ul { margin:8px 0 0; padding-left:18px; line-height:1.7; color:var(--fg); }
   .rkTip { margin:8px 0 0; line-height:1.5; }
+  .expSelect { width:100%; font:inherit; font-weight:700; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--panel-solid); color:var(--fg); }
+  .gstatList { display:grid; gap:10px; }
+  .gstatRow { border:1px solid var(--line); border-radius:14px; padding:12px 14px; background:var(--panel-solid); display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap:10px; align-items:center; }
+  .gstatRow .gname { font-weight:800; }
+  .gstatRow .gsub { font-size:.75rem; color:var(--muted); }
+  .gstatRow .gnum { font-weight:800; font-variant-numeric: tabular-nums; }
+  .gstatRow .rkBar { margin-top:6px; }
+  @media (max-width: 640px) { .gstatRow { grid-template-columns: 1fr 1fr; } }
   .rarityKey { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:10px; }
 
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
@@ -517,6 +528,16 @@
 
 
 
+
+  <section class="card reveal" id="gamesCard">
+    <div class="card-head"><h2>Brain games</h2><span class="gMuted">Memory and speed games. Scores are tracked below.</span></div>
+    <div class="gGrid" id="gGrid"></div>
+    <p class="rarityKey">Ranks: Bronze, Silver, Gold, Platinum, Diamond. The rarity lines are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
+    <section id="gScreen" aria-live="polite">
+      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
+      <div class="stage" id="gStage"></div>
+    </section>
+  </section>
   </div>
 
   <div class="panel" id="p-stats" role="tabpanel" data-panel="stats">
@@ -570,6 +591,11 @@
     </section>
   </div>
 
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Brain game stats</h2><span class="muted">Every game, with its rank</span></div>
+    <div class="gstatList" id="gStatList"></div>
+  </section>
   </div>
 
   <div class="panel" id="p-progress" role="tabpanel" data-panel="progress">
@@ -634,19 +660,7 @@
   </section>
   </div>
 
-  <div class="panel" id="p-games" role="tabpanel" data-panel="games">
-  <section class="card reveal" id="gamesCard">
-    <div class="card-head"><h2>Brain games</h2><span class="gMuted">Memory and speed games. Scores are tracked below.</span></div>
-    <div class="gGrid" id="gGrid"></div>
-    <p class="rarityKey">Ranks: Bronze, Silver, Gold, Platinum, Diamond. The rarity lines are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
-    <section id="gScreen" aria-live="polite">
-      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
-      <div class="stage" id="gStage"></div>
-    </section>
-  </section>
-  </div>
-
-  <div class="panel" id="p-history" role="tabpanel" data-panel="history"> role="tabpanel" data-panel="history">
+  <div class="panel" id="p-history" role="tabpanel" data-panel="history">
   <section class="card reveal">
     <div class="card-head"><h2>History</h2><span class="muted">Newest first</span></div>
     <div class="tableWrap" id="history"></div>
@@ -674,6 +688,7 @@
 
   <section class="card reveal">
     <div class="card-head"><h2>Published reaction-time data</h2><span class="muted">Real studies, not guesses</span></div>
+    <div class="benchFilter" id="benchFilter" role="tablist" aria-label="Filter studies"></div>
     <div class="benchList" id="benchList"></div>
     <p class="sourceNote">Lab studies measure more precisely than browser tests, so they are the better reference. Small studies are rough guides. The dot is the average, and the bar shows the fastest result when a study reports one.</p>
   </section>
@@ -695,6 +710,15 @@
       <div class="gHead"><h3 style="margin:0;font-size:1rem">Your game scores</h3><button class="ghost" id="gClear">Clear game scores</button></div>
       <div id="gScoreTable"></div>
     </section>
+  </section>
+  </div>
+
+  <div class="panel" id="p-explore" role="tabpanel" data-panel="explore">
+  <section class="card reveal">
+    <div class="card-head"><h2>Explore a mode or game</h2><span class="muted">Pick anything to see its numbers</span></div>
+    <select id="expPick" class="expSelect" aria-label="Choose a mode or game"></select>
+    <div class="cmpGrid" id="expStats" style="margin-top:14px"></div>
+    <p class="note" id="expNote"></p>
   </section>
   </div>
 
@@ -1440,6 +1464,7 @@
     renderCompare();
     renderBench();
     renderProfile();
+    renderGameStats();
   }
 
   // ---- compare ----
@@ -1623,6 +1648,26 @@
     { name: 'Online browser tests (general public)', mean: 272, note: 'Median from online tests. Your own computer and screen add delay, so these run higher.', url: 'https://reactiontimetests.org/blog/human-benchmark-reaction-time', src: 'Benchmark article' },
     { name: 'Boxers vs wrestlers (aged 14 to 17)', mean: null, note: 'Small study. Boxers were slightly faster on visual tests. No clear average is given in the summary.', url: 'https://lida.sport-iat.de/ta/Record/4074786', src: 'Boxers vs wrestlers study' }
   ];
+  // groups make it easier to find the studies you care about
+  let benchGroup = 'all';
+  const BENCH_GROUPS = [['all', 'All'], ['adults', 'Adults'], ['athletes', 'Athletes'], ['online', 'Online tests']];
+  function benchGroupOf(b) {
+    if (/sprinters|Boxers/.test(b.name)) return 'athletes';
+    if (/Online/.test(b.name)) return 'online';
+    return 'adults';
+  }
+  function renderBenchFilter() {
+    const host = $('benchFilter');
+    host.innerHTML = '';
+    BENCH_GROUPS.forEach(([id, label]) => {
+      const b = document.createElement('button');
+      b.setAttribute('role', 'tab');
+      b.setAttribute('aria-selected', String(benchGroup === id));
+      b.textContent = label;
+      b.addEventListener('click', () => { benchGroup = id; renderBench(); });
+      host.appendChild(b);
+    });
+  }
   function renderBench() {
     const s = derive();
     const you = $('benchYou');
@@ -1660,7 +1705,8 @@
       scale.appendChild(y);
     }
     list.innerHTML = '';
-    BENCH_DATA.forEach(b => {
+    renderBenchFilter();
+    BENCH_DATA.filter(b => benchGroup === 'all' || benchGroupOf(b) === benchGroup).forEach(b => {
       const item = document.createElement('div');
       item.className = 'bItem';
       const top = document.createElement('div');
@@ -2306,12 +2352,13 @@
 
   renderGrid();
   renderScores();
+  window.ReactionLabGames = { GAMES, rankInfo };
   })();
 
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
-    { id: 'play', label: 'Play', hint: 'Test and games', tabs: [['test', 'Test'], ['games', 'Brain games'], ['fan', 'Fan estimates']] },
-    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History'], ['gscores', 'Game scores']] },
+    { id: 'play', label: 'Play', hint: 'Reaction and brain games', tabs: [['test', 'Test'], ['fan', 'Fan estimates']] },
+    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History'], ['gscores', 'Game scores'], ['explore', 'Explore']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
   const catBar = $('catBar'), subBar = $('subBar');
@@ -2337,6 +2384,86 @@
       subBar.appendChild(b);
     });
   }
+  // ---- explore: numbers for any reaction mode or brain game ----
+  function gameScoresList() {
+    try { const v = JSON.parse(localStorage.getItem('reactionlab-games-v1')); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+  }
+  function statTile(label, val, sub) {
+    return '<div class="tile"><div class="label">' + esc(label) + '</div><div class="val">' + esc(val) + '</div>' +
+      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') + '</div>';
+  }
+  function fillExplore() {
+    const sel = $('expPick');
+    if (sel.options.length) return;
+    const modes = document.createElement('optgroup'); modes.label = 'Reaction modes';
+    Object.keys(MODES).forEach(k => { const o = document.createElement('option'); o.value = 'mode:' + k; o.textContent = MODES[k].label; modes.appendChild(o); });
+    const games = document.createElement('optgroup'); games.label = 'Brain games';
+    window.ReactionLabGames.GAMES.forEach(g => { const o = document.createElement('option'); o.value = 'game:' + g.id; o.textContent = g.name; games.appendChild(o); });
+    sel.append(modes, games);
+    sel.value = 'mode:' + currentMode;
+    sel.addEventListener('change', renderExplore);
+  }
+  // ---- stats for every brain game, with rank ----
+  function renderGameStats() {
+    const host = $('gStatList');
+    if (!host) return;
+    const list = window.ReactionLabGames.GAMES;
+    const all = gameScoresList();
+    host.innerHTML = '';
+    list.forEach(g => {
+      const mine = all.filter(s => s.game === g.id);
+      const vals = mine.map(s => s.score);
+      const best = vals.length ? (g.higherBetter ? Math.max(...vals) : Math.min(...vals)) : null;
+      const avg = vals.length ? Math.round(mean(vals) * 10) / 10 : null;
+      const r = window.ReactionLabGames.rankInfo(g, best);
+      const row = document.createElement('div');
+      row.className = 'gstatRow';
+      row.innerHTML =
+        '<div><div class="gname">' + esc(g.name) + '</div><div class="gsub">' + esc(g.unit) + '</div></div>' +
+        '<div><div class="gsub">Rank</div><span class="rkBadge r' + r.idx + '">' + esc(r.name) + '</span></div>' +
+        '<div><div class="gsub">Best / average</div><div class="gnum">' + (best == null ? '—' : best) + ' / ' + (avg == null ? '—' : avg) + '</div><div class="gsub">' + mine.length + (mine.length === 1 ? ' play' : ' plays') + '</div></div>' +
+        '<div><div class="gsub">Next: ' + esc(r.next) + '</div><div class="rkBar"><b style="width:' + r.pct.toFixed(0) + '%"></b></div></div>';
+      host.appendChild(row);
+    });
+  }
+
+  function renderExplore() {
+    fillExplore();
+    const [kind, key] = $('expPick').value.split(':');
+    const out = $('expStats'), note = $('expNote');
+    if (kind === 'mode') {
+      const list = runs.filter(r => (r.mode || 'simple') === key);
+      const tries = list.flatMap(r => r.tries);
+      const m = mean(tries);
+      const simpleMean = mean(runs.filter(r => (r.mode || 'simple') === 'simple').flatMap(r => r.tries));
+      const diff = (m == null || simpleMean == null) ? null : Math.round(m - simpleMean);
+      out.innerHTML = [
+        statTile('Runs', list.length),
+        statTile('Tries', tries.length),
+        statTile('Average', m == null ? '—' : Math.round(m) + ' ms', 'correct tries'),
+        statTile('Best try', tries.length ? Math.min(...tries) + ' ms' : '—'),
+        statTile('Last run', list[0] ? fmt(list[0].mean) : '—'),
+        statTile('Vs Simple', key === 'simple' || diff == null ? '—' : (diff > 0 ? '+' : '') + diff + ' ms', 'compared with Simple mode')
+      ].join('');
+      note.textContent = key === 'simple' ? 'Simple mode is the main reaction test, and it is the one tiers and benchmarks use.' : 'Tiers and benchmarks only use Simple mode.';
+    } else {
+      const g = window.ReactionLabGames.GAMES.find(x => x.id === key);
+      const list = gameScoresList().filter(s => s.game === key);
+      const vals = list.map(s => s.score);
+      const best = vals.length ? (g.higherBetter ? Math.max(...vals) : Math.min(...vals)) : null;
+      const r = window.ReactionLabGames.rankInfo(g, best);
+      out.innerHTML = [
+        statTile('Plays', list.length),
+        statTile('Best', best == null ? '—' : best + ' ' + g.unit),
+        statTile('Average', vals.length ? (Math.round(mean(vals) * 10) / 10) + ' ' + g.unit : '—'),
+        statTile('Last score', list[0] ? list[0].score + ' ' + g.unit : '—'),
+        statTile('Rank', r.name, r.note),
+        statTile('Next rank', r.next)
+      ].join('');
+      note.textContent = g.desc + ' Ranks use rough guides, not measured norms.';
+    }
+  }
+
   function showTab(name) {
     const cat = CATS.find(c => c.tabs.some(t => t[0] === name));
     if (!cat) return;
@@ -2349,6 +2476,7 @@
     if (name === 'compare') renderCompare();
     if (name === 'profile') renderProfile();
     if (name === 'bench') renderBench();
+    if (name === 'explore') renderExplore();
     if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
