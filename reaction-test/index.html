@@ -75,7 +75,7 @@
 
   /* arena */
   :root {
-    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309; --a-flash: #f8fafc; --t-target: #cbd5e1;
+    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309; --a-flash: #cbd5e1; --t-target: #cbd5e1;
   }
   #arena {
     position: relative; height: 320px; border-radius: 16px; overflow: hidden;
@@ -90,9 +90,11 @@
   #arena.early { background: var(--a-early); color: #fff; }
   #arena::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.55), transparent 60%); }
   #arena.saved::after { animation: flash .7s ease-out; }
-  #arena::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: var(--a-flash); }
-  #arena.hint::before { animation: hintFlash .6s ease-out; }
-  @keyframes hintFlash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
+  #arena::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 0;
+                   background: radial-gradient(circle at 50% 50%, var(--a-flash) 0%, transparent 65%); }
+  #arena.hint::before { animation: hintFlash .7s ease-out; }
+  #arena > h3, #arena > p, #arena > #bigNum, #arena > #dots { position: relative; z-index: 1; }
+  @keyframes hintFlash { 0% { opacity: 0; } 25% { opacity: .55; } 100% { opacity: 0; } }
   #arena.early { animation: shake .45s ease; }
   #arenaTitle { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
   #arenaMsg { margin: 0; font-size: 1rem; opacity: .85; }
@@ -799,6 +801,7 @@
   }
   function resetRun() {
     clearTimeout(timer); clearTimeout(stimTimer);
+    arena.classList.remove('hint');
     removeTarget();
     current = []; errors = 0; trial = 0; state = 'idle';
     saveRunBtn.hidden = true; resetBtn.hidden = true;
@@ -809,6 +812,7 @@
   function nextTrial() {
     if (trial >= MODES[currentMode].tries) return endRun();
     state = 'waiting';
+    arena.classList.remove('hint');
     removeTarget();
     renderDots();
     bigNum.textContent = '';
@@ -829,9 +833,9 @@
       setArena('', '', '');
       beep();
       if (audioHint) {
-        // non-sound hint: a short flash, plus a buzz on phones that support it
+        // non-sound hint: a soft glow, plus a buzz on phones that support it
         arena.classList.add('hint');
-        setTimeout(() => arena.classList.remove('hint'), 600);
+        setTimeout(() => arena.classList.remove('hint'), 750);
         if (navigator.vibrate) navigator.vibrate(60);
       }
     } else if (currentMode === 'target') {
@@ -858,6 +862,7 @@
   }
   function endRun() {
     clearTimeout(timer); clearTimeout(stimTimer);
+    arena.classList.remove('hint');
     removeTarget();
     state = 'done';
     const m = mean(current);
@@ -1546,7 +1551,7 @@
   // each field: [key, label, CSS variable, default colour]
   const COLOR_FIELDS = {
     simple: [['idle', 'Start', '--a-idle', '#1b1d27'], ['wait', 'Wait', '--a-wait', '#c2262f'], ['go', 'Go', '--a-go', '#16a34a'], ['early', 'Too early', '--a-early', '#b45309']],
-    audio:  [['idle', 'Start', '--a-idle', '#1b1d27'], ['flash', 'Hint flash', '--a-flash', '#f8fafc']],
+    audio:  [['idle', 'Start', '--a-idle', '#1b1d27'], ['flash', 'Hint glow', '--a-flash', '#cbd5e1']],
     target: [['idle', 'Start', '--a-idle', '#1b1d27'], ['target', 'Target', '--t-target', '#cbd5e1'], ['early', 'Too early', '--a-early', '#b45309']]
   };
   let colorsByMode = readJSON(COLOR_KEY, {});
