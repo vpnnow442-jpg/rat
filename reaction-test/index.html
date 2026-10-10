@@ -81,6 +81,7 @@
     position: relative; height: 320px; border-radius: 16px; overflow: hidden;
     display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px;
     background: var(--a-idle);
+    color: #f2f3f7;
     border: 1px solid var(--line); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
     transition: background .12s linear, color .12s linear;
   }
@@ -437,7 +438,7 @@
   #gStage #testCard { width: 100%; border: 0; box-shadow: none; background: transparent; padding: 0; }
   #gStage #testCard .card-head { display: none; }
   #gStage #testCard .modeRow { display: none; }
-  #gScreen { padding: 26px !important; }
+  #gScreen { padding: 26px !important; scroll-margin-top: 150px; }
   #gInfo { margin-top: 18px; }
   #gInfo #exBlock .card { margin-top: 14px; }
   #gInfo #exPickCard { display: none; }
@@ -2033,7 +2034,6 @@
     { id:'space',name:'Spacebar Speed',  desc:'Smash the spacebar as many times as you can in 5 seconds.', unit:'presses', higherBetter:true, preview:'SPACE' },
     { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' },
     { id:'colour', name:'Colour Spot', desc:'Find the one square with a slightly different colour. It gets harder each level.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
-    { id:'odd', name:'Odd Letter', desc:'Spot the letter that does not match the others. Look closely.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
     { id:'peri', name:'Edge Flash', desc:'Keep your eyes on the centre dot and click the targets that flash at the edges.', unit:'hits of 20', higherBetter:true, preview:'', cat:'vision' },
     { id:'multi', name:'Track Three', desc:'Remember the highlighted dot, then track it as it moves and pick it out.', unit:'correct of 6', higherBetter:true, preview:'', cat:'vision' },
   ];
@@ -2050,7 +2050,6 @@
     space:'<div class="pv"><span class="pv-key">SPACE</span></div>',
     track:'<div class="pv"><div class="pv-drift"></div></div>',
     colour: '<div class="pv"><div class="pv-grid">' + '<i></i>'.repeat(9) + '</div></div>',
-    odd: '<div class="pv"><span class="pv-word">b d</span></div>',
     peri: '<div class="pv"><div class="pv-ring"></div></div>',
     multi: '<div class="pv"><div class="pv-dot"></div></div>'
   };
@@ -2060,7 +2059,7 @@
     seq: [4, 7, 10, 13, 16], num: [4, 6, 8, 10, 12], word: [10, 14, 17, 19, 20], vis: [3, 6, 9, 12, 15],
     ord: [3500, 2500, 1800, 1400, 1100], pop: [600, 550, 450, 380, 320],
     type: [30, 50, 70, 90, 110], cps: [4, 6, 7.5, 9, 11], space: [25, 35, 45, 55, 65], track: [30, 45, 60, 75, 90],
-    colour: [3, 5, 7, 9, 11], odd: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [2, 3, 4, 5, 6]
+    colour: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [2, 3, 4, 5, 6]
   };
   // Rough rarity guide only. These are estimates, not measured data.
   const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%'];
@@ -2501,36 +2500,6 @@
       for (let i = 0; i < n * n; i++) {
         const c = document.createElement('button'); c.className = 'cellBtn';
         c.style.background = 'hsl(' + hue + ', 70%, ' + (50 + (i === odd ? diff : 0)) + '%)';
-        c.onclick = () => {
-          if (!api.alive()) return;
-          if (i === odd) { level++; setTimeout(round, 250); }
-          else api.finish(level - 1);
-        };
-        board.appendChild(c);
-      }
-    }
-    round();
-  };
-
-  // Odd Letter: spot the letter that is not like the others
-  GAME_FNS.odd = async (api) => {
-    let level = 1;
-    const pairs = [['b', 'd'], ['p', 'q'], ['O', 'Q'], ['m', 'n'], ['6', '9'], ['E', 'F']];
-    const board = document.createElement('div'); board.className = 'board';
-    board.style.width = 'min(360px, 90vw)';
-    const msg = document.createElement('div'); msg.className = 'big'; msg.style.fontSize = '1.1rem';
-    api.stage.append(msg, board);
-    function round() {
-      if (!api.alive()) return;
-      const n = Math.min(3 + level, 8);
-      board.style.gridTemplateColumns = 'repeat(' + n + ', 1fr)';
-      board.innerHTML = '';
-      const pair = pairs[Math.floor(Math.random() * pairs.length)];
-      const odd = Math.floor(Math.random() * n * n);
-      msg.textContent = 'Level ' + level + ': find the odd letter';
-      for (let i = 0; i < n * n; i++) {
-        const c = document.createElement('button'); c.className = 'cellBtn num';
-        c.textContent = i === odd ? pair[1] : pair[0];
         c.onclick = () => {
           if (!api.alive()) return;
           if (i === odd) { level++; setTimeout(round, 250); }
