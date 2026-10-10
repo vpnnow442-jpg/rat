@@ -1878,7 +1878,16 @@
     const stage = $('gStage');
     stage.innerHTML = '';
     const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
-    GAME_FNS[id](api);
+    // show a start screen first; the game only begins when Start is pressed
+    const gate = document.createElement('div');
+    gate.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:16px;';
+    gate.innerHTML = '<p class="gMuted" style="max-width:420px;margin:0">' + esc(g.desc) + '</p><button class="btn primary" id="gStart">Start</button>';
+    stage.appendChild(gate);
+    $('gStart').addEventListener('click', () => {
+      if (token !== running) return;
+      stage.innerHTML = '';
+      GAME_FNS[id](api);
+    });
   }
   $('gQuit2').addEventListener('click', () => { running++; $('gScreen').classList.remove('on'); $('gStage').innerHTML = ''; });
 
