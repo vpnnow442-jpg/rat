@@ -3,122 +3,381 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reaction Test</title>
+<title>Reaction Lab</title>
+<meta name="description" content="Test your reaction time, save every run, see your means, and find out how elite your reflexes are.">
 <style>
-  :root { --bg: #f4f4f1; --fg: #1d1d1b; --box: #d64545; --go: #2ea043; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #161616; --fg: #f0f0ee; --box: #e05a5a; --go: #3fb950; }
+  :root {
+    --bg: #0c0d10; --panel: #15171c; --line: #262932; --fg: #eef0f4; --muted: #8b90a0;
+    --accent: #7c5cff; --accent2: #22d3ee; --wait: #b4232f; --go: #16a34a; --warn: #f59e0b;
+    --radius: 18px;
   }
-  :root[data-theme="dark"] { --bg: #161616; --fg: #f0f0ee; --box: #e05a5a; --go: #3fb950; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font-family: system-ui, sans-serif; }
-  #pad { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-         text-align: center; padding: 16px; box-sizing: border-box; user-select: none; cursor: pointer; }
-  #pad.wait { background: var(--box); color: #fff; }
-  #pad.go { background: var(--go); color: #fff; }
-  h1 { font-size: 1.6rem; margin: 0 0 8px; }
-  p { margin: 6px 0; font-size: 1.05rem; }
-  #big { font-size: 3rem; font-weight: 700; margin: 12px 0; }
-  button { margin: 6px; padding: 10px 18px; font-size: 1rem; border-radius: 8px; border: 0;
-           background: var(--fg); color: var(--bg); cursor: pointer; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6fa; --panel: #ffffff; --line: #e2e5ee; --fg: #151823; --muted: #6b7081;
+      --accent: #5b3df5; --accent2: #0891b2; --wait: #dc2626; --go: #15803d; --warn: #d97706;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6fa; --panel: #ffffff; --line: #e2e5ee; --fg: #151823; --muted: #6b7081;
+    --accent: #5b3df5; --accent2: #0891b2; --wait: #dc2626; --go: #15803d; --warn: #d97706;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    background-image: radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
+                      radial-gradient(900px 500px at 110% 10%, rgba(34,211,238,.12), transparent 60%);
+    background-attachment: fixed; min-height: 100vh;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+           animation: fadeUp .6s ease both; }
+  .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: -.02em; }
+  .logo span { color: var(--accent); }
+  .pill { font-size: .8rem; color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; border-radius: 999px; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; margin-top: 18px; animation: fadeUp .6s ease both;
+    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  }
+  .card h2 { margin: 0 0 12px; font-size: 1.05rem; letter-spacing: -.01em; }
+  .muted { color: var(--muted); font-size: .9rem; }
+
+  /* test arena */
+  #arena {
+    height: 300px; border-radius: 14px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center; padding: 16px;
+    background: var(--line); color: var(--fg); cursor: pointer; user-select: none;
+    transition: background .25s ease, color .25s ease, transform .15s ease;
+    position: relative; overflow: hidden;
+  }
+  #arena:active { transform: scale(.99); }
+  #arena.wait { background: var(--wait); color: #fff; }
+  #arena.go { background: var(--go); color: #fff; animation: pulse .9s ease-in-out infinite; }
+  #arena.early { animation: shake .4s ease; }
+  #arenaTitle { font-size: 1.7rem; font-weight: 800; margin: 0 0 6px; }
+  #arenaMsg { margin: 0; font-size: 1rem; opacity: .9; }
+  #bigNum { font-size: 4rem; font-weight: 800; letter-spacing: -.03em; margin: 8px 0 0;
+            font-variant-numeric: tabular-nums; }
+  .dots { display: flex; gap: 8px; margin-top: 14px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(127,127,127,.35); transition: transform .3s, background .3s; }
+  .dots i.done { background: var(--accent2); transform: scale(1.15); }
+
+  .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  button {
+    font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--fg); cursor: pointer; transition: transform .15s, border-color .2s, background .2s;
+  }
+  button:hover { transform: translateY(-1px); border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  button.danger:hover { border-color: var(--wait); color: var(--wait); }
+
+  /* stat tiles */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--bg); animation: fadeUp .5s ease both; }
+  .tile .label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .tile .val { font-size: 1.7rem; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  /* rank ladder */
+  .ladder { display: grid; gap: 8px; }
+  .tier { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 12px;
+          padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: .92rem;
+          transition: transform .3s, border-color .3s, background .3s; }
+  .tier.current { border-color: var(--accent2); background: rgba(34,211,238,.1); transform: translateX(4px); }
+  .tier .range { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tier .rare { font-weight: 700; color: var(--accent2); }
+  .note { font-size: .8rem; color: var(--muted); margin-top: 10px; }
+
+  /* history */
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  tr { animation: fadeUp .4s ease both; }
+  td.tries { color: var(--muted); font-size: .85rem; }
+  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 80px; }
+  .bar b { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+           width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+  .empty { padding: 20px; text-align: center; color: var(--muted); }
+
+  footer { margin-top: 28px; font-size: .8rem; color: var(--muted); text-align: center; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  @media (max-width: 560px) {
+    .tier { grid-template-columns: 1fr; gap: 4px; }
+    #bigNum { font-size: 3rem; }
+    #arena { height: 260px; }
+  }
 </style>
 </head>
 <body>
-<div id="pad">
-  <h1>Reaction Test</h1>
-  <p id="msg">Click or press Space to start. 5 tries.</p>
-  <div id="big"></div>
-  <p id="list"></p>
-  <div>
-    <button id="btn">Start</button>
-    <button id="save" style="display:none">Save results</button>
-  </div>
+<div class="wrap">
+
+  <header>
+    <div class="logo">Reaction<span>Lab</span></div>
+    <div class="pill" id="runCount">0 runs saved</div>
+  </header>
+
+  <section class="card">
+    <h2>Test your reflexes</h2>
+    <p class="muted" style="margin-top:0">Each run is 5 tries. Wait for green, then click or press <b>Space</b> as fast as you can. Clicking early restarts that try.</p>
+    <div id="arena" role="button" tabindex="0" aria-label="Reaction test area">
+      <h3 id="arenaTitle">Ready?</h3>
+      <p id="arenaMsg">Click here or press Space to start.</p>
+      <div id="bigNum"></div>
+    </div>
+    <div class="dots" id="dots"></div>
+    <div class="btnrow">
+      <button class="primary" id="saveRunBtn" hidden>Save run</button>
+      <button id="resetBtn" hidden>Discard this run</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Your stats</h2>
+    <div class="stats">
+      <div class="tile"><div class="label">Overall mean</div><div class="val" id="sMean">—</div></div>
+      <div class="tile"><div class="label">Mean of run means</div><div class="val" id="sRunMean">—</div></div>
+      <div class="tile"><div class="label">Best try</div><div class="val" id="sBest">—</div></div>
+      <div class="tile"><div class="label">Total tries</div><div class="val" id="sTries">0</div></div>
+    </div>
+    <p class="muted" id="sRank" style="margin:14px 0 0"></p>
+  </section>
+
+  <section class="card">
+    <h2>How rare is your speed?</h2>
+    <div class="ladder" id="ladder"></div>
+    <p class="note">These percentile ranges are rough estimates from general reaction-time research, not a measured population dataset. Treat them as a guide. Elite athletes and people who train for years can get into the top bands.</p>
+  </section>
+
+  <section class="card">
+    <h2>History</h2>
+    <div id="history"></div>
+    <div class="btnrow">
+      <button id="exportBtn">Export CSV</button>
+      <button class="danger" id="clearBtn">Clear all history</button>
+    </div>
+    <p class="note">History is saved in this browser only. Clearing your browser data will erase it, so export a CSV if you want a backup.</p>
+  </section>
+
+  <footer>Built for fun and self-tracking. Stop training if you feel dizzy or get a headache.</footer>
 </div>
+
 <script>
-  const pad = document.getElementById('pad');
-  const msg = document.getElementById('msg');
-  const big = document.getElementById('big');
-  const list = document.getElementById('list');
-  const btn = document.getElementById('btn');
-  const saveBtn = document.getElementById('save');
-  const TOTAL = 5;
-  let results = [];
-  let state = 'idle';   // idle | waiting | ready | done
-  let timer = null;
-  let readyAt = 0;
+  const KEY = 'reactionlab-runs-v1';
+  const TRIES_PER_RUN = 5;
+  const TIERS = [
+    { name: 'Elite',       max: 150,      rare: 'roughly top 0.1%' },
+    { name: 'Exceptional', max: 170,      rare: 'roughly top 1%' },
+    { name: 'Excellent',   max: 190,      rare: 'roughly top 5%' },
+    { name: 'Very good',   max: 210,      rare: 'roughly top 15%' },
+    { name: 'Good',        max: 230,      rare: 'roughly top 35%' },
+    { name: 'Average',     max: 260,      rare: 'the middle half' },
+    { name: 'Developing',  max: Infinity, rare: 'slower than most' }
+  ];
+  const TIER_RANGES = ['under 150 ms', '150–169 ms', '170–189 ms', '190–209 ms', '210–229 ms', '230–259 ms', '260 ms+'];
 
-  function setState(name, cls, text) {
-    state = name;
-    pad.className = cls || '';
-    msg.textContent = text;
+  const $ = (id) => document.getElementById(id);
+  const arena = $('arena'), arenaTitle = $('arenaTitle'), arenaMsg = $('arenaMsg'), bigNum = $('bigNum');
+  const dots = $('dots'), saveRunBtn = $('saveRunBtn'), resetBtn = $('resetBtn');
+
+  let runs = loadRuns();          // [{ id, t, tries: [ms,...], mean }]
+  let current = [];               // tries in the run being played
+  let state = 'idle';             // idle | waiting | ready | done
+  let timer = null, readyAt = 0;
+
+  function loadRuns() {
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY));
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
   }
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(runs)); } catch (e) { /* storage blocked, keep working in memory */ }
+  }
+  const mean = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const fmt = (n) => (n == null ? '—' : Math.round(n) + ' ms');
+  function tierFor(ms) { return TIERS.findIndex(t => ms < t.max); }
 
-  function startRound() {
-    setState('waiting', 'wait', 'Wait for GREEN... do not click yet.');
-    big.textContent = '';
-    btn.style.display = 'none';
-    saveBtn.style.display = 'none';
-    const delay = 2000 + Math.random() * 3000; // random 2-5 seconds, so you cannot guess it
+  // ---- test loop ----
+  function setArena(cls, title, msg) {
+    arena.className = cls;
+    arenaTitle.textContent = title;
+    arenaMsg.textContent = msg;
+  }
+  function renderDots() {
+    dots.innerHTML = '';
+    for (let i = 0; i < TRIES_PER_RUN; i++) {
+      const d = document.createElement('i');
+      if (i < current.length) d.classList.add('done');
+      dots.appendChild(d);
+    }
+  }
+  function startTry() {
+    state = 'waiting';
+    setArena('wait', 'Wait...', 'Do not click until it turns green.');
+    bigNum.textContent = '';
+    const delay = 2000 + Math.random() * 3000; // random so you cannot guess the moment
     timer = setTimeout(() => {
       readyAt = performance.now();
-      setState('ready', 'go', 'CLICK NOW!');
+      state = 'ready';
+      setArena('go', 'CLICK!', '');
     }, delay);
   }
+  function tooEarly() {
+    clearTimeout(timer);
+    state = 'idle';
+    setArena('early', 'Too early!', 'Click to try this one again.');
+    arena.classList.remove('early'); void arena.offsetWidth; arena.classList.add('early');
+  }
+  function gotTry() {
+    const ms = Math.round(performance.now() - readyAt);
+    current.push(ms);
+    bigNum.textContent = ms + ' ms';
+    renderDots();
+    if (current.length >= TRIES_PER_RUN) {
+      state = 'done';
+      setArena('', 'Run complete', 'Mean ' + fmt(mean(current)) + '. Save it or discard it.');
+      saveRunBtn.hidden = false; resetBtn.hidden = false;
+    } else {
+      state = 'idle';
+      setArena('', 'Nice, ' + ms + ' ms', 'Click for try ' + (current.length + 1) + ' of ' + TRIES_PER_RUN + '.');
+    }
+  }
+  function onPress() {
+    if (state === 'idle') { if (current.length === 0) renderDots(); startTry(); }
+    else if (state === 'waiting') tooEarly();
+    else if (state === 'ready') gotTry();
+    else if (state === 'done') { /* wait for save or discard */ }
+  }
+  function discardRun() {
+    clearTimeout(timer);
+    current = []; state = 'idle'; renderDots();
+    saveRunBtn.hidden = true; resetBtn.hidden = true;
+    setArena('', 'Ready?', 'Click here or press Space to start.');
+    bigNum.textContent = '';
+  }
+  function saveRun() {
+    runs.unshift({ id: Date.now(), t: new Date().toISOString(), tries: current.slice(), mean: mean(current) });
+    persist();
+    discardRun();
+    renderAll(true);
+    setArena('', 'Saved!', 'Run added to your history. Click to go again.');
+  }
 
-  function handlePress() {
-    if (state === 'idle' || state === 'done') {
-      if (state === 'done') { results = []; list.textContent = ''; }
-      startRound();
-    } else if (state === 'waiting') {
-      clearTimeout(timer);
-      setState('idle', 'wait', 'Too early! Wait for green. Click to try again.');
-      btn.style.display = 'inline-block';
-      btn.textContent = 'Try again';
-    } else if (state === 'ready') {
-      const ms = Math.round(performance.now() - readyAt);
-      results.push(ms);
-      big.textContent = ms + ' ms';
-      list.textContent = 'Tries: ' + results.join(', ');
-      if (results.length >= TOTAL) {
-        const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
-        setState('done', '', 'Done! Average: ' + avg + ' ms (best: ' + Math.min(...results) + ' ms)');
-        btn.style.display = 'inline-block';
-        btn.textContent = 'Run again';
-        saveBtn.style.display = 'inline-block';
-      } else {
-        setState('idle', '', 'Good. Click for the next try (' + (results.length + 1) + ' of ' + TOTAL + ').');
-        btn.style.display = 'inline-block';
-        btn.textContent = 'Next';
-      }
+  arena.addEventListener('click', onPress);
+  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(); } });
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !['BUTTON', 'INPUT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(); }
+  });
+  saveRunBtn.addEventListener('click', saveRun);
+  resetBtn.addEventListener('click', discardRun);
+
+  // ---- stats ----
+  function countUp(el, target) {
+    if (target == null) { el.textContent = '—'; return; }
+    const start = performance.now(), from = 0, dur = 700;
+    function step(now) {
+      const p = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))) + ' ms';
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function renderStats() {
+    const all = runs.flatMap(r => r.tries);
+    const overall = mean(all);
+    const runMeans = runs.map(r => r.mean);
+    countUp($('sMean'), overall);
+    countUp($('sRunMean'), mean(runMeans));
+    $('sBest').textContent = all.length ? Math.min(...all) + ' ms' : '—';
+    $('sTries').textContent = all.length;
+    $('runCount').textContent = runs.length + (runs.length === 1 ? ' run saved' : ' runs saved');
+    if (overall == null) {
+      $('sRank').textContent = 'Save a run to see where your speed ranks.';
+    } else {
+      const t = TIERS[tierFor(overall)];
+      $('sRank').textContent = 'Your overall mean is ' + Math.round(overall) + ' ms, which is ' + t.name + ' (' + t.rare + ').';
     }
   }
 
-  function saveResults() {
-    const avg = Math.round(results.reduce((a, b) => a + b, 0) / results.length);
-    const now = new Date();
-    const text =
-      'Reaction Test Results\n' +
-      'Date: ' + now.toLocaleString() + '\n' +
-      'Tries (ms): ' + results.join(', ') + '\n' +
-      'Average: ' + avg + ' ms\n' +
-      'Best: ' + Math.min(...results) + ' ms\n';
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const stamp = now.toISOString().slice(0, 16).replace(/[:T]/g, '-');
-    a.href = url;
-    a.download = 'reaction-test-' + stamp + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    saveBtn.textContent = 'Saved!';
+  function renderLadder() {
+    const all = runs.flatMap(r => r.tries);
+    const overall = mean(all);
+    const cur = overall == null ? -1 : tierFor(overall);
+    $('ladder').innerHTML = TIERS.map((t, i) =>
+      '<div class="tier' + (i === cur ? ' current' : '') + '">' +
+        '<div><b>' + t.name + '</b></div>' +
+        '<div class="range">' + TIER_RANGES[i] + '</div>' +
+        '<div class="rare">' + t.rare + '</div>' +
+      '</div>'
+    ).join('');
   }
 
-  pad.addEventListener('mousedown', (e) => { if (e.target.tagName !== 'BUTTON') handlePress(); });
-  pad.addEventListener('touchstart', (e) => { if (e.target.tagName !== 'BUTTON') { e.preventDefault(); handlePress(); } }, { passive: false });
-  btn.addEventListener('click', (e) => { e.stopPropagation(); handlePress(); });
-  saveBtn.addEventListener('click', (e) => { e.stopPropagation(); saveResults(); });
-  document.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); handlePress(); } });
+  function renderHistory(animate) {
+    const host = $('history');
+    if (!runs.length) { host.innerHTML = '<div class="empty">No runs yet. Finish a run and hit Save.</div>'; return; }
+    const maxMean = Math.max(...runs.map(r => r.mean));
+    const table = document.createElement('table');
+    table.innerHTML = '<thead><tr><th>Date</th><th>Tries</th><th>Mean</th><th>Speed</th><th></th></tr></thead>';
+    const tb = document.createElement('tbody');
+    runs.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      tr.style.animationDelay = (animate ? i * 0.04 : 0) + 's';
+      const tdDate = document.createElement('td'); tdDate.textContent = new Date(r.t).toLocaleString();
+      const tdTries = document.createElement('td'); tdTries.className = 'tries'; tdTries.textContent = r.tries.join(', ');
+      const tdMean = document.createElement('td'); tdMean.textContent = fmt(r.mean);
+      const tdBar = document.createElement('td');
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const fill = document.createElement('b');
+      bar.appendChild(fill); tdBar.appendChild(bar);
+      const tdDel = document.createElement('td');
+      const del = document.createElement('button'); del.textContent = 'Delete';
+      del.addEventListener('click', () => { runs.splice(i, 1); persist(); renderAll(false); });
+      tdDel.appendChild(del);
+      tr.append(tdDate, tdTries, tdMean, tdBar, tdDel);
+      tb.appendChild(tr);
+      // faster run = longer bar, so the bar shows how quick each run was
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        fill.style.width = (100 * (1 - (r.mean - 100) / (maxMean - 100 + 1))) + '%';
+      }));
+    });
+    table.appendChild(tb);
+    host.innerHTML = '';
+    host.appendChild(table);
+  }
+
+  function renderAll(animate) {
+    renderStats();
+    renderLadder();
+    renderHistory(animate);
+  }
+
+  $('clearBtn').addEventListener('click', () => {
+    if (!runs.length) return;
+    if (confirm('Delete all saved runs? This cannot be undone.')) { runs = []; persist(); renderAll(false); }
+  });
+
+  $('exportBtn').addEventListener('click', () => {
+    const rows = ['date,tries_ms,mean_ms'];
+    runs.forEach(r => rows.push(new Date(r.t).toISOString() + ',"' + r.tries.join(' ') + '",' + Math.round(r.mean)));
+    const blob = new Blob([rows.join('\n') + '\n'], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'reaction-runs.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  renderDots();
+  renderAll(true);
 </script>
 </body>
 </html>
