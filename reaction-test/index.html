@@ -98,6 +98,11 @@
   .dots { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
   .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); transition: background-color .15s; }
   .dots i.done { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .modeRow { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; padding: 5px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+  .modeRow button { flex: 1 1 auto; border: 0; background: transparent; color: var(--muted); padding: 9px 12px; }
+  .modeRow button[aria-selected="true"] { background: var(--panel-solid); color: var(--fg); box-shadow: 0 1px 0 var(--line); }
+  #arena.choice { background: linear-gradient(160deg, #2563eb, #1e3a8a); color: #fff; }
+  #arena.stop { background: linear-gradient(160deg, #475569, #1e293b); color: #fff; }
   .colorRow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
   .colorRow label { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); font-weight: 600; }
   .colorRow input[type="color"] { width: 40px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: none; cursor: pointer; }
@@ -344,6 +349,7 @@
   <header>
     <div class="logo"><div class="mark"><i></i></div>Reaction<span style="color:var(--accent)">Lab</span></div>
     <div class="head-right">
+      <div class="chip" id="modeChip">Mode: Simple</div>
       <div class="chip" id="streakChip">Streak <b>0</b> days</div>
       <div class="chip" id="runCount">0 runs saved</div>
       <button class="ghost" id="themeBtn" aria-label="Toggle dark or light mode" style="padding:7px 12px">Theme</button>
@@ -365,6 +371,12 @@
     <div class="card-head">
       <h2>Test your reflexes</h2>
       <span class="muted">Press <span class="kbd">Space</span> or click. Click early and that try restarts.</span>
+    </div>
+    <div class="modeRow" id="modeRow" role="tablist" aria-label="Game mode">
+      <button data-mode="simple" aria-selected="true">Simple</button>
+      <button data-mode="sound" aria-selected="false">Sound</button>
+      <button data-mode="choice" aria-selected="false">Choice</button>
+      <button data-mode="gonogo" aria-selected="false">Go / No-go</button>
     </div>
     <div id="arena" role="button" tabindex="0" aria-label="Reaction test area. Click or press Enter to start">
       <h3 id="arenaTitle">Ready?</h3>
@@ -599,9 +611,23 @@
   if (!Array.isArray(runs)) runs = [];
   let friends = readJSON(FRIENDS_KEY, []);  // [{ name, runs: [{ t, tries, mean }] }]
   if (!Array.isArray(friends)) friends = [];
-  let current = [];
-  let state = 'idle';                    // idle | waiting | ready | done
-  let timer = null, readyAt = 0;
+  const MODE_KEY = 'reactionlab-mode-v1';
+  const MODES = {
+    simple: { label: 'Simple',     tries: 5,  hint: 'Wait for the colour change, then click or press Space as fast as you can.' },
+    sound:  { label: 'Sound',      tries: 5,  hint: 'Wait for the beep, then click or press Space. Turn your volume up.' },
+    choice: { label: 'Choice',     tries: 5,  hint: 'An arrow appears. Press Left or Right (or tap that side of the box). Wrong sides count as mistakes.' },
+    gonogo: { label: 'Go / No-go', tries: 10, hint: 'On GO, click or press Space. On STOP, hold back. Pressing on STOP or missing GO counts as a mistake.' }
+  };
+  let currentMode = readJSON(MODE_KEY, 'simple');
+  if (!MODES[currentMode]) currentMode = 'simple';
+  let current = [];                      // correct reaction times this run
+  let errors = 0;                        // mistakes this run
+  let trial = 0;                         // finished trials this run
+  let plan = [];                         // stimulus order (choice / go-no-go)
+  let stimulus = null;                   // current stimulus
+  let state = 'idle';                    // idle | waiting | ready | pause | done
+  let timer = null, stimTimer = null, readyAt = 0, audioCtx = null;
+  const modeRuns = () => runs.filter(r => (r.mode || 'simple') === currentMode);
 
   // ---- storage helpers (every access wrapped; the page still works if storage is blocked) ----
   function readJSON(key, fallback) {
@@ -647,99 +673,202 @@
   }, { threshold: 0.12 }) : null;
   document.querySelectorAll('.reveal').forEach(el => { io ? io.observe(el) : el.classList.add('in'); });
 
-  // ---- test loop ----
+  // ---- test loop (shared by all modes) ----
   function setArena(cls, title, msg) {
     arena.className = cls;
     arenaTitle.textContent = title;
     arenaMsg.textContent = msg;
   }
   function renderDots() {
+    const total = MODES[currentMode].tries;
     dots.innerHTML = '';
-    for (let i = 0; i < TRIES_PER_RUN; i++) {
+    for (let i = 0; i < total; i++) {
       const d = document.createElement('i');
-      if (i < current.length) d.classList.add('done');
+      if (i < trial) d.classList.add('done');
       dots.appendChild(d);
     }
   }
-  function startTry() {
-    state = 'waiting';
-    setArena('wait', 'Wait...', 'Do not click until the screen changes to your go colour.');
-    bigNum.textContent = '';
-    $('delta').textContent = '';
-    const delay = 2000 + Math.random() * 3000; // random so you cannot guess the moment
-    timer = setTimeout(() => {
-      readyAt = performance.now();
-      state = 'ready';
-      setArena('go', 'CLICK!', '');
-    }, delay);
-  }
-  function tooEarly() {
-    clearTimeout(timer);
-    state = 'idle';
-    setArena('early', 'Too early!', 'Click to try this one again.');
-    void arena.offsetWidth; // restart the shake animation
-  }
-  function gotTry() {
-    const ms = Math.round(performance.now() - readyAt);
-    current.push(ms);
-    bigNum.textContent = ms + ' ms';
-    renderDots();
-    const prev = current.length > 1 ? current[current.length - 2] : null;
+  function flashDelta(text, good) {
     const d = $('delta');
-    if (prev == null) d.textContent = '';
-    else {
-      const diff = ms - prev;
-      d.className = 'delta ' + (diff <= 0 ? 'up' : 'down');
-      d.textContent = (diff <= 0 ? '▼ ' : '▲ ') + Math.abs(diff) + ' ms vs last try' + (diff <= 0 ? ' (faster)' : '');
-    }
-    if (current.length >= TRIES_PER_RUN) {
-      state = 'done';
-      setArena('', 'Run complete', 'Mean ' + fmt(mean(current)) + '. Save it or discard it.');
-      saveRunBtn.hidden = false; resetBtn.hidden = false;
-    } else {
-      state = 'idle';
-      setArena('', 'Nice, ' + ms + ' ms', 'Click for try ' + (current.length + 1) + ' of ' + TRIES_PER_RUN + '.');
-    }
+    d.className = 'delta ' + (good ? 'up' : 'down');
+    d.textContent = text;
   }
-  function onPress() {
-    if (state === 'idle') startTry();
-    else if (state === 'waiting') tooEarly();
-    else if (state === 'ready') gotTry();
+  function ensureAudio() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    } catch (e) { audioCtx = null; }
   }
-  function discardRun() {
-    clearTimeout(timer);
-    current = []; state = 'idle'; renderDots();
+  function beep() {
+    if (!audioCtx) return;
+    try {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.frequency.value = 880; g.gain.value = 0.25;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.15);
+    } catch (e) { /* no sound available: the arena still changes */ }
+  }
+  function makePlan() {
+    const shuffle = (a) => a.sort(() => Math.random() - 0.5);
+    if (currentMode === 'choice') return shuffle(Array.from({ length: 5 }, (_, i) => (i % 2 ? 'left' : 'right')));
+    if (currentMode === 'gonogo') return shuffle(Array.from({ length: 10 }, (_, i) => (i < 7 ? 'go' : 'nogo')));
+    return null;
+  }
+  function resetRun() {
+    clearTimeout(timer); clearTimeout(stimTimer);
+    current = []; errors = 0; trial = 0; plan = makePlan(); stimulus = null; state = 'idle';
     saveRunBtn.hidden = true; resetBtn.hidden = true;
-    setArena('', 'Ready?', 'Click here or press Space to start.');
+    renderDots();
+    setArena('', 'Ready?', MODES[currentMode].hint);
     bigNum.textContent = ''; $('delta').textContent = '';
   }
+  function nextTrial() {
+    if (trial >= MODES[currentMode].tries) return endRun();
+    state = 'waiting';
+    stimulus = plan ? plan[trial] : null;
+    setArena('wait', 'Wait...', currentMode === 'choice' || currentMode === 'gonogo' ? 'Get ready. Do not press yet.' : 'Do not press until the signal.');
+    bigNum.textContent = '';
+    renderDots();
+    timer = setTimeout(showStimulus, 2000 + Math.random() * 3000); // random so you cannot guess the moment
+  }
+  function showStimulus() {
+    readyAt = performance.now();
+    state = 'ready';
+    if (currentMode === 'simple') {
+      setArena('go', 'CLICK!', '');
+    } else if (currentMode === 'sound') {
+      beep();
+      setArena('go', 'BEEP!', 'Click or press Space now.');
+    } else if (currentMode === 'choice') {
+      setArena('choice', stimulus === 'left' ? '←' : '→', 'Press ' + (stimulus === 'left' ? 'Left' : 'Right') + ' (or tap that side).');
+    } else if (currentMode === 'gonogo') {
+      if (stimulus === 'go') setArena('go', 'GO!', 'Click or press Space.');
+      else setArena('stop', 'STOP', 'Hold back. Do not press.');
+    }
+    // a trial with no press ends by itself after a short wait
+    const limit = currentMode === 'gonogo' ? (stimulus === 'go' ? 1200 : 1000) : 4000;
+    stimTimer = setTimeout(onTimeout, limit);
+  }
+  function onTimeout() {
+    clearTimeout(stimTimer);
+    if (currentMode === 'gonogo' && stimulus === 'nogo') flashDelta('Good hold', true);
+    else { errors++; flashDelta('Missed it', false); }
+    finishTrial(null);
+  }
+  function finishTrial(ms) {
+    trial++;
+    state = 'pause';
+    renderDots();
+    if (trial >= MODES[currentMode].tries) { setTimeout(endRun, 500); return; }
+    if (currentMode === 'gonogo') { setTimeout(nextTrial, 700); return; }
+    // simple, sound and choice wait for a click to go on, so the result stays visible
+    state = 'idle';
+    setArena('', ms == null ? 'Next try' : 'Nice, ' + ms + ' ms', 'Click for try ' + (trial + 1) + ' of ' + MODES[currentMode].tries + '.');
+  }
+  function endRun() {
+    clearTimeout(timer); clearTimeout(stimTimer);
+    state = 'done';
+    const m = mean(current);
+    const mistakes = errors ? ' ' + errors + (errors === 1 ? ' mistake.' : ' mistakes.') : '';
+    if (!current.length) {
+      setArena('', 'Run finished', 'No correct reactions this run. Discard it and try again.');
+    } else {
+      setArena('', 'Run complete', 'Average ' + fmt(m) + '.' + mistakes + ' Save it or discard it.');
+      saveRunBtn.hidden = false;
+    }
+    resetBtn.hidden = false;
+  }
+  // side: 'left' | 'right' (from keys or the tapped half of the box) | 'space' | 'any'
+  function onPress(side) {
+    if (state === 'done' || state === 'pause') return;
+    if (state === 'idle') {
+      if (currentMode === 'sound') ensureAudio();
+      if (currentMode === 'choice' && side !== 'left' && side !== 'right') return;
+      return nextTrial();
+    }
+    if (state === 'waiting') {
+      // pressing too early restarts this try
+      clearTimeout(timer);
+      if (currentMode === 'gonogo') errors++;
+      flashDelta('Too early', false);
+      setArena('early', 'Too early!', 'Wait for the signal. Click to try this one again.');
+      state = 'idle';
+      void arena.offsetWidth;
+      return;
+    }
+    if (state === 'ready') {
+      if (currentMode === 'choice' && side !== stimulus) {
+        if (side === 'left' || side === 'right') { errors++; flashDelta('Wrong side', false); }
+        return;
+      }
+      if (currentMode === 'choice' && side !== 'left' && side !== 'right') return;
+      if (currentMode === 'gonogo' && stimulus === 'nogo') {
+        clearTimeout(stimTimer); errors++; flashDelta('That was STOP', false);
+        return finishTrial(null);
+      }
+      clearTimeout(stimTimer);
+      const ms = Math.round(performance.now() - readyAt);
+      current.push(ms);
+      bigNum.textContent = ms + ' ms';
+      const prev = current.length > 1 ? current[current.length - 2] : null;
+      if (prev == null) $('delta').textContent = '';
+      else {
+        const diff = ms - prev;
+        flashDelta((diff <= 0 ? '▼ ' : '▲ ') + Math.abs(diff) + ' ms vs last try' + (diff <= 0 ? ' (faster)' : ''), diff <= 0);
+      }
+      finishTrial(ms);
+    }
+  }
+  function discardRun() { resetRun(); }
   function saveRun() {
-    runs.unshift({ id: Date.now(), t: new Date().toISOString(), tries: current.slice(), mean: mean(current) });
+    const m = mean(current);
+    runs.unshift({ id: Date.now(), t: new Date().toISOString(), mode: currentMode, tries: current.slice(), mean: m, errors });
     writeJSON(RUNS_KEY, runs);
-    discardRun();
+    resetRun();
     renderAll(true);
-    setArena('', 'Saved!', 'Run added. Click to go again.');
+    setArena('', 'Saved!', 'Run added to ' + MODES[currentMode].label + ' mode. Click to go again.');
     arena.classList.add('saved');
     setTimeout(() => arena.classList.remove('saved'), 750);
-    toast('Run saved: ' + fmt(runs[0].mean) + ' average');
+    toast('Run saved: ' + fmt(m) + ' average');
   }
 
-  // pointerdown fires the moment you press, instead of waiting for the click to finish
-arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); });
-  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(); } });
+  // arena press: work out which half was tapped for choice mode
+  arena.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    const b = arena.getBoundingClientRect();
+    onPress(e.clientX - b.left < b.width / 2 ? 'left' : 'right');
+  });
+  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress('any'); } });
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(); }
+    if (['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+    if (e.code === 'Space') { e.preventDefault(); onPress(currentMode === 'choice' ? 'space' : 'any'); }
+    else if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      e.preventDefault();
+      onPress(e.code === 'ArrowLeft' ? 'left' : 'right');
+    }
   });
   saveRunBtn.addEventListener('click', saveRun);
   resetBtn.addEventListener('click', discardRun);
 
+  // mode buttons
+  function setMode(name) {
+    if (!MODES[name] || name === currentMode) return;
+    currentMode = name;
+    writeJSON(MODE_KEY, name);
+    resetRun();
+    renderAll(false);
+    toast('Switched to ' + MODES[name].label + ' mode');
+  }
+  document.querySelectorAll('#modeRow [data-mode]').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+
   // ---- derived numbers ----
   function derive() {
-    const all = runs.flatMap(r => r.tries);
+    const mr = modeRuns();
+    const all = mr.flatMap(r => r.tries);
     const { kept, anomalies } = splitAnomalies(all);
     const streak = computeStreak();
     return {
-      runs: runs.length,
+      runs: mr.length,
       tries: all.length,
       all,
       kept,
@@ -747,8 +876,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       mean: mean(kept),
       best: all.length ? Math.min(...all) : null,
       spread: stdev(all),
-      roll: mean(runs.slice(0, 10).map(r => r.mean)),
-      rollCount: Math.min(10, runs.length),
+      roll: mean(mr.slice(0, 10).map(r => r.mean)),
+      rollCount: Math.min(10, mr.length),
       streak
     };
   }
@@ -797,6 +926,14 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     el.style.strokeDashoffset = String(CIRC * (1 - Math.max(0, Math.min(1, fraction))));
   }
   function renderTier(s) {
+    if (currentMode !== 'simple') {
+      setRing($('ringProg'), 0);
+      $('ringVal').textContent = '—';
+      $('tierName').textContent = MODES[currentMode].label + ' mode';
+      $('tierSub').textContent = 'Tiers are based on Simple mode only. Switch to Simple to see yours.';
+      $('ladder').innerHTML = '';
+      return;
+    }
     const cur = s.mean == null ? -1 : tierIndex(s.mean);
     const ringFrac = s.mean == null ? 0 : Math.max(0, Math.min(1, (260 - s.mean) / (260 - 130)));
     setRing($('ringProg'), ringFrac);
@@ -891,7 +1028,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       const s = new Date(now); s.setDate(now.getDate() - i * 7);
       weeks.push({ start: s, means: [] });
     }
-    runs.forEach(r => {
+    modeRuns().forEach(r => {
       const w = weeks.find(w => w.start.getTime() === weekStart(new Date(r.t)).getTime());
       if (w) w.means.push(r.mean);
     });
@@ -1016,13 +1153,17 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     const host = $('history');
     if (!runs.length) { host.innerHTML = '<div class="empty">No runs yet. Finish a run and hit Save.</div>'; return; }
     const table = document.createElement('table');
-    table.innerHTML = '<thead><tr><th>Date</th><th>Tries (ms)</th><th>Average</th><th>Speed <span class="muted" style="text-transform:none;letter-spacing:0">(longer = faster)</span></th><th></th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Date and mode</th><th>Tries (ms)</th><th>Average</th><th>Speed <span class="muted" style="text-transform:none;letter-spacing:0">(longer = faster)</span></th><th></th></tr></thead>';
     const tb = document.createElement('tbody');
     const worst = Math.max(...runs.map(r => r.mean), 260);
-    runs.forEach((r, i) => {
+    runs.forEach((r) => {
       const tr = document.createElement('tr');
-      tr.style.animationDelay = (animate ? Math.min(i, 12) * 0.04 : 0) + 's';
-      const tdDate = document.createElement('td'); tdDate.textContent = new Date(r.t).toLocaleString();
+      tr.style.animationDelay = (animate ? Math.min(runs.indexOf(r), 12) * 0.04 : 0) + 's';
+      const tdDate = document.createElement('td');
+      tdDate.textContent = new Date(r.t).toLocaleString();
+      const modeTag = document.createElement('span'); modeTag.className = 'tag'; modeTag.style.marginLeft = '8px';
+      modeTag.textContent = (MODES[r.mode || 'simple'] || MODES.simple).label;
+      tdDate.appendChild(modeTag);
       const tdTries = document.createElement('td'); tdTries.className = 'tries'; tdTries.textContent = r.tries.join(', ');
       const tdMean = document.createElement('td');
       const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = fmt(r.mean);
@@ -1035,7 +1176,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       const tdDel = document.createElement('td');
       const del = document.createElement('button'); del.textContent = 'Delete'; del.className = 'ghost';
       del.addEventListener('click', () => {
-        runs.splice(i, 1); writeJSON(RUNS_KEY, runs); renderAll(false); toast('Run deleted');
+        runs = runs.filter(x => x.id !== r.id); writeJSON(RUNS_KEY, runs); renderAll(false); toast('Run deleted');
       });
       tdDel.appendChild(del);
       tr.append(tdDate, tdTries, tdMean, tdBar, tdDel);
@@ -1058,7 +1199,13 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     txt.innerHTML = '<b>' + Math.round(s.mean - goal) + ' ms to go.</b><br>Your overall average is ' + Math.round(s.mean) + ' ms. Keep going.';
   }
 
+  function renderMode() {
+    document.querySelectorAll('#modeRow [data-mode]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.mode === currentMode)));
+    $('modeChip').textContent = 'Mode: ' + MODES[currentMode].label;
+  }
+
   function renderAll(animate) {
+    renderMode();
     const s = derive();
     renderTarget(s);
     renderStats(s);
@@ -1079,7 +1226,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     return { mean: mean(inWeek.map(r => r.mean)), count: inWeek.length };
   }
   function renderCompare() {
-    const thisW = weekOffsetMean(runs, 0), lastW = weekOffsetMean(runs, 1);
+    const mr = modeRuns();
+    const thisW = weekOffsetMean(mr, 0), lastW = weekOffsetMean(mr, 1);
     $('cThis').textContent = thisW.mean == null ? '—' : Math.round(thisW.mean) + ' ms';
     $('cThisSub').textContent = thisW.count + (thisW.count === 1 ? ' run' : ' runs') + ' so far';
     $('cLast').textContent = lastW.mean == null ? '—' : Math.round(lastW.mean) + ' ms';
@@ -1092,11 +1240,11 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       dEl.className = 'val ' + (d < 0 ? 'up' : d > 0 ? 'down' : '');
     }
 
-    const all = runs.flatMap(r => r.tries);
+    const all = mr.flatMap(r => r.tries);
     $('pTry').textContent = all.length ? Math.min(...all) + ' ms' : '—';
-    $('pRun').textContent = runs.length ? Math.round(Math.min(...runs.map(r => r.mean))) + ' ms' : '—';
+    $('pRun').textContent = mr.length ? Math.round(Math.min(...mr.map(r => r.mean))) + ' ms' : '—';
     const weeks = new Map();
-    runs.forEach(r => {
+    mr.forEach(r => {
       const k = weekStart(new Date(r.t)).getTime();
       if (!weeks.has(k)) weeks.set(k, []);
       weeks.get(k).push(r.mean);
@@ -1112,11 +1260,12 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     const s = derive();
     const rows = [{ name: 'You', me: true, mean: s.mean, best: s.best, tries: s.tries, runs: s.runs, idx: -1 }];
     friends.forEach((f, idx) => {
-      const tries = (f.runs || []).flatMap(r => r.tries || []);
+      const fr = (f.runs || []).filter(r => (r.mode || 'simple') === currentMode);
+      const tries = fr.flatMap(r => r.tries || []);
       rows.push({
         name: f.name, me: false,
         mean: mean(tries), best: tries.length ? Math.min(...tries) : null,
-        tries: tries.length, runs: (f.runs || []).length, idx
+        tries: tries.length, runs: fr.length, idx
       });
     });
     rows.sort((a, b) => (a.mean == null) - (b.mean == null) || (a.mean - b.mean));
@@ -1193,8 +1342,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
   }
   $('exportCsvBtn').addEventListener('click', () => {
     if (!runs.length) { toast('No runs to export yet'); return; }
-    const rows = ['date,tries_ms,mean_ms'];
-    runs.forEach(r => rows.push(new Date(r.t).toISOString() + ',"' + r.tries.join(' ') + '",' + Math.round(r.mean)));
+    const rows = ['date,mode,tries_ms,mean_ms,mistakes'];
+    runs.forEach(r => rows.push(new Date(r.t).toISOString() + ',' + (r.mode || 'simple') + ',"' + r.tries.join(' ') + '",' + Math.round(r.mean) + ',' + (r.errors || 0)));
     download('reaction-runs.csv', 'text/csv', rows.join('\n') + '\n');
   });
   $('exportJsonBtn').addEventListener('click', () => {
@@ -1249,6 +1398,11 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
   function renderBench() {
     const s = derive();
     const you = $('benchYou');
+    if (currentMode !== 'simple') {
+      you.textContent = 'Benchmarks compare Simple mode only. Switch to Simple to see where you sit.';
+      $('benchLadder').innerHTML = '';
+      return;
+    }
     if (s.mean == null) { you.textContent = 'Save a run to compare yourself.'; }
     else {
       const vsLab = Math.round(s.mean - 231);
@@ -1348,7 +1502,8 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
   }
   tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
-  renderDots();
+  resetRun();
+  renderMode();
   renderAll(true);
 </script>
 </body>
