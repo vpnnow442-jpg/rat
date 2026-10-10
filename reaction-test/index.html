@@ -3305,7 +3305,7 @@
   const MODE_RANK_CUTS = {
     audio: [300, 250, 220, 190, 160, 140],
     target: [600, 500, 420, 350, 290, 240],
-    arrows: [1000, 800, 650, 550, 450, 380]
+    arrows: [750, 600, 480, 400, 340, 290]
   };
   function modeRank(key, avg) {
     if (avg == null) return { idx: -1, name: 'Unranked', next: MODE_RANK_NAMES[0] + ' at ' + MODE_RANK_CUTS[key][0] + ' ms' };
