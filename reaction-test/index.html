@@ -12,7 +12,7 @@
     --accent: #8b6cff; --accent2: #2dd4bf; --accent3: #f472b6;
     --wait: #c2262f; --go: #16a34a; --warn: #f59e0b;
     --shadow: 0 20px 60px -20px rgba(0,0,0,.6);
-    --radius: 20px;
+    --radius: 20px; --chart-h: 200px;
   }
   :root[data-theme="light"] {
     --bg: #f4f5fb; --bg2: #ffffff; --panel: rgba(255,255,255,.7); --panel-solid: #ffffff;
@@ -163,7 +163,7 @@
   .goalMsg.hit { color: var(--go); }
 
   /* weekly chart */
-  .chart { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding-top: 10px;
+  .chart { display: flex; align-items: flex-end; gap: 12px; height: var(--chart-h); padding-top: 10px;
            border-bottom: 1px solid var(--line); position: relative; }
   .goalLine { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--go); pointer-events: none; }
   .goalLine span { position: absolute; right: 0; top: -22px; font-size: .75rem; font-weight: 800; color: var(--go); background: var(--panel-solid); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--go); }
@@ -180,7 +180,7 @@
   .col .lbl { font-size: .72rem; color: var(--muted); margin-top: 8px; white-space: nowrap; }
   .col .n { font-size: .68rem; color: var(--muted); white-space: nowrap; }
   .chartWrap { display: flex; gap: 10px; }
-  .yAxis { position: relative; width: 56px; height: 200px; padding-top: 10px; flex: 0 0 56px; }
+  .yAxis { position: relative; width: 56px; height: var(--chart-h); padding-top: 10px; flex: 0 0 56px; }
   .yAxis span { position: absolute; right: 0; transform: translateY(50%); font-size: .7rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .chartBox { position: relative; flex: 1; min-width: 0; }
   .grid { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--line); pointer-events: none; }
@@ -191,6 +191,7 @@
 
   /* histogram */
   .hist { display: flex; align-items: flex-end; gap: 6px; height: 160px; }
+  button, .tabs button { touch-action: manipulation; }
   .hcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
   .hcol .hb { width: 100%; border-radius: 6px 6px 3px 3px; height: 0; background: linear-gradient(180deg, var(--accent3), var(--accent));
               transition: height .9s cubic-bezier(.2,.8,.2,1); }
@@ -297,6 +298,35 @@
     #arena { height: 270px; }
     .ring { width: 130px; height: 130px; flex-basis: 130px; }
     .col .lbl, .hcol .hn { font-size: .62rem; }
+    :root { --chart-h: 170px; }
+    .card { padding: 16px; border-radius: 16px; }
+    .card h2 { font-size: 1rem; }
+    .card-head .muted { font-size: .8rem; }
+    .tile .val { font-size: 1.4rem; }
+    .tile { padding: 12px; }
+    .targetBox .big { font-size: 1.7rem; }
+    .chartSummary .pill2 { flex: 1 1 calc(50% - 10px); }
+    .chart { gap: 8px; }
+    .yAxis { width: 48px; flex-basis: 48px; }
+    .yAxis span { font-size: .62rem; }
+    .col .val { font-size: .66rem; }
+    .col .n { font-size: .6rem; }
+    .logo { font-size: 1.1rem; }
+    .chip { font-size: .72rem; padding: 6px 10px; }
+    .bench { font-size: .8rem; }
+    .fic { grid-template-columns: 1fr; }
+    .goalWrap .ring { margin: 0 auto; }
+    .tierWrap { justify-content: center; text-align: center; }
+    .tierText { min-width: 0; }
+    .btnrow button { flex: 1 1 auto; }
+    input[type="number"] { width: 100%; }
+    .goalrow { width: 100%; }
+    .goalrow input { flex: 1 1 120px; }
+    .colorRow label { font-size: .78rem; }
+  }
+  @media (max-width: 360px) {
+    .stats { grid-template-columns: 1fr; }
+    .tile .val { font-size: 1.3rem; }
   }
 </style>
 </head>
@@ -880,11 +910,11 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
       const pos = 100 * k / 3;
       const label = document.createElement('span');
       label.textContent = Math.round(ms) + ' ms';
-      label.style.top = 'calc(10px + ' + pos + '% * (200px - 10px) / 100)';
+      label.style.top = 'calc(10px + (100% - 10px) * ' + (pos / 100) + ')';
       axis.appendChild(label);
       const g = document.createElement('div');
       g.className = 'grid';
-      g.style.top = (10 + pos * 0.9) + 'px';
+      g.style.top = 'calc(10px + (100% - 10px) * ' + (pos / 100) + ')';
       chartBox.appendChild(g);
     }
 
