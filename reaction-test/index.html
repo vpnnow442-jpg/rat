@@ -75,7 +75,7 @@
 
   /* arena */
   :root {
-    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309;
+    --a-idle: #1b1d27; --a-wait: #c2262f; --a-go: #16a34a; --a-early: #b45309; --a-flash: #f8fafc; --t-target: #cbd5e1;
   }
   #arena {
     position: relative; height: 320px; border-radius: 16px; overflow: hidden;
@@ -90,6 +90,9 @@
   #arena.early { background: var(--a-early); color: #fff; }
   #arena::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.55), transparent 60%); }
   #arena.saved::after { animation: flash .7s ease-out; }
+  #arena::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; background: var(--a-flash); }
+  #arena.hint::before { animation: hintFlash .6s ease-out; }
+  @keyframes hintFlash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
   #arena.early { animation: shake .45s ease; }
   #arenaTitle { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
   #arenaMsg { margin: 0; font-size: 1rem; opacity: .85; }
@@ -102,7 +105,7 @@
   .modeRow button { flex: 1 1 auto; border: 0; background: transparent; color: var(--muted); padding: 9px 12px; }
   .modeRow button[aria-selected="true"] { background: var(--panel-solid); color: var(--fg); box-shadow: 0 1px 0 var(--line); }
   .target { position: absolute; width: 64px; height: 64px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
-            background: radial-gradient(circle at 35% 30%, #ffffff, #cbd5e1 60%, #94a3b8); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+            background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--t-target) 35%, #fff), var(--t-target) 70%); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
   .target:active { transform: scale(.94); }
   .colorRow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
   .colorRow label { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); font-weight: 600; }
@@ -389,12 +392,11 @@
       <button class="primary" id="saveRunBtn" hidden>Save run</button>
       <button id="resetBtn" hidden>Discard run</button>
     </div>
-    <div class="colorRow" aria-label="Arena colours">
-      <label>Start <input type="color" id="colIdle" value="#1b1d27"></label>
-      <label>Wait <input type="color" id="colWait" value="#c2262f"></label>
-      <label>Go <input type="color" id="colGo" value="#16a34a"></label>
-      <label>Too early <input type="color" id="colEarly" value="#b45309"></label>
-      <button class="ghost" id="colReset">Reset colours</button>
+    <div class="colorRow" aria-label="Colours for this mode">
+      <span class="muted" style="font-weight:600">Colours for this mode:</span>
+      <span id="colorFields" style="display:contents"></span>
+      <label id="hintWrap" hidden><input type="checkbox" id="audioHint"> Flash hint on the beep</label>
+      <button class="ghost" id="colReset">Reset this mode</button>
     </div>
   </section>
 
@@ -752,6 +754,12 @@
     } else if (currentMode === 'audio') {
       setArena('', '', '');
       beep();
+      if (audioHint) {
+        // non-sound hint: a short flash, plus a buzz on phones that support it
+        arena.classList.add('hint');
+        setTimeout(() => arena.classList.remove('hint'), 600);
+        if (navigator.vibrate) navigator.vibrate(60);
+      }
     } else if (currentMode === 'target') {
       setArena('', '', '');
       placeTarget();
@@ -849,6 +857,7 @@
     if (!MODES[name] || name === currentMode) return;
     currentMode = name;
     writeJSON(MODE_KEY, name);
+    renderColors();
     resetRun();
     renderAll(false);
     toast('Switched to ' + MODES[name].label + ' mode');
@@ -1456,28 +1465,63 @@
     }));
   }
 
-  // ---- arena colours: start, wait, go and too-early ----
-  const COLOR_KEY = 'reactionlab-arena-colors-v1';
-  const COLOR_VARS = { idle: '--a-idle', wait: '--a-wait', go: '--a-go', early: '--a-early' };
-  const COLOR_INPUTS = { idle: 'colIdle', wait: 'colWait', go: 'colGo', early: 'colEarly' };
-  const COLOR_DEFAULTS = { idle: '#1b1d27', wait: '#c2262f', go: '#16a34a', early: '#b45309' };
-  let colors = readJSON(COLOR_KEY, {});
+  // ---- colours per game mode, plus the audio-mode hint ----
+  const COLOR_KEY = 'reactionlab-arena-colors-v2';
+  const HINT_KEY = 'reactionlab-audio-hint-v1';
+  // each field: [key, label, CSS variable, default colour]
+  const COLOR_FIELDS = {
+    simple: [['idle', 'Start', '--a-idle', '#1b1d27'], ['wait', 'Wait', '--a-wait', '#c2262f'], ['go', 'Go', '--a-go', '#16a34a'], ['early', 'Too early', '--a-early', '#b45309']],
+    audio:  [['idle', 'Start', '--a-idle', '#1b1d27'], ['flash', 'Hint flash', '--a-flash', '#f8fafc']],
+    target: [['idle', 'Start', '--a-idle', '#1b1d27'], ['target', 'Target', '--t-target', '#cbd5e1'], ['early', 'Too early', '--a-early', '#b45309']]
+  };
+  let colorsByMode = readJSON(COLOR_KEY, {});
+  // older saves stored one flat set of colours; keep them as the Simple mode colours
+  if (colorsByMode.idle || colorsByMode.wait) { colorsByMode = { simple: colorsByMode }; }
+  let audioHint = readJSON(HINT_KEY, false) === true;
+
+  function colourFor(mode, key) {
+    const set = colorsByMode[mode] || {};
+    const field = COLOR_FIELDS[mode].find(f => f[0] === key);
+    return set[key] || field[3];
+  }
   function applyColors() {
-    Object.keys(COLOR_VARS).forEach(k => {
-      const v = colors[k] || COLOR_DEFAULTS[k];
-      document.documentElement.style.setProperty(COLOR_VARS[k], v);
-      $(COLOR_INPUTS[k]).value = v;
+    Object.keys(COLOR_FIELDS).forEach(mode => {
+      COLOR_FIELDS[mode].forEach(([key, , cssVar]) => {
+        document.documentElement.style.setProperty(cssVar, colourFor(mode, key));
+      });
     });
   }
-  Object.keys(COLOR_INPUTS).forEach(k => {
-    $(COLOR_INPUTS[k]).addEventListener('input', (e) => {
-      colors[k] = e.target.value;
-      document.documentElement.style.setProperty(COLOR_VARS[k], e.target.value);
-      writeJSON(COLOR_KEY, colors);
+  function renderColors() {
+    const row = $('colorFields');
+    row.innerHTML = '';
+    COLOR_FIELDS[currentMode].forEach(([key, label]) => {
+      const wrap = document.createElement('label');
+      wrap.textContent = label + ' ';
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = colourFor(currentMode, key);
+      input.setAttribute('aria-label', label + ' colour');
+      input.addEventListener('input', (e) => {
+        colorsByMode[currentMode] = colorsByMode[currentMode] || {};
+        colorsByMode[currentMode][key] = e.target.value;
+        writeJSON(COLOR_KEY, colorsByMode);
+        applyColors();
+      });
+      wrap.appendChild(input);
+      row.appendChild(wrap);
     });
-  });
+    const hintWrap = $('hintWrap');
+    hintWrap.hidden = currentMode !== 'audio';
+    $('audioHint').checked = audioHint;
+  }
   $('colReset').addEventListener('click', () => {
-    colors = {}; writeJSON(COLOR_KEY, colors); applyColors(); toast('Arena colours reset');
+    colorsByMode[currentMode] = {};
+    writeJSON(COLOR_KEY, colorsByMode);
+    applyColors(); renderColors(); toast('Colours reset for this mode');
+  });
+  $('audioHint').addEventListener('change', (e) => {
+    audioHint = e.target.checked;
+    writeJSON(HINT_KEY, audioHint);
   });
   applyColors();
 
@@ -1496,6 +1540,7 @@
   }
   tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
 
+  renderColors();
   resetRun();
   renderMode();
   renderAll(true);
