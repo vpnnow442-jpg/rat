@@ -446,6 +446,10 @@
   body.game-open .gGrid, body.game-open .rarityKey { display: none !important; }
   body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head { display: none !important; }
 
+  .closeX { width:48px; height:48px; flex:0 0 48px; border-radius:50%; border:2px solid #ef4444; background:transparent;
+            color:#ef4444; font-size:1.6rem; line-height:1; font-weight:800; padding:0; display:grid; place-items:center; }
+  .closeX:hover { background:#ef4444; color:#fff; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -565,7 +569,7 @@
   <section class="card reveal" id="gamesCard">
     <div class="card-head"><h2>Most popular</h2><span class="gMuted">Tap an icon to play. Scores are tracked in Progress.</span></div>
     <section id="gScreen" aria-live="polite">
-      <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
+      <div class="gHead"><h2 id="gTitle2"></h2><button class="closeX" id="gQuit2" aria-label="Close game" title="Close">✕</button></div>
       <div class="stage" id="gStage"></div>
       <div id="gInfo"></div>
     </section>
