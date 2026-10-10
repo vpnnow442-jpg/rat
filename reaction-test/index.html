@@ -4,251 +4,425 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reaction Lab</title>
-<meta name="description" content="Test your reaction time, save every run, track weekly progress, set goals, and see how your speed compares to elite tiers.">
+<meta name="description" content="Test your reaction time, save every run, track trends, goals and achievements, and see how your speed compares to elite tiers.">
 <style>
   :root {
-    --bg: #0c0d10; --panel: #15171c; --line: #262932; --fg: #eef0f4; --muted: #8b90a0;
-    --accent: #7c5cff; --accent2: #22d3ee; --wait: #b4232f; --go: #16a34a; --warn: #f59e0b;
-    --radius: 18px;
+    --bg: #09090d; --bg2: #11121a; --panel: rgba(255,255,255,.035); --panel-solid: #14151d;
+    --line: rgba(255,255,255,.08); --fg: #f2f3f7; --muted: #8e93a6;
+    --accent: #8b6cff; --accent2: #2dd4bf; --accent3: #f472b6;
+    --wait: #c2262f; --go: #16a34a; --warn: #f59e0b;
+    --shadow: 0 20px 60px -20px rgba(0,0,0,.6);
+    --radius: 20px;
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f5fb; --bg2: #ffffff; --panel: rgba(255,255,255,.7); --panel-solid: #ffffff;
+    --line: rgba(20,24,40,.09); --fg: #141722; --muted: #6a6f84;
+    --accent: #6d4bf5; --accent2: #0d9488; --accent3: #db2777;
+    --wait: #dc2626; --go: #15803d; --warn: #b45309;
+    --shadow: 0 20px 50px -25px rgba(30,30,60,.25);
   }
   @media (prefers-color-scheme: light) {
     :root:not([data-theme="dark"]) {
-      --bg: #f5f6fa; --panel: #ffffff; --line: #e2e5ee; --fg: #151823; --muted: #6b7081;
-      --accent: #5b3df5; --accent2: #0891b2; --wait: #dc2626; --go: #15803d; --warn: #d97706;
+      --bg: #f4f5fb; --bg2: #ffffff; --panel: rgba(255,255,255,.7); --panel-solid: #ffffff;
+      --line: rgba(20,24,40,.09); --fg: #141722; --muted: #6a6f84;
+      --accent: #6d4bf5; --accent2: #0d9488; --accent3: #db2777;
+      --wait: #dc2626; --go: #15803d; --warn: #b45309;
+      --shadow: 0 20px 50px -25px rgba(30,30,60,.25);
     }
   }
-  :root[data-theme="light"] {
-    --bg: #f5f6fa; --panel: #ffffff; --line: #e2e5ee; --fg: #151823; --muted: #6b7081;
-    --accent: #5b3df5; --accent2: #0891b2; --wait: #dc2626; --go: #15803d; --warn: #d97706;
-  }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-    background-image: radial-gradient(1200px 600px at 10% -10%, rgba(124,92,255,.18), transparent 60%),
-                      radial-gradient(900px 500px at 110% 10%, rgba(34,211,238,.12), transparent 60%);
-    background-attachment: fixed; min-height: 100vh;
+    margin: 0; min-height: 100vh; color: var(--fg); background: var(--bg);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 60px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-           animation: fadeUp .6s ease both; }
-  .logo { font-weight: 800; font-size: 1.25rem; letter-spacing: -.02em; }
-  .logo span { color: var(--accent); }
-  .pill { font-size: .8rem; color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; border-radius: 999px; }
+  body::before {
+    content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(40% 30% at 15% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      radial-gradient(35% 28% at 85% 20%, color-mix(in srgb, var(--accent2) 16%, transparent), transparent 70%),
+      radial-gradient(40% 35% at 60% 100%, color-mix(in srgb, var(--accent3) 12%, transparent), transparent 70%);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 18px 70px; }
 
+  /* header */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+           animation: rise .7s cubic-bezier(.2,.8,.2,1) both; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.3rem; letter-spacing: -.03em; }
+  .logo .mark { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center;
+                background: linear-gradient(135deg, var(--accent), var(--accent3)); box-shadow: 0 8px 20px -6px var(--accent); }
+  .logo .mark i { width: 10px; height: 10px; border-radius: 50%; background: #fff; animation: blink 2.4s ease-in-out infinite; }
+  .head-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .chip { font-size: .8rem; color: var(--muted); border: 1px solid var(--line); padding: 7px 12px; border-radius: 999px;
+          background: var(--panel); backdrop-filter: blur(10px); }
+  .chip b { color: var(--fg); }
+
+  /* cards */
   .card {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 20px; margin-top: 18px; animation: fadeUp .6s ease both;
-    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+    padding: 22px; margin-top: 18px; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    box-shadow: var(--shadow); animation: rise .7s cubic-bezier(.2,.8,.2,1) both;
+    transition: border-color .3s, transform .3s;
   }
-  .card h2 { margin: 0 0 12px; font-size: 1.05rem; letter-spacing: -.01em; }
+  .card:hover { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .card h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.01em; }
   .muted { color: var(--muted); font-size: .9rem; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .grid2 > .card { margin-top: 18px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
 
-  /* test arena */
+  /* arena */
   #arena {
-    height: 300px; border-radius: 14px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center; padding: 16px;
-    background: var(--line); color: var(--fg); cursor: pointer; user-select: none;
-    transition: background .25s ease, color .25s ease, transform .15s ease;
+    position: relative; height: 320px; border-radius: 16px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 18px;
+    background: radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--accent) 18%, var(--bg2)), var(--bg2));
+    border: 1px solid var(--line); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+    transition: background .3s ease, color .3s ease, box-shadow .3s ease;
   }
-  #arena:active { transform: scale(.99); }
-  #arena.wait { background: var(--wait); color: #fff; }
-  #arena.go { background: var(--go); color: #fff; animation: pulse .9s ease-in-out infinite; }
-  #arena.early { animation: shake .4s ease; }
-  #arenaTitle { font-size: 1.7rem; font-weight: 800; margin: 0 0 6px; }
-  #arenaMsg { margin: 0; font-size: 1rem; opacity: .9; }
-  #bigNum { font-size: 4rem; font-weight: 800; letter-spacing: -.03em; margin: 8px 0 0;
-            font-variant-numeric: tabular-nums; }
-  .dots { display: flex; gap: 8px; margin-top: 14px; }
-  .dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(127,127,127,.35); transition: transform .3s, background .3s; }
-  .dots i.done { background: var(--accent2); transform: scale(1.15); }
+  #arena:focus-visible { outline: 3px solid var(--accent2); outline-offset: 3px; }
+  #arena.wait { background: linear-gradient(160deg, var(--wait), #7f1d1d); color: #fff; }
+  #arena.go { background: linear-gradient(160deg, #22c55e, var(--go)); color: #fff; box-shadow: 0 0 80px -10px var(--go); animation: pulse 1s ease-in-out infinite; }
+  #arena.early { animation: shake .45s ease; }
+  #arena .ripple { position: absolute; width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.55);
+                   transform: translate(-50%,-50%) scale(0); pointer-events: none; animation: ripple .6s ease-out forwards; }
+  #arenaTitle { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
+  #arenaMsg { margin: 0; font-size: 1rem; opacity: .85; }
+  #bigNum { font-size: clamp(3rem, 9vw, 4.6rem); font-weight: 800; letter-spacing: -.04em; margin-top: 10px;
+            font-variant-numeric: tabular-nums; min-height: 1.1em; }
+  .dots { display: flex; gap: 10px; margin-top: 16px; justify-content: center; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; background: var(--line); transition: transform .4s cubic-bezier(.3,1.6,.5,1), background .3s; }
+  .dots i.done { background: linear-gradient(135deg, var(--accent), var(--accent2)); transform: scale(1.25); }
+  .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
 
-  .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  button, input {
-    font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--fg);
+  /* buttons and inputs */
+  button, input, select {
+    font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--panel-solid); color: var(--fg);
   }
-  button { cursor: pointer; transition: transform .15s, border-color .2s, background .2s; }
-  button:hover { transform: translateY(-1px); border-color: var(--accent); }
-  button.primary { background: var(--accent); color: #fff; border-color: transparent; }
-  button.danger:hover { border-color: var(--wait); color: var(--wait); }
-  input { font-weight: 500; width: 130px; }
-  input:focus { outline: 2px solid var(--accent); }
+  button { cursor: pointer; transition: transform .2s cubic-bezier(.3,1.6,.5,1), border-color .2s, background .2s, box-shadow .2s; }
+  button:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: 0 10px 20px -12px var(--accent); }
+  button:active { transform: translateY(0) scale(.98); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; border-color: transparent; }
+  button.danger:hover { border-color: var(--wait); color: var(--wait); box-shadow: none; }
+  button.ghost { background: transparent; }
+  input { font-weight: 500; width: 140px; }
+  button[hidden] { display: none; }
 
-  /* stat tiles */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
-  .tile { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--bg); animation: fadeUp .5s ease both; }
-  .tile .label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-  .tile .val { font-size: 1.7rem; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  .tile { border: 1px solid var(--line); border-radius: 16px; padding: 16px; background: var(--panel-solid);
+          animation: rise .6s cubic-bezier(.2,.8,.2,1) both; transition: transform .3s; }
+  .tile:hover { transform: translateY(-3px); }
+  .tile .label { font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .tile .val { font-size: 1.75rem; font-weight: 800; margin-top: 6px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .tile .sub { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+  .up { color: var(--go); } .down { color: var(--wait); }
 
-  /* weekly chart */
-  .chart { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 10px;
-           border-bottom: 1px solid var(--line); }
-  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
-  .col .bar { width: 100%; max-width: 46px; border-radius: 8px 8px 0 0; background: linear-gradient(180deg, var(--accent2), var(--accent));
-              height: 0; transition: height .9s cubic-bezier(.2,.8,.2,1); position: relative; }
-  .col .bar.none { background: var(--line); }
-  .col .val { font-size: .75rem; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .col .lbl { font-size: .72rem; color: var(--muted); margin-top: 6px; white-space: nowrap; }
+  /* last try delta */
+  .delta { font-size: .95rem; font-weight: 700; margin-top: 6px; min-height: 1.2em; }
+
+  /* tier */
+  .tierWrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+  .ring { position: relative; width: 150px; height: 150px; flex: 0 0 150px; }
+  .ring svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .ring circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+  .ring .track { stroke: var(--line); }
+  .ring .prog { stroke: url(#grad); transition: stroke-dashoffset 1.2s cubic-bezier(.2,.8,.2,1); }
+  .ring .center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring .center b { font-size: 1.5rem; font-variant-numeric: tabular-nums; display: block; }
+  .ring .center small { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+  .tierText { flex: 1; min-width: 180px; }
+  .tierBig { font-size: 1.9rem; font-weight: 800; margin: 0; letter-spacing: -.02em;
+             background: linear-gradient(135deg, var(--fg), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tierSub { margin: 8px 0 0; line-height: 1.5; }
+  .ladder { display: grid; gap: 8px; margin-top: 16px; }
+  .tier { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px;
+          padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); font-size: .9rem; background: var(--panel-solid);
+          transition: transform .35s cubic-bezier(.3,1.4,.5,1), border-color .3s, background .3s; }
+  .tier.current { border-color: var(--accent2); transform: translateX(6px);
+                  background: color-mix(in srgb, var(--accent2) 14%, var(--panel-solid)); }
+  .tier .range { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tier .rare { font-weight: 700; color: var(--accent2); text-align: right; font-size: .85rem; }
+  .note { font-size: .78rem; color: var(--muted); margin-top: 12px; line-height: 1.5; }
 
   /* goal */
   .goalrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .meter { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; margin-top: 14px; }
-  .meter b { display: block; height: 100%; width: 0; border-radius: 6px;
-             background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s cubic-bezier(.2,.8,.2,1); }
-  .goalMsg { margin-top: 10px; font-weight: 600; }
+  .goalWrap { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+  .goalMsg { margin: 0; font-weight: 600; line-height: 1.5; flex: 1; min-width: 180px; }
   .goalMsg.hit { color: var(--go); }
 
-  /* tier compare */
-  .tierBig { font-size: 1.9rem; font-weight: 800; margin: 0; }
-  .tierSub { margin: 6px 0 0; }
-  .ladder { display: grid; gap: 8px; margin-top: 14px; }
-  .tier { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px;
-          padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: .9rem;
-          transition: transform .3s, border-color .3s, background .3s; }
-  .tier.current { border-color: var(--accent2); background: rgba(34,211,238,.1); transform: translateX(4px); }
-  .tier .range { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .tier .rare { font-weight: 700; color: var(--accent2); text-align: right; }
-  .note { font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  /* weekly chart */
+  .chart { display: flex; align-items: flex-end; gap: 12px; height: 200px; padding-top: 10px;
+           border-bottom: 1px solid var(--line); }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .col .bar { width: 100%; max-width: 52px; border-radius: 10px 10px 4px 4px; height: 0;
+              background: linear-gradient(180deg, var(--accent2), var(--accent));
+              transition: height 1s cubic-bezier(.2,.8,.2,1); }
+  .col .bar.none { background: var(--line); }
+  .col .val { font-size: .75rem; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .col .lbl { font-size: .72rem; color: var(--muted); margin-top: 8px; white-space: nowrap; }
+
+  /* histogram */
+  .hist { display: flex; align-items: flex-end; gap: 6px; height: 160px; }
+  .hcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .hcol .hb { width: 100%; border-radius: 6px 6px 3px 3px; height: 0; background: linear-gradient(180deg, var(--accent3), var(--accent));
+              transition: height .9s cubic-bezier(.2,.8,.2,1); }
+  .hcol .hn { font-size: .68rem; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hcol .hc { font-size: .68rem; font-weight: 700; margin-bottom: 4px; min-height: 1em; }
+
+  /* badges */
+  .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .badge { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 14px; border: 1px solid var(--line);
+           background: var(--panel-solid); transition: transform .3s; }
+  .badge .ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 1.1rem;
+                background: var(--line); flex: 0 0 38px; filter: grayscale(1); opacity: .5; }
+  .badge.on .ico { background: linear-gradient(135deg, var(--accent), var(--accent3)); filter: none; opacity: 1; box-shadow: 0 8px 18px -8px var(--accent3); }
+  .badge.on { border-color: color-mix(in srgb, var(--accent3) 40%, var(--line)); }
+  .badge b { font-size: .92rem; display: block; }
+  .badge small { color: var(--muted); font-size: .76rem; }
+  .badge:hover { transform: translateY(-2px); }
 
   /* history */
-  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
-  tr { animation: fadeUp .4s ease both; }
-  td.tries { color: var(--muted); font-size: .85rem; }
-  .bar2 { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 80px; }
-  .bar2 b { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
-            width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1); }
-  .empty { padding: 20px; text-align: center; color: var(--muted); }
+  .tableWrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; min-width: 560px; }
+  th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; }
+  tbody tr { animation: rise .45s cubic-bezier(.2,.8,.2,1) both; transition: background .2s; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  td.tries { color: var(--muted); font-size: .84rem; }
+  .bar2 { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 90px; }
+  .bar2 b { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2));
+            transition: width .9s cubic-bezier(.2,.8,.2,1); }
+  .tag { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--line); }
+  .empty { padding: 26px; text-align: center; color: var(--muted); }
 
-  footer { margin-top: 28px; font-size: .8rem; color: var(--muted); text-align: center; }
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 140%); background: var(--panel-solid);
+           border: 1px solid var(--line); padding: 12px 18px; border-radius: 14px; box-shadow: var(--shadow); font-weight: 600;
+           transition: transform .5s cubic-bezier(.3,1.4,.5,1); z-index: 5; max-width: calc(100% - 32px); text-align: center; }
+  .toast.show { transform: translate(-50%, 0); }
 
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-  @keyframes pulse { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.2); } }
-  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
+  .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
+         border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
+
+  .reveal { opacity: 0; transform: translateY(14px); transition: opacity .7s ease, transform .7s cubic-bezier(.2,.8,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.01); } }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+  @keyframes ripple { to { transform: translate(-50%,-50%) scale(40); opacity: 0; } }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes drift { to { transform: translate3d(3%, -2%, 0) scale(1.05); } }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal { opacity: 1; transform: none; }
   }
   @media (max-width: 560px) {
+    .wrap { padding: 20px 14px 60px; }
     .tier { grid-template-columns: 1fr; gap: 4px; }
     .tier .rare { text-align: left; }
-    #bigNum { font-size: 3rem; }
-    #arena { height: 260px; }
-    .col .lbl { font-size: .65rem; }
+    #arena { height: 270px; }
+    .ring { width: 130px; height: 130px; flex-basis: 130px; }
+    .col .lbl, .hcol .hn { font-size: .62rem; }
   }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b6cff"/><stop offset="100%" stop-color="#2dd4bf"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <div class="wrap">
 
   <header>
-    <div class="logo">Reaction<span>Lab</span></div>
-    <div class="pill" id="runCount">0 runs saved</div>
+    <div class="logo"><div class="mark"><i></i></div>Reaction<span style="color:var(--accent)">Lab</span></div>
+    <div class="head-right">
+      <div class="chip" id="streakChip">Streak <b>0</b> days</div>
+      <div class="chip" id="runCount">0 runs saved</div>
+      <button class="ghost" id="themeBtn" aria-label="Toggle dark or light mode" style="padding:7px 12px">Theme</button>
+    </div>
   </header>
 
   <section class="card">
-    <h2>Test your reflexes</h2>
-    <p class="muted" style="margin-top:0">Each run is 5 tries. Wait for green, then click or press <b>Space</b> as fast as you can. Clicking early restarts that try.</p>
-    <div id="arena" role="button" tabindex="0" aria-label="Reaction test area">
+    <div class="card-head">
+      <h2>Test your reflexes</h2>
+      <span class="muted">Press <span class="kbd">Space</span> or click. Click early and that try restarts.</span>
+    </div>
+    <div id="arena" role="button" tabindex="0" aria-label="Reaction test area. Click or press Enter to start">
       <h3 id="arenaTitle">Ready?</h3>
       <p id="arenaMsg">Click here or press Space to start.</p>
       <div id="bigNum"></div>
     </div>
     <div class="dots" id="dots"></div>
+    <div class="delta" id="delta"></div>
     <div class="btnrow">
       <button class="primary" id="saveRunBtn" hidden>Save run</button>
-      <button id="resetBtn" hidden>Discard this run</button>
+      <button id="resetBtn" hidden>Discard run</button>
     </div>
   </section>
 
-  <section class="card">
-    <h2>Your stats</h2>
+  <section class="card reveal">
+    <div class="card-head"><h2>Your numbers</h2><span class="muted">Every saved try counts.</span></div>
     <div class="stats">
-      <div class="tile"><div class="label">Overall mean</div><div class="val" id="sMean">—</div></div>
-      <div class="tile"><div class="label">Mean of run means</div><div class="val" id="sRunMean">—</div></div>
-      <div class="tile"><div class="label">Best try</div><div class="val" id="sBest">—</div></div>
-      <div class="tile"><div class="label">Total tries</div><div class="val" id="sTries">0</div></div>
+      <div class="tile"><div class="label">Overall mean</div><div class="val" id="sMean">—</div><div class="sub" id="sMeanSub">all tries</div></div>
+      <div class="tile"><div class="label">Last 10 runs</div><div class="val" id="sRoll">—</div><div class="sub" id="sRollSub">rolling mean</div></div>
+      <div class="tile"><div class="label">Best try</div><div class="val" id="sBest">—</div><div class="sub" id="sBestSub">fastest ever</div></div>
+      <div class="tile"><div class="label">Consistency</div><div class="val" id="sCons">—</div><div class="sub">spread, lower is steadier</div></div>
     </div>
   </section>
 
   <div class="grid2">
-    <section class="card">
-      <h2>Compare to tiers</h2>
-      <p class="tierBig" id="tierName">—</p>
-      <p class="tierSub muted" id="tierSub">Save a run to see your tier.</p>
+    <section class="card reveal">
+      <div class="card-head"><h2>Your tier</h2></div>
+      <div class="tierWrap">
+        <div class="ring">
+          <svg viewBox="0 0 150 150">
+            <circle class="track" cx="75" cy="75" r="62"/>
+            <circle class="prog" id="ringProg" cx="75" cy="75" r="62" stroke-dasharray="389.56" stroke-dashoffset="389.56"/>
+          </svg>
+          <div class="center"><div><b id="ringVal">—</b><small>percentile-ish</small></div></div>
+        </div>
+        <div class="tierText">
+          <p class="tierBig" id="tierName">—</p>
+          <p class="tierSub muted" id="tierSub">Save a run to see your tier.</p>
+        </div>
+      </div>
       <div class="ladder" id="ladder"></div>
-      <p class="note">Percentile ranges are rough estimates, not measured data.</p>
+      <p class="note">Percentile bands are rough estimates from general reaction-time research, not measured data. The ring is a visual guide, not a real percentile.</p>
     </section>
 
-    <section class="card">
-      <h2>Your goal</h2>
+    <section class="card reveal">
+      <div class="card-head"><h2>Your goal</h2><span class="muted" id="goalState"></span></div>
       <div class="goalrow">
         <input type="number" id="goalInput" min="100" max="400" placeholder="e.g. 200" aria-label="Goal in milliseconds">
         <button class="primary" id="goalSave">Set goal</button>
         <button id="goalClear">Clear</button>
       </div>
-      <div class="meter"><b id="goalFill"></b></div>
-      <p class="goalMsg" id="goalMsg">Set a target average in ms to track progress.</p>
+      <div class="goalWrap">
+        <div class="ring" style="width:130px;height:130px;flex-basis:130px">
+          <svg viewBox="0 0 150 150">
+            <circle class="track" cx="75" cy="75" r="62"/>
+            <circle class="prog" id="goalRing" cx="75" cy="75" r="62" stroke-dasharray="389.56" stroke-dashoffset="389.56"/>
+          </svg>
+          <div class="center"><div><b id="goalPct">0%</b><small>to goal</small></div></div>
+        </div>
+        <p class="goalMsg" id="goalMsg">Set a target average in ms to track progress.</p>
+      </div>
     </section>
   </div>
 
-  <section class="card">
-    <h2>Weekly progress</h2>
-    <p class="muted" style="margin-top:0">Average of your run means for each week (lower is faster). Last 8 weeks.</p>
+  <section class="card reveal">
+    <div class="card-head"><h2>Weekly progress</h2><span class="muted">Average run speed per week, last 8 weeks. Taller is faster.</span></div>
     <div class="chart" id="chart"></div>
   </section>
 
-  <section class="card">
-    <h2>History</h2>
-    <div id="history"></div>
+  <div class="grid2">
+    <section class="card reveal">
+      <div class="card-head"><h2>Where your tries land</h2><span class="muted">All tries, 10 ms buckets</span></div>
+      <div class="hist" id="hist"></div>
+    </section>
+
+    <section class="card reveal">
+      <div class="card-head"><h2>Achievements</h2><span class="muted" id="badgeCount"></span></div>
+      <div class="badges" id="badges"></div>
+    </section>
+  </div>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>History</h2><span class="muted">Newest first</span></div>
+    <div class="tableWrap" id="history"></div>
     <div class="btnrow">
-      <button id="exportBtn">Export CSV</button>
-      <button class="danger" id="clearBtn">Clear all history</button>
+      <button id="exportCsvBtn">Export CSV</button>
+      <button id="exportJsonBtn">Backup (JSON)</button>
+      <button id="importBtn">Restore backup</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+      <button class="danger" id="clearBtn">Clear all</button>
     </div>
-    <p class="note">History and your goal are saved in this browser only. Clearing your browser data erases them, so export a CSV for a backup.</p>
+    <p class="note">Saved in this browser only. Clearing site data erases everything, so keep a JSON backup if you care about the history.</p>
   </section>
 
-  <footer>Built for fun and self-tracking. Stop training if you feel dizzy or get a headache.</footer>
+  <footer>
+    Built for fun and self-tracking, not medical advice. Stop training if you feel dizzy, see double or get a headache.
+  </footer>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   const RUNS_KEY = 'reactionlab-runs-v1';
   const GOAL_KEY = 'reactionlab-goal-v1';
+  const THEME_KEY = 'reactionlab-theme-v1';
   const TRIES_PER_RUN = 5;
+  const CIRC = 2 * Math.PI * 62; // ring circumference for r=62
   const TIERS = [
-    { name: 'Elite',       max: 150,      rare: 'roughly top 0.1%', range: 'under 150 ms' },
-    { name: 'Exceptional', max: 170,      rare: 'roughly top 1%',   range: '150–169 ms' },
-    { name: 'Excellent',   max: 190,      rare: 'roughly top 5%',   range: '170–189 ms' },
-    { name: 'Very good',   max: 210,      rare: 'roughly top 15%',  range: '190–209 ms' },
-    { name: 'Good',        max: 230,      rare: 'roughly top 35%',  range: '210–229 ms' },
-    { name: 'Average',     max: 260,      rare: 'the middle half',  range: '230–259 ms' },
-    { name: 'Developing',  max: Infinity, rare: 'slower than most', range: '260 ms+' }
+    { name: 'Elite',       max: 150,      rare: 'roughly top 0.1%', range: 'under 150 ms', pct: 99.9 },
+    { name: 'Exceptional', max: 170,      rare: 'roughly top 1%',   range: '150–169 ms',   pct: 99 },
+    { name: 'Excellent',   max: 190,      rare: 'roughly top 5%',   range: '170–189 ms',   pct: 95 },
+    { name: 'Very good',   max: 210,      rare: 'roughly top 15%',  range: '190–209 ms',   pct: 85 },
+    { name: 'Good',        max: 230,      rare: 'roughly top 35%',  range: '210–229 ms',   pct: 65 },
+    { name: 'Average',     max: 260,      rare: 'the middle half',  range: '230–259 ms',   pct: 50 },
+    { name: 'Developing',  max: Infinity, rare: 'slower than most', range: '260 ms+',      pct: 25 }
+  ];
+  const BADGES = [
+    { id: 'first',   ico: '▶',  name: 'First run',      desc: 'Save your first run',          test: s => s.runs >= 1 },
+    { id: 'ten',     ico: '⟳',  name: 'Ten runs',       desc: 'Save 10 runs',                 test: s => s.runs >= 10 },
+    { id: 'sub220',  ico: '◔',  name: 'Under 220',      desc: 'Overall mean under 220 ms',    test: s => s.mean != null && s.mean < 220 },
+    { id: 'sub200',  ico: '◑',  name: 'Under 200',      desc: 'Overall mean under 200 ms',    test: s => s.mean != null && s.mean < 200 },
+    { id: 'sub170',  ico: '✦',  name: 'Under 170',      desc: 'Overall mean under 170 ms',    test: s => s.mean != null && s.mean < 170 },
+    { id: 'steady',  ico: '≈',  name: 'Steady hands',   desc: 'Consistency under 15 ms',      test: s => s.spread != null && s.spread < 15 && s.tries >= 15 },
+    { id: 'streak3', ico: '🔥', name: '3-day streak',   desc: 'Test on 3 days in a row',      test: s => s.streak >= 3 },
+    { id: 'streak7', ico: '⚡', name: '7-day streak',   desc: 'Test on 7 days in a row',      test: s => s.streak >= 7 }
   ];
 
   const $ = (id) => document.getElementById(id);
   const arena = $('arena'), arenaTitle = $('arenaTitle'), arenaMsg = $('arenaMsg'), bigNum = $('bigNum');
   const dots = $('dots'), saveRunBtn = $('saveRunBtn'), resetBtn = $('resetBtn');
 
-  let runs = readJSON(RUNS_KEY, []);      // [{ id, t, tries: [ms,...], mean }]
-  let goal = readJSON(GOAL_KEY, null);    // number or null
+  let runs = readJSON(RUNS_KEY, []);     // [{ id, t, tries: [ms], mean }]
+  let goal = readJSON(GOAL_KEY, null);   // ms or null
+  if (!Array.isArray(runs)) runs = [];
   let current = [];
-  let state = 'idle';                     // idle | waiting | ready | done
+  let state = 'idle';                    // idle | waiting | ready | done
   let timer = null, readyAt = 0;
 
+  // ---- storage helpers (every access wrapped; the page still works if storage is blocked) ----
   function readJSON(key, fallback) {
     try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; }
     catch (e) { return fallback; }
   }
   function writeJSON(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked: keep working in memory */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { toast('Storage is blocked, so this will not survive a reload.'); }
   }
+
   const mean = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const stdev = (arr) => { if (arr.length < 2) return null; const m = mean(arr); return Math.sqrt(mean(arr.map(x => (x - m) ** 2))); };
   const fmt = (n) => (n == null ? '—' : Math.round(n) + ' ms');
-  function tierIndex(ms) { return TIERS.findIndex(t => ms < t.max); }
+  const tierIndex = (ms) => TIERS.findIndex(t => ms < t.max);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function toast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // ---- reveal on scroll ----
+  const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 }) : null;
+  document.querySelectorAll('.reveal').forEach(el => { io ? io.observe(el) : el.classList.add('in'); });
 
   // ---- test loop ----
   function setArena(cls, title, msg) {
@@ -264,10 +438,20 @@
       dots.appendChild(d);
     }
   }
+  function ripple(e) {
+    const r = document.createElement('span'); r.className = 'ripple';
+    const b = arena.getBoundingClientRect();
+    const x = (e && e.clientX != null) ? e.clientX - b.left : b.width / 2;
+    const y = (e && e.clientY != null) ? e.clientY - b.top : b.height / 2;
+    r.style.left = x + 'px'; r.style.top = y + 'px';
+    arena.appendChild(r);
+    setTimeout(() => r.remove(), 650);
+  }
   function startTry() {
     state = 'waiting';
-    setArena('wait', 'Wait...', 'Do not click until it turns green.');
+    setArena('wait', 'Wait for it...', 'Do not click until the screen turns green.');
     bigNum.textContent = '';
+    $('delta').textContent = '';
     const delay = 2000 + Math.random() * 3000; // random so you cannot guess the moment
     timer = setTimeout(() => {
       readyAt = performance.now();
@@ -279,13 +463,21 @@
     clearTimeout(timer);
     state = 'idle';
     setArena('early', 'Too early!', 'Click to try this one again.');
-    arena.classList.remove('early'); void arena.offsetWidth; arena.classList.add('early');
+    void arena.offsetWidth; // restart the shake animation
   }
   function gotTry() {
     const ms = Math.round(performance.now() - readyAt);
     current.push(ms);
     bigNum.textContent = ms + ' ms';
     renderDots();
+    const prev = current.length > 1 ? current[current.length - 2] : null;
+    const d = $('delta');
+    if (prev == null) d.textContent = '';
+    else {
+      const diff = ms - prev;
+      d.className = 'delta ' + (diff <= 0 ? 'up' : 'down');
+      d.textContent = (diff <= 0 ? '▼ ' : '▲ ') + Math.abs(diff) + ' ms vs last try' + (diff <= 0 ? ' (faster)' : '');
+    }
     if (current.length >= TRIES_PER_RUN) {
       state = 'done';
       setArena('', 'Run complete', 'Mean ' + fmt(mean(current)) + '. Save it or discard it.');
@@ -295,132 +487,174 @@
       setArena('', 'Nice, ' + ms + ' ms', 'Click for try ' + (current.length + 1) + ' of ' + TRIES_PER_RUN + '.');
     }
   }
-  function onPress() {
-    if (state === 'idle') { startTry(); }
+  function onPress(e) {
+    if (state === 'idle') { if (e) ripple(e); startTry(); }
     else if (state === 'waiting') tooEarly();
-    else if (state === 'ready') gotTry();
+    else if (state === 'ready') { ripple(e); gotTry(); }
   }
   function discardRun() {
     clearTimeout(timer);
     current = []; state = 'idle'; renderDots();
     saveRunBtn.hidden = true; resetBtn.hidden = true;
     setArena('', 'Ready?', 'Click here or press Space to start.');
-    bigNum.textContent = '';
+    bigNum.textContent = ''; $('delta').textContent = '';
   }
   function saveRun() {
     runs.unshift({ id: Date.now(), t: new Date().toISOString(), tries: current.slice(), mean: mean(current) });
     writeJSON(RUNS_KEY, runs);
     discardRun();
     renderAll(true);
-    setArena('', 'Saved!', 'Run added to your history. Click to go again.');
+    setArena('', 'Saved!', 'Run added. Click to go again.');
+    toast('Run saved: ' + fmt(runs[0].mean) + ' average');
   }
 
-  arena.addEventListener('click', onPress);
-  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(); } });
+  arena.addEventListener('click', (e) => onPress(e));
+  arena.addEventListener('keydown', (e) => { if (e.code === 'Enter') { e.preventDefault(); onPress(null); } });
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !['BUTTON', 'INPUT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(); }
+    if (e.code === 'Space' && !['BUTTON', 'INPUT', 'SELECT'].includes(document.activeElement.tagName)) { e.preventDefault(); onPress(null); }
   });
   saveRunBtn.addEventListener('click', saveRun);
   resetBtn.addEventListener('click', discardRun);
 
+  // ---- derived numbers ----
+  function derive() {
+    const all = runs.flatMap(r => r.tries);
+    const streak = computeStreak();
+    return {
+      runs: runs.length,
+      tries: all.length,
+      all,
+      mean: mean(all),
+      best: all.length ? Math.min(...all) : null,
+      spread: stdev(all),
+      roll: mean(runs.slice(0, 10).map(r => r.mean)),
+      rollCount: Math.min(10, runs.length),
+      streak
+    };
+  }
+  function dayKey(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
+  function computeStreak() {
+    if (!runs.length) return 0;
+    const days = new Set(runs.map(r => dayKey(new Date(r.t))));
+    let d = new Date();
+    // a streak can still be alive if you tested today or yesterday
+    if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
   // ---- stats ----
-  function countUp(el, target) {
+  function countUp(el, target, suffix) {
     if (target == null) { el.textContent = '—'; return; }
-    const start = performance.now(), dur = 700;
+    const start = performance.now(), dur = 800;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { el.textContent = Math.round(target) + (suffix || ''); return; }
     function step(now) {
       const p = Math.min(1, (now - start) / dur);
-      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + ' ms';
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + (suffix || '');
       if (p < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
   }
 
-  function renderStats() {
-    const all = runs.flatMap(r => r.tries);
-    const overall = mean(all);
-    countUp($('sMean'), overall);
-    countUp($('sRunMean'), mean(runs.map(r => r.mean)));
-    $('sBest').textContent = all.length ? Math.min(...all) + ' ms' : '—';
-    $('sTries').textContent = all.length;
-    $('runCount').textContent = runs.length + (runs.length === 1 ? ' run saved' : ' runs saved');
+  function renderStats(s) {
+    countUp($('sMean'), s.mean, ' ms');
+    $('sMeanSub').textContent = s.tries + ' tries in total';
+    countUp($('sRoll'), s.roll, ' ms');
+    $('sRollSub').textContent = s.rollCount ? 'mean of your last ' + s.rollCount + ' runs' : 'save a run to start';
+    $('sBest').textContent = s.best == null ? '—' : s.best + ' ms';
+    $('sBestSub').textContent = s.best == null ? 'fastest ever' : 'fastest single try';
+    $('sCons').textContent = s.spread == null ? '—' : Math.round(s.spread) + ' ms';
+    $('runCount').innerHTML = '<b>' + s.runs + '</b> ' + (s.runs === 1 ? 'run saved' : 'runs saved');
+    $('streakChip').innerHTML = 'Streak <b>' + s.streak + '</b> ' + (s.streak === 1 ? 'day' : 'days');
   }
 
-  // ---- tier compare card ----
-  function renderTier() {
-    const overall = mean(runs.flatMap(r => r.tries));
-    const cur = overall == null ? -1 : tierIndex(overall);
-    if (overall == null) {
+  // ---- tier card ----
+  function setRing(el, fraction) {
+    el.style.strokeDashoffset = String(CIRC * (1 - Math.max(0, Math.min(1, fraction))));
+  }
+  function renderTier(s) {
+    const cur = s.mean == null ? -1 : tierIndex(s.mean);
+    const ringFrac = s.mean == null ? 0 : Math.max(0, Math.min(1, (260 - s.mean) / (260 - 130)));
+    setRing($('ringProg'), ringFrac);
+    $('ringVal').textContent = s.mean == null ? '—' : TIERS[cur].pct + '%';
+    if (s.mean == null) {
       $('tierName').textContent = '—';
       $('tierSub').textContent = 'Save a run to see your tier.';
     } else {
       const t = TIERS[cur];
       $('tierName').textContent = t.name;
-      let sub = 'Your overall mean is ' + Math.round(overall) + ' ms, ' + t.rare + '.';
+      let sub = 'Your overall mean is ' + Math.round(s.mean) + ' ms, ' + t.rare + '.';
       if (cur > 0) {
         const next = TIERS[cur - 1];
-        const gap = Math.ceil(overall - (next.max - 1));
-        sub += ' About ' + gap + ' ms faster gets you to ' + next.name + '.';
+        const gap = Math.ceil(s.mean - (next.max - 1));
+        sub += ' About ' + gap + ' ms faster reaches ' + next.name + '.';
       } else {
-        sub += ' You are in the top tier.';
+        sub += ' You are in the top band.';
       }
       $('tierSub').textContent = sub;
     }
     $('ladder').innerHTML = TIERS.map((t, i) =>
       '<div class="tier' + (i === cur ? ' current' : '') + '">' +
-        '<div><b>' + t.name + '</b></div>' +
-        '<div class="range">' + t.range + '</div>' +
-        '<div class="rare">' + t.rare + '</div>' +
+        '<div><b>' + esc(t.name) + '</b></div>' +
+        '<div class="range">' + esc(t.range) + '</div>' +
+        '<div class="rare">' + esc(t.rare) + '</div>' +
       '</div>'
     ).join('');
   }
 
   // ---- goal ----
-  function renderGoal() {
-    const overall = mean(runs.flatMap(r => r.tries));
-    const fill = $('goalFill'), msg = $('goalMsg');
+  function renderGoal(s) {
+    const msg = $('goalMsg');
     if (goal == null) {
-      fill.style.width = '0%';
+      setRing($('goalRing'), 0);
+      $('goalPct').textContent = '—';
+      $('goalState').textContent = '';
       msg.className = 'goalMsg';
-      msg.textContent = 'Set a target average in ms to track progress.';
+      msg.textContent = 'Set a target average in ms, like 200, to track progress.';
       return;
     }
-    if (overall == null) {
-      fill.style.width = '0%';
+    if (s.mean == null) {
+      setRing($('goalRing'), 0);
+      $('goalPct').textContent = '0%';
+      $('goalState').textContent = 'target ' + goal + ' ms';
       msg.className = 'goalMsg';
-      msg.textContent = 'Goal: under ' + goal + ' ms. Save a run to start tracking.';
+      msg.textContent = 'Save a run to start tracking your goal.';
       return;
     }
-    // progress: 0% at 260 ms (average tier), 100% when you reach the goal
-    const start = 260;
-    const pct = Math.max(0, Math.min(100, ((start - overall) / (start - goal)) * 100));
-    fill.style.width = pct + '%';
-    if (overall <= goal) {
+    // progress runs from 260 ms (average) up to your goal
+    const pct = Math.max(0, Math.min(1, (260 - s.mean) / (260 - goal)));
+    setRing($('goalRing'), pct);
+    $('goalPct').textContent = Math.round(pct * 100) + '%';
+    $('goalState').textContent = 'target ' + goal + ' ms';
+    if (s.mean <= goal) {
       msg.className = 'goalMsg hit';
-      msg.textContent = 'Goal reached! Your average ' + Math.round(overall) + ' ms is under ' + goal + ' ms.';
+      msg.textContent = 'Goal reached. Your average ' + Math.round(s.mean) + ' ms is at or under ' + goal + ' ms.';
     } else {
       msg.className = 'goalMsg';
-      msg.textContent = Math.round(overall - goal) + ' ms to go to hit ' + goal + ' ms (you are at ' + Math.round(overall) + ' ms).';
+      msg.textContent = Math.round(s.mean - goal) + ' ms to go. You are at ' + Math.round(s.mean) + ' ms.';
     }
   }
   $('goalSave').addEventListener('click', () => {
     const v = Number($('goalInput').value);
-    if (!v || v < 100 || v > 400) { $('goalMsg').textContent = 'Pick a number between 100 and 400 ms.'; return; }
+    if (!v || v < 100 || v > 400) { toast('Pick a number between 100 and 400 ms.'); return; }
     goal = Math.round(v);
     writeJSON(GOAL_KEY, goal);
     $('goalInput').value = '';
-    renderGoal();
+    renderAll(false);
+    toast('Goal set to ' + goal + ' ms');
   });
-  $('goalClear').addEventListener('click', () => { goal = null; writeJSON(GOAL_KEY, null); renderGoal(); });
+  $('goalClear').addEventListener('click', () => { goal = null; writeJSON(GOAL_KEY, null); renderAll(false); });
 
-  // ---- weekly chart: average of run means per week (Monday start), last 8 weeks ----
+  // ---- weekly chart (Monday start, last 8 weeks) ----
   function weekStart(d) {
     const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    const day = (x.getDay() + 6) % 7; // Mon = 0
-    x.setDate(x.getDate() - day);
+    x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
     return x;
   }
   function renderChart() {
-    const chart = $('chart');
+    const host = $('chart');
     const now = weekStart(new Date());
     const weeks = [];
     for (let i = 7; i >= 0; i--) {
@@ -428,62 +662,100 @@
       weeks.push({ start: s, means: [] });
     }
     runs.forEach(r => {
-      const rs = weekStart(new Date(r.t)).getTime();
-      const w = weeks.find(w => w.start.getTime() === rs);
+      const w = weeks.find(w => w.start.getTime() === weekStart(new Date(r.t)).getTime());
       if (w) w.means.push(r.mean);
     });
     const avgs = weeks.map(w => mean(w.means));
     const valid = avgs.filter(v => v != null);
-    const slowest = valid.length ? Math.max(...valid, 260) : 260;
-    const fastest = valid.length ? Math.min(...valid) : 0;
-    chart.innerHTML = '';
+    const lo = valid.length ? Math.min(...valid) : 0;
+    const hi = valid.length ? Math.max(...valid) : 260;
+    host.innerHTML = '';
     weeks.forEach((w, i) => {
       const col = document.createElement('div'); col.className = 'col';
       const v = document.createElement('div'); v.className = 'val';
       const bar = document.createElement('div'); bar.className = 'bar';
       const lbl = document.createElement('div'); lbl.className = 'lbl';
       lbl.textContent = w.start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-      if (avgs[i] == null) {
-        bar.classList.add('none'); v.textContent = '';
-        bar.style.height = '4%';
-      } else {
+      let h = 4;
+      if (avgs[i] == null) { bar.classList.add('none'); }
+      else {
         v.textContent = Math.round(avgs[i]) + ' ms';
-        // taller bar = faster week, so the best week always looks tallest
-        const h = 25 + 75 * (slowest - avgs[i]) / Math.max(1, slowest - fastest + 20);
-        bar.style.height = '0%';
-        requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
+        // map speed to height: fastest week gets the tallest bar
+        h = hi === lo ? 70 : 30 + 70 * (hi - avgs[i]) / (hi - lo);
       }
       col.append(v, bar, lbl);
-      chart.appendChild(col);
+      host.appendChild(col);
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
     });
   }
 
-  // ---- history ----
+  // ---- histogram of all tries ----
+  function renderHist(all) {
+    const host = $('hist');
+    if (!all.length) { host.innerHTML = '<div class="empty" style="width:100%">Save a run to see where your tries land.</div>'; return; }
+    const buckets = [];
+    const start = Math.floor(Math.min(...all) / 10) * 10;
+    const end = Math.floor(Math.max(...all) / 10) * 10;
+    for (let b = start; b <= end; b += 10) buckets.push({ from: b, n: 0 });
+    all.forEach(v => { buckets[Math.floor((v - start) / 10)].n++; });
+    const max = Math.max(...buckets.map(b => b.n));
+    host.innerHTML = '';
+    buckets.forEach(b => {
+      const col = document.createElement('div'); col.className = 'hcol';
+      const c = document.createElement('div'); c.className = 'hc'; c.textContent = b.n || '';
+      const bar = document.createElement('div'); bar.className = 'hb';
+      const n = document.createElement('div'); n.className = 'hn'; n.textContent = b.from;
+      col.append(c, bar, n);
+      host.appendChild(col);
+      requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = (b.n / max) * 100 + '%'; }));
+    });
+  }
+
+  // ---- achievements ----
+  function renderBadges(s) {
+    const host = $('badges');
+    let on = 0;
+    host.innerHTML = BADGES.map(b => {
+      const got = !!b.test(s);
+      if (got) on++;
+      return '<div class="badge' + (got ? ' on' : '') + '">' +
+        '<div class="ico">' + b.ico + '</div>' +
+        '<div><b>' + esc(b.name) + '</b><small>' + esc(b.desc) + '</small></div>' +
+      '</div>';
+    }).join('');
+    $('badgeCount').textContent = on + ' / ' + BADGES.length + ' unlocked';
+  }
+
+  // ---- history table ----
   function renderHistory(animate) {
     const host = $('history');
     if (!runs.length) { host.innerHTML = '<div class="empty">No runs yet. Finish a run and hit Save.</div>'; return; }
     const table = document.createElement('table');
-    table.innerHTML = '<thead><tr><th>Date</th><th>Tries</th><th>Mean</th><th>Speed</th><th></th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Date</th><th>Tries (ms)</th><th>Mean</th><th>Speed</th><th></th></tr></thead>';
     const tb = document.createElement('tbody');
-    const maxMean = Math.max(...runs.map(r => r.mean), 260);
+    const worst = Math.max(...runs.map(r => r.mean), 260);
     runs.forEach((r, i) => {
       const tr = document.createElement('tr');
-      tr.style.animationDelay = (animate ? i * 0.04 : 0) + 's';
+      tr.style.animationDelay = (animate ? Math.min(i, 12) * 0.04 : 0) + 's';
       const tdDate = document.createElement('td'); tdDate.textContent = new Date(r.t).toLocaleString();
       const tdTries = document.createElement('td'); tdTries.className = 'tries'; tdTries.textContent = r.tries.join(', ');
-      const tdMean = document.createElement('td'); tdMean.textContent = fmt(r.mean);
+      const tdMean = document.createElement('td');
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = fmt(r.mean);
+      tdMean.appendChild(tag);
       const tdBar = document.createElement('td');
       const bar = document.createElement('div'); bar.className = 'bar2';
       const fill = document.createElement('b');
       bar.appendChild(fill); tdBar.appendChild(bar);
       const tdDel = document.createElement('td');
-      const del = document.createElement('button'); del.textContent = 'Delete';
-      del.addEventListener('click', () => { runs.splice(i, 1); writeJSON(RUNS_KEY, runs); renderAll(false); });
+      const del = document.createElement('button'); del.textContent = 'Delete'; del.className = 'ghost';
+      del.addEventListener('click', () => {
+        runs.splice(i, 1); writeJSON(RUNS_KEY, runs); renderAll(false); toast('Run deleted');
+      });
       tdDel.appendChild(del);
       tr.append(tdDate, tdTries, tdMean, tdBar, tdDel);
       tb.appendChild(tr);
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        fill.style.width = Math.max(4, 100 * (1 - (r.mean - 100) / (maxMean - 100))) + '%';
+        fill.style.width = Math.max(4, 100 * (1 - (r.mean - 100) / (worst - 100))) + '%';
       }));
     });
     table.appendChild(tb);
@@ -492,27 +764,70 @@
   }
 
   function renderAll(animate) {
-    renderStats();
-    renderTier();
-    renderGoal();
+    const s = derive();
+    renderStats(s);
+    renderTier(s);
+    renderGoal(s);
     renderChart();
+    renderHist(s.all);
+    renderBadges(s);
     renderHistory(animate);
   }
 
-  $('clearBtn').addEventListener('click', () => {
-    if (!runs.length) return;
-    if (confirm('Delete all saved runs? This cannot be undone.')) { runs = []; writeJSON(RUNS_KEY, runs); renderAll(false); }
-  });
-
-  $('exportBtn').addEventListener('click', () => {
+  // ---- export / import / clear ----
+  function download(name, type, text) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  $('exportCsvBtn').addEventListener('click', () => {
+    if (!runs.length) { toast('No runs to export yet'); return; }
     const rows = ['date,tries_ms,mean_ms'];
     runs.forEach(r => rows.push(new Date(r.t).toISOString() + ',"' + r.tries.join(' ') + '",' + Math.round(r.mean)));
-    const blob = new Blob([rows.join('\n') + '\n'], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'reaction-runs.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
+    download('reaction-runs.csv', 'text/csv', rows.join('\n') + '\n');
+  });
+  $('exportJsonBtn').addEventListener('click', () => {
+    download('reaction-lab-backup.json', 'application/json', JSON.stringify({ version: 1, runs, goal }, null, 2));
+  });
+  $('importBtn').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const incoming = Array.isArray(data.runs) ? data.runs.filter(r => r && Array.isArray(r.tries) && r.tries.every(n => typeof n === 'number')) : null;
+        if (!incoming) throw new Error('bad');
+        const seen = new Set(runs.map(r => r.id));
+        const added = incoming.filter(r => !seen.has(r.id));
+        runs = runs.concat(added).sort((a, b) => new Date(b.t) - new Date(a.t));
+        writeJSON(RUNS_KEY, runs);
+        if (typeof data.goal === 'number' && goal == null) { goal = data.goal; writeJSON(GOAL_KEY, goal); }
+        renderAll(true);
+        toast('Restored ' + added.length + ' runs');
+      } catch (err) { toast('That file is not a Reaction Lab backup.'); }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+  $('clearBtn').addEventListener('click', () => {
+    if (!runs.length) return;
+    if (confirm('Delete all saved runs? Tip: export a backup first. This cannot be undone.')) {
+      runs = []; writeJSON(RUNS_KEY, runs); renderAll(false); toast('History cleared');
+    }
+  });
+
+  // ---- theme toggle (remembers choice; defaults to device setting) ----
+  function applyTheme(t) { if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme; }
+  applyTheme(readJSON(THEME_KEY, null));
+  $('themeBtn').addEventListener('click', () => {
+    const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+    const now = document.documentElement.dataset.theme || (dark ? 'dark' : 'light');
+    const next = now === 'dark' ? 'light' : 'dark';
+    applyTheme(next); writeJSON(THEME_KEY, next);
   });
 
   renderDots();
