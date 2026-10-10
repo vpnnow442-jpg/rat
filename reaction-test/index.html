@@ -360,6 +360,32 @@
   .note { font-size: .8rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
   @keyframes rise { from { opacity:0; transform: translateY(12px);} to { opacity:1; transform:none; } }
 
+  .pv { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:6px; contain: strict; }
+  .pv-grid { display:grid; grid-template-columns: repeat(3, 14px); gap:5px; }
+  .pv-grid i { width:14px; height:14px; border-radius:4px; background: var(--line); display:block; animation: pvLit 2.4s infinite; }
+  .pv-sq { display:grid; grid-template-columns: repeat(4, 11px); gap:4px; }
+  .pv-sq i { width:11px; height:11px; border-radius:3px; background: var(--line); display:block; animation: pvLit 2.8s infinite; }
+  .pv-word { font-weight:800; font-size:1.1rem; color: var(--fg); animation: pvBlink 2.2s ease-in-out infinite; }
+  .pv-num { font-weight:800; font-size:1.2rem; color: var(--accent2); font-variant-numeric: tabular-nums; animation: pvPop 2.4s ease-out infinite; }
+  .pv-row { display:flex; gap:8px; }
+  .pv-row span { font-weight:800; font-size:.95rem; color: var(--fg); animation: pvBob 1.6s ease-in-out infinite; display:inline-block; }
+  .pv-row span:nth-child(2) { animation-delay: .25s; } .pv-row span:nth-child(3) { animation-delay: .5s; }
+  .pv-dot { width:18px; height:18px; border-radius:50%; background: var(--accent2); box-shadow: 0 0 14px var(--accent2); animation: pvPulse 1.4s ease-in-out infinite; }
+  .pv-ring { width:34px; height:34px; border-radius:50%; border:2px solid var(--accent2); animation: pvPulse 1.2s ease-out infinite; }
+  .pv-caret { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:1rem; color: var(--fg); }
+  .pv-caret b { font-weight:400; animation: pvBlink 1s steps(1) infinite; color: var(--accent2); }
+  .pv-key { padding: 6px 14px; border:2px solid var(--accent2); border-radius:8px; font-size:.7rem; font-weight:800; letter-spacing:.14em; color: var(--accent2); animation: pvPress 1s ease-in-out infinite; }
+  .pv-drift { position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px; border-radius:50%; background: var(--accent2); box-shadow: 0 0 12px var(--accent2); animation: pvDrift 4s ease-in-out infinite; }
+  .pv-chip { width:6px; height:6px; border-radius:50%; background: var(--line); }
+  @keyframes pvLit { 0%, 55%, 100% { background: var(--line); } 15%, 35% { background: var(--accent2); } }
+  @keyframes pvPop { 0% { transform: scale(.7); opacity:0; } 25%, 70% { transform: scale(1); opacity:1; } 100% { transform: scale(.9); opacity:0; } }
+  @keyframes pvBlink { 0%, 100% { opacity:1; } 50% { opacity:.25; } }
+  @keyframes pvBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  @keyframes pvPulse { 0%, 100% { transform: scale(.85); opacity:.7; } 50% { transform: scale(1.1); opacity:1; } }
+  @keyframes pvPress { 0%, 100% { transform: scale(1); } 45% { transform: scale(.94); } }
+  @keyframes pvDrift { 0% { transform: translate(-60px, -18px); } 25% { transform: translate(40px, -30px); } 50% { transform: translate(70px, 22px); } 75% { transform: translate(-30px, 28px); } 100% { transform: translate(-60px, -18px); } }
+  @media (prefers-reduced-motion: reduce) { .pv * { animation: none !important; } }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -1836,6 +1862,18 @@
     { id:'track',name:'Tracking Trainer',desc:'Keep your cursor on a drifting target for 10 seconds.', unit:'% on target', higherBetter:true, preview:'◎' }
   ];
 
+  const PREVIEW = {
+    seq:  '<div class="pv"><div class="pv-grid">' + '<i></i>'.repeat(9) + '</div></div>',
+    num:  '<div class="pv"><span class="pv-num">4 7 2 9</span></div>',
+    word: '<div class="pv"><span class="pv-word">river</span></div>',
+    ord:  '<div class="pv"><div class="pv-row"><span>3</span><span>1</span><span>2</span></div></div>',
+    vis:  '<div class="pv"><div class="pv-sq">' + '<i></i>'.repeat(16) + '</div></div>',
+    pop:  '<div class="pv"><div class="pv-dot" style="position:absolute;left:30%;top:35%"></div></div>',
+    type: '<div class="pv"><span class="pv-caret">type<b>|</b></span></div>',
+    cps:  '<div class="pv"><div class="pv-ring"></div></div>',
+    space:'<div class="pv"><span class="pv-key">SPACE</span></div>',
+    track:'<div class="pv"><div class="pv-drift"></div></div>'
+  };
   function bestOf(id) {
     const g = GAMES.find(x => x.id === id);
     const list = scores.filter(s => s.game === id);
@@ -1845,7 +1883,7 @@
   function renderGrid() {
     $('gGrid').innerHTML = GAMES.map(g => {
       const b = bestOf(g.id);
-      return '<button class="gGame" data-id="' + g.id + '"><div class="preview"><span class="dot"></span>' + esc(g.preview) + '</div>' +
+      return '<button class="gGame" data-id="' + g.id + '"><div class="preview">' + (PREVIEW[g.id] || '') + '</div>' +
         '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
         '<div class="best">' + (b == null ? 'Not played yet' : 'Best: ' + b + ' ' + esc(GAMES.find(x => x.id === g.id).unit)) + '</div></button>';
     }).join('');
