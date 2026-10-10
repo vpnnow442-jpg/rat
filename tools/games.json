@@ -513,5 +513,88 @@
     "cps": "Use a steady rhythm. Relax your hand and avoid tensing up.",
     "space": "Use quick, light taps. Holding the key does not count as extra presses.",
     "track": "Follow the centre of the target, not its edge, and keep the cursor close."
-  }
+  },
+  "skills": [
+    {
+      "id": "reaction",
+      "label": "Reaction",
+      "blurb": "How fast you respond to something that appears."
+    },
+    {
+      "id": "memory",
+      "label": "Memory",
+      "blurb": "Hold patterns, numbers and positions in your head."
+    },
+    {
+      "id": "focus",
+      "label": "Focus",
+      "blurb": "Stay sharp when rules, colours and distractions fight back."
+    },
+    {
+      "id": "vision",
+      "label": "Vision",
+      "blurb": "Fun drills for spotting, tracking and edge-of-view awareness. Not a medical test."
+    },
+    {
+      "id": "precision",
+      "label": "Precision",
+      "blurb": "Timing, aim and steady control."
+    },
+    {
+      "id": "stamina",
+      "label": "Stamina",
+      "blurb": "Speed you have to keep up for several seconds."
+    }
+  ],
+  "skillOf": {
+    "r-simple": "reaction",
+    "r-audio": "reaction",
+    "r-target": "reaction",
+    "r-arrows": "reaction",
+    "pop": "reaction",
+    "speedround": "reaction",
+    "dodge": "reaction",
+    "impossible": "reaction",
+    "targetrush": "reaction",
+    "seq": "memory",
+    "num": "memory",
+    "word": "memory",
+    "vis": "memory",
+    "blink": "memory",
+    "colour": "vision",
+    "peri": "vision",
+    "multi": "vision",
+    "colortrap": "focus",
+    "flip": "focus",
+    "dual": "focus",
+    "mirror": "focus",
+    "schulte": "focus",
+    "ord": "focus",
+    "nerve": "precision",
+    "pulse": "precision",
+    "bullseye": "precision",
+    "ghost": "precision",
+    "cascade": "precision",
+    "track": "precision",
+    "type": "stamina",
+    "cps": "stamina",
+    "space": "stamina",
+    "sprint": "stamina"
+  },
+  "shapes": [
+    "<circle class=\"f\" cx=\"12\" cy=\"12\" r=\"9.5\"/><circle class=\"in\" cx=\"12\" cy=\"12\" r=\"5.2\"/><circle class=\"hi\" cx=\"12\" cy=\"12\" r=\"1.7\"/>",
+    "<path class=\"f\" d=\"M12 2.5l8 3v6.2c0 4.5-3.3 8.1-8 9.8-4.7-1.7-8-5.3-8-9.8V5.5z\"/><path class=\"in\" d=\"M8.2 10.2l3.8 3 3.8-3M8.2 13.8l3.8 3 3.8-3\"/>",
+    "<path class=\"f\" d=\"M12 2.4l2.9 6 6.6.9-4.8 4.6 1.2 6.6L12 17.4l-5.9 3.1 1.2-6.6L2.5 9.3l6.6-.9z\"/>",
+    "<path class=\"f\" d=\"M12 2.2l8.2 4.7v9.4L12 21l-8.2-4.7V6.9z\"/><path class=\"in\" d=\"M12 7l4 2.3v4.4L12 16l-4-2.3V9.3z\"/>",
+    "<path class=\"f\" d=\"M7.2 3.5h9.6L22 9.4 12 21 2 9.4z\"/><path class=\"in\" d=\"M2 9.4h20M7.2 3.5l2.3 5.9L12 21l2.5-11.6 2.3-5.9\"/>",
+    "<path class=\"f\" d=\"M2.8 18.8L2.2 6.8l5.1 4.3L12 3.6l4.7 7.5 5.1-4.3-.6 12z\"/><rect class=\"f\" x=\"3\" y=\"19.6\" width=\"18\" height=\"2.4\" rx=\"1\"/><circle class=\"hi\" cx=\"12\" cy=\"13.4\" r=\"1.6\"/>"
+  ],
+  "colours": [
+    "#d6893a",
+    "#b8c4d4",
+    "#f5c518",
+    "#22d3ee",
+    "#a78bfa",
+    "#fb7185"
+  ]
 }

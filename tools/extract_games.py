@@ -15,7 +15,8 @@ with sync_playwright() as p:
     page.wait_for_timeout(500)
     data = page.evaluate("""() => {
       const g = window.ReactionLabGames;
-      return { games: g.GAMES, cuts: g.RANK_CUTS, rankNames: g.RANK_NAMES, rarity: g.RARITY, tips: g.TIPS };
+      return { games: g.GAMES, cuts: g.RANK_CUTS, rankNames: g.RANK_NAMES, rarity: g.RARITY, tips: g.TIPS,
+              skills: g.SKILLS, skillOf: g.SKILL_OF, shapes: g.RANK_SHAPES, colours: g.RANK_COLOURS };
     }""")
     browser.close()
 

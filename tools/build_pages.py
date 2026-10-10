@@ -36,6 +36,10 @@ CUTS = data["cuts"]
 RANK_NAMES = data["rankNames"]
 RARITY = data["rarity"]
 TIPS = data["tips"]
+SKILLS = data["skills"]
+SKILL_OF = data["skillOf"]
+SHAPES = data["shapes"]
+COLOURS = data["colours"]
 
 CAT_LABEL = {"brain": "Memory and speed", "vision": "Vision", "originals": "Originals", "classics": "Reaction classics"}
 
@@ -116,12 +120,18 @@ def write(rel_path, content):
     out.write_text(content, encoding="utf-8")
 
 
+def rank_icon(i, size=20):
+    """The same rank symbols the app draws, as inline SVG."""
+    return (f'<svg class="rkIcon" width="{size}" height="{size}" viewBox="0 0 24 24" aria-hidden="true" '
+            f'style="--rk:{COLOURS[i]}">{SHAPES[i]}</svg>')
+
+
 def rank_table(game):
     cuts = CUTS[game["id"]]
     rows = []
     for i, name in enumerate(RANK_NAMES):
         need = f"{cuts[i]} {game['unit']} or more" if game["higherBetter"] else f"under {cuts[i]} {game['unit']}"
-        rows.append(f"<tr><td>{esc(name)}</td><td>{esc(need)}</td><td>{esc(RARITY[i])}</td></tr>")
+        rows.append(f"<tr><td><span class=\"rkName\">{rank_icon(i)}{esc(name)}</span></td><td>{esc(need)}</td><td>{esc(RARITY[i])}</td></tr>")
     return ("<table><thead><tr><th>Rank</th><th>Score needed</th><th>How rare (rough guide)</th></tr></thead><tbody>"
             + "".join(rows) + "</tbody></table>")
 
@@ -129,13 +139,14 @@ def rank_table(game):
 # ---- one page per game ----
 for g in GAMES:
     cat = g.get("cat", "brain")
-    same = [x for x in GAMES if x.get("cat", "brain") == cat and x["id"] != g["id"]][:6]
+    skill = next((k for k in SKILLS if k["id"] == SKILL_OF.get(g["id"])), None)
+    same = [x for x in GAMES if SKILL_OF.get(x["id"]) == SKILL_OF.get(g["id"]) and x["id"] != g["id"]][:6]
     related = "".join(f'<a href="{x["id"]}.html">{esc(x["name"])}<small>{esc(x["desc"])}</small></a>' for x in same)
     title = f"{g['name']}: free online game"
     desc = f"{g['desc']} Free to play in your browser, with ranks and progress tracking."
     better = "Higher scores are better." if g["higherBetter"] else "Lower scores are better."
     body = f"""
-  <p class="crumbs"><a href="./">All games</a> / {esc(CAT_LABEL.get(cat, cat))}</p>
+  <p class="crumbs"><a href="./">All games</a> / {esc(skill['label'] if skill else CAT_LABEL.get(cat, cat))}</p>
   <h1>{esc(g['name'])}</h1>
   <p class="lead">{esc(g['desc'])}</p>
   <a class="play" href="../index.html#game={esc(g['id'])}">Play {esc(g['name'])}</a>
@@ -145,7 +156,7 @@ for g in GAMES:
   <p>Your score is measured in {esc(g['unit'])}. {better} Ranks run from {esc(RANK_NAMES[0])} up to {esc(RANK_NAMES[-1])}.</p>
   {rank_table(g)}
   <p class="note">The ranks and rarity labels are rough guides set by us. They are not measured norms from a study of players.</p>
-  <h2>More {esc(CAT_LABEL.get(cat, cat)).lower()} games</h2>
+  <h2>More {esc(skill['label'] if skill else CAT_LABEL.get(cat, cat)).lower()} games</h2>
   <div class="grid">{related}</div>"""
     write(f"play/{g['id']}.html", layout(f"play/{g['id']}.html", title, desc, body, 1))
     pages.append(f"play/{g['id']}.html")
@@ -171,11 +182,11 @@ for m in MODES:
 sections = []
 sections.append("<h2>Reaction tests</h2><div class=\"grid\">" + "".join(
     f'<a href="r-{m["id"]}.html">{esc(m["name"])}<small>{esc(m["desc"])}</small></a>' for m in MODES) + "</div>")
-for key, label in CAT_LABEL.items():
-    items = [g for g in GAMES if g.get("cat", "brain") == key]
+for sk in SKILLS:
+    items = [g for g in GAMES if SKILL_OF.get(g["id"]) == sk["id"]]
     if not items:
         continue
-    sections.append(f"<h2>{esc(label)}</h2><div class=\"grid\">" + "".join(
+    sections.append(f"<h2>{esc(sk['label'])}</h2><p class=\"muted\">{esc(sk['blurb'])}</p><div class=\"grid\">" + "".join(
         f'<a href="{g["id"]}.html">{esc(g["name"])}<small>{esc(g["desc"])}</small></a>' for g in items) + "</div>")
 hub_desc = f"Every reaction time test and brain game on {NAME}: memory, speed, vision and reflex games, all free in your browser."
 hub_body = f"""

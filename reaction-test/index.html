@@ -136,7 +136,7 @@
   button { transition: transform .12s ease, border-color .15s, background-color .15s, color .15s; }
   button:hover { transform: translateY(-1px); }
   button:active { transform: scale(.95); }
-  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid color-mix(in srgb, var(--accent2) 75%, transparent); outline-offset: 2px; }
   button.primary { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; border-color: transparent; }
   button.danger:hover { border-color: var(--wait); color: var(--wait); }
   button.ghost { background: transparent; }
@@ -170,7 +170,7 @@
              background: linear-gradient(135deg, var(--fg), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .tierSub { margin: 8px 0 0; line-height: 1.5; }
   .ladder { display: grid; gap: 8px; margin-top: 16px; }
-  .tier { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px;
+  .tier { display: grid; grid-template-columns: 150px 1fr auto; align-items: center; gap: 12px;
           padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line); font-size: .9rem; background: var(--panel-solid);
           transition: border-color .2s, background-color .2s; }
   .tier.current { border-color: var(--accent2);
@@ -246,10 +246,10 @@
   .tag { font-size: .72rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--line); }
   .empty { padding: 26px; text-align: center; color: var(--muted); }
 
-  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 140%); background: var(--panel-solid);
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 200%); opacity: 0; visibility: hidden; background: var(--panel-solid);
            border: 1px solid var(--line); padding: 12px 18px; border-radius: 14px; box-shadow: var(--shadow); font-weight: 600;
-           transition: transform .5s cubic-bezier(.3,1.4,.5,1); z-index: 5; max-width: calc(100% - 32px); text-align: center; }
-  .toast.show { transform: translate(-50%, 0); }
+           transition: transform .5s cubic-bezier(.3,1.4,.5,1), opacity .3s, visibility .5s; z-index: 5; max-width: calc(100% - 32px); text-align: center; }
+  .toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
 
   .tabs { display: flex; gap: 6px; margin-top: 22px; padding: 6px; overflow-x: auto; scrollbar-width: none;
           background: var(--panel); border: 1px solid var(--line); border-radius: 16px; position: sticky; top: 8px; z-index: 4; }
@@ -332,15 +332,55 @@
   .dangerBox input[type="text"] { width: 160px; }
 
   .gMuted { color:var(--muted); font-size:.92rem; }
-  .gGrid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:14px; margin-top:20px; }
-  .gGame { background:var(--panel-solid); border:1px solid var(--line); border-radius:16px; padding:14px; cursor:pointer; text-align:left; color:var(--fg); font:inherit; transition: border-color .15s; }
-  .gGame:hover, .gGame:focus-visible { border-color: var(--accent); outline:none; }
-  .gGame h2 { margin:10px 0 4px; font-size:1.02rem; }
-  .gGame p { margin:0; color:var(--muted); font-size:.88rem; line-height:1.5; }
   .preview { height:100px; border-radius:12px; background:var(--bg2); border:1px solid var(--line); display:grid; place-items:center; font-weight:800; color:var(--accent2); font-size:1.1rem; position:relative; overflow:hidden; box-shadow: inset 0 -30px 40px -30px rgba(139,108,255,.35); }
   .preview .dot { width:14px; height:14px; border-radius:50%; background:var(--accent); box-shadow:0 0 18px var(--accent); }
-  .gGame .tag { display:inline-block; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent2); }
-  .best { margin-top:10px; font-size:.8rem; color:var(--accent2); font-weight:700; }
+
+  /* game tiles */
+  .gGrid { display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:16px; margin-top:16px; }
+  .gGame { display:flex; flex-direction:column; background:var(--panel-solid); border:1px solid var(--line); border-radius:18px; padding:14px; cursor:pointer; text-align:left; color:var(--fg); font:inherit; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .gGame:hover, .gGame:focus-visible { border-color: var(--accent); outline:none; transform: translateY(-2px); box-shadow: 0 14px 30px -18px var(--accent); }
+  .gGame .preview { height:120px; width:100%; }
+  .gTag { position:absolute; top:8px; left:8px; font-size:.6rem; letter-spacing:.08em; text-transform:uppercase; font-weight:800; padding:3px 8px; border-radius:999px; color:var(--muted); background:color-mix(in srgb, var(--bg) 78%, transparent); border:1px solid var(--line); }
+  .gGame h2 { margin:12px 0 4px; font-size:1.02rem; }
+  .gGame p { margin:0; color:var(--muted); font-size:.85rem; line-height:1.45; flex:1; }
+  .gFoot { margin-top:12px; display:grid; gap:8px; }
+  .gFootRow { display:flex; justify-content:space-between; align-items:center; gap:6px 8px; flex-wrap:wrap; }
+  .gGame .best { font-size:.78rem; color:var(--muted); font-weight:700; }
+  .gGame .rkBar { height:5px; margin-top:0; }
+
+  /* games toolbar, summary, legend and groups */
+  .gTools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:14px; }
+  .gTools input[type="search"] { flex:1 1 220px; width:auto; min-width:0; }
+  .fChips { display:flex; gap:6px; flex-wrap:wrap; }
+  .fChip { padding:7px 14px; border-radius:999px; font-size:.85rem; font-weight:700; background:var(--panel-solid); }
+  .fChip[aria-pressed="true"] { background:linear-gradient(135deg, var(--accent), var(--accent3)); color:#fff; border-color:transparent; }
+  .gSummary { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .gSumItem { display:inline-flex; align-items:center; gap:6px; font-size:.8rem; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:5px 11px; background:var(--panel-solid); }
+  .gSumItem b { color:var(--fg); }
+  .rkLegend { display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; margin-top:12px; font-size:.78rem; color:var(--muted); }
+  .rkLegend span { display:inline-flex; align-items:center; gap:5px; color:var(--fg); font-weight:700; }
+  .rkLegend em { font-style:normal; }
+  .gGroup { margin-top:26px; }
+  .gGroup:first-of-type { margin-top:18px; }
+  .gGroupHead { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 10px; padding-bottom:8px; border-bottom:1px solid var(--line); }
+  .gGroupTitle { margin:0; font-size:1.05rem; font-weight:800; letter-spacing:0; text-transform:none; color:var(--fg); }
+  .gCount { font-size:.72rem; font-weight:800; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:1px 8px; }
+  .gBlurb { flex-basis:100%; font-size:.82rem; color:var(--muted); }
+  .gGroup .gGrid { margin-top:14px; }
+  .gEmpty { margin:26px 0 8px; text-align:center; color:var(--muted); }
+  .gGate .rkInfo { text-align:left; width:min(400px, 100%); }
+  @media (max-width: 640px) {
+    .gGrid { grid-template-columns: repeat(2, 1fr); gap:10px; }
+    .gGame { padding:10px; border-radius:14px; }
+    .gGame .preview { height:84px; }
+    .gGame h2 { font-size:.9rem; margin:8px 0 2px; }
+    .gGame p { display:none; }
+    .gFoot { margin-top:8px; gap:6px; }
+    .gFootRow { flex-direction:column; align-items:flex-start; }
+    .gGame .rkBadge { font-size:.7rem; }
+    .fChips { flex-wrap:nowrap; overflow-x:auto; width:100%; padding-bottom:4px; }
+    .fChip { white-space:nowrap; }
+  }
   /* game screen */
   #gScreen { display:none; margin-top:20px; background:var(--panel-solid); border:1px solid var(--line); border-radius:18px; padding:20px; }
   #gScreen.on { display:block; animation: rise .4s cubic-bezier(.2,.8,.2,1) both; }
@@ -399,18 +439,27 @@
 
   .rk { margin-top: 12px; }
   .rkTop { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
-  .rkBadge { font-size:.72rem; font-weight:800; padding:3px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); }
-  .rkBadge.r0 { color:#d6893a; border-color:#d6893a; } .rkBadge.r1 { color:#cbd5e1; border-color:#cbd5e1; }
-  .rkBadge.r2 { color:#facc15; border-color:#facc15; } .rkBadge.r3 { color:#22d3ee; border-color:#22d3ee; }
-  .rkBadge.r5 { color:#fb7185; border-color:#fb7185; box-shadow:0 0 12px -2px #fb7185; }
-  .rkBadge.r4 { color:#c4b5fd; border-color:#c4b5fd; box-shadow:0 0 12px -2px #a78bfa; }
+  .rkBadge { display:inline-flex; align-items:center; gap:6px; font-size:.74rem; font-weight:800; padding:3px 10px 3px 6px; border-radius:999px; border:1px solid var(--line); color:var(--fg); background:color-mix(in srgb, var(--bg2) 70%, transparent); white-space:nowrap; }
+  .rkBadge.r-1 { color:var(--muted); font-weight:700; }
+  .rkBadge.r0 { border-color:#d6893a; } .rkBadge.r1 { border-color:#aab6c6; }
+  .rkBadge.r2 { border-color:#f5c518; } .rkBadge.r3 { border-color:#22d3ee; }
+  .rkBadge.r4 { border-color:#a78bfa; box-shadow:0 0 12px -3px #a78bfa; }
+  .rkBadge.r5 { border-color:#fb7185; box-shadow:0 0 14px -2px #fb7185; }
+  .rkIcon { flex:0 0 auto; display:block; }
+  .rkIcon .f { fill:var(--rk); stroke:rgba(0,0,0,.4); stroke-width:1; stroke-linejoin:round; }
+  .rkIcon .in { fill:none; stroke:rgba(0,0,0,.42); stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
+  .rkIcon .hi { fill:rgba(255,255,255,.55); }
+  .rkIcon .ghostRing { fill:none; stroke:var(--muted); stroke-width:1.6; stroke-dasharray:3 3; opacity:.7; }
+  .rkName { display:inline-flex; align-items:center; gap:8px; font-weight:800; }
   .rkNote { font-size:.7rem; color:var(--muted); }
   .rkBar { height:8px; border-radius:6px; background:var(--line); overflow:hidden; margin-top:8px; }
   .rkBar b { display:block; height:100%; width:0; border-radius:6px; background:linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .9s cubic-bezier(.2,.8,.2,1); }
   .rkNext { font-size:.72rem; color:var(--muted); margin-top:6px; }
   .rkInfo { margin-top:10px; font-size:.8rem; color:var(--muted); }
   .rkInfo summary { cursor:pointer; color:var(--accent2); font-weight:700; }
-  .rkInfo ul { margin:8px 0 0; padding-left:18px; line-height:1.7; color:var(--fg); }
+  .rkInfo ul { margin:8px 0 0; padding:0; list-style:none; display:grid; gap:6px; color:var(--fg); }
+  .rkInfo li { display:flex; gap:8px; align-items:flex-start; line-height:1.4; }
+  .rkInfo li .rkIcon { margin-top:1px; }
   .rkTip { margin:8px 0 0; line-height:1.5; }
   .expSelect { width:100%; font:inherit; font-weight:700; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--panel-solid); color:var(--fg); }
   .gstatList { display:grid; gap:10px; }
@@ -424,23 +473,6 @@
   .refList a { color: var(--accent2); }
   .rarityKey { font-size:.78rem; color:var(--muted); line-height:1.6; margin-top:10px; }
 
-  .gGrid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)) !important; gap: 10px !important; }
-  .gGame { padding: 10px !important; border-radius: 14px !important; text-align: center; display: flex; flex-direction: column; align-items: center; }
-  .gGame .preview { height: 60px !important; width: 100%; }
-  .gGame h2 { font-size: .8rem !important; margin: 8px 0 2px !important; }
-  .gGame p, .gGame .rkNote, .gGame .rkNext, .gGame .rkInfo { display: none !important; }
-  .gGame .best { margin-top: 4px !important; font-size: .7rem !important; }
-  .gGame .rk { margin-top: 6px !important; width: 100%; }
-  .gGame .rkBar { margin-top: 4px !important; }
-  /* taller, vertical layout for Brain games */
-  .gGrid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 18px !important; }
-  .gGame { padding: 18px !important; border-radius: 20px !important; min-height: 340px; }
-  .gGame .preview { height: 180px !important; }
-  .gGame h2 { font-size: 1.1rem !important; margin: 14px 0 4px !important; }
-  .gGame p { display: block !important; font-size: .88rem !important; }
-  .gGame .best { font-size: .85rem !important; margin-top: 8px !important; }
-  .gGame .rk { display: block !important; margin-top: 12px !important; width: 100%; }
-  .gGame .rkNote, .gGame .rkNext { display: block !important; }
   #gStage { min-height: 520px !important; }
   #gStage #arena { height: 440px !important; }
   #gStage #testCard { width: 100%; border: 0; box-shadow: none; background: transparent; padding: 0; }
@@ -453,18 +485,17 @@
   #gInfo #exBlock { display: grid; gap: 4px; }
 
   /* while one game is open, hide every other tile and heading */
-  body.game-open .gGrid, body.game-open .gGroupTitle, body.game-open .rarityKey { display: none !important; }
-  .gGroup { margin-top: 20px; }
-  .gGroup:first-child { margin-top: 0; }
-  .gGroupTitle { font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  body.game-open .gGrid, body.game-open .gGroupHead, body.game-open .rkLegend, body.game-open .gTools, body.game-open .gSummary, body.game-open .gEmpty { display: none !important; }
   body.game-open #p-all > .card > .card-head, body.game-open #gamesCard > .card-head, body.game-open #p-vision > .card > .card-head, body.game-open #p-originals > .card > .card-head, body.game-open #p-classics > .card > .card-head { display: none !important; }
 
   .closeX { width:48px; height:48px; flex:0 0 48px; border-radius:50%; border:2px solid #ef4444; background:transparent;
             color:#ef4444; font-size:1.6rem; line-height:1; font-weight:800; padding:0; display:grid; place-items:center; }
   .closeX:hover { background:#ef4444; color:#fff; }
 
-  .cats button, .subTabs button { border: 2px solid var(--accent) !important; font-weight: 800; }
-  .cats button[aria-selected="true"], .subTabs button[aria-selected="true"] { border-color: var(--accent3) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent3) 35%, transparent); }
+  /* tabs: thin soft outlines, a clear fill on the selected one */
+  .cats button, .subTabs button { border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line)); font-weight: 800; }
+  .cats button:hover, .subTabs button:hover { border-color: color-mix(in srgb, var(--accent) 65%, var(--line)); }
+  .cats button[aria-selected="true"], .subTabs button[aria-selected="true"] { border-color: transparent; box-shadow: 0 8px 22px -10px var(--accent); }
   .subTabs button { background: var(--panel-solid); color: var(--fg); }
   .subTabs button[aria-selected="true"] { background: linear-gradient(135deg, var(--accent), var(--accent3)); color: #fff; }
 
@@ -479,13 +510,6 @@
     .cats button small { font-size: .62rem; }
     .subTabs button { padding: 8px 12px; font-size: .85rem; }
     .card { padding: 14px; border-radius: 16px; }
-    .gGrid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
-    .gGame { min-height: 0 !important; padding: 10px !important; border-radius: 14px !important; }
-    .gGame .preview { height: 96px !important; }
-    .gGame h2 { font-size: .9rem !important; }
-    .gGame p { display: none !important; }
-    .gGame .rk { display: none !important; }
-    .gGame .best { font-size: .72rem !important; }
     #gScreen { padding: 14px !important; scroll-margin-top: 130px; }
     #gStage { min-height: 0 !important; }
     #gStage #arena { height: 320px !important; }
@@ -521,8 +545,6 @@
     .subTabs { margin-top: 8px; }
     .subTabs button { padding: 7px 14px; font-size: .86rem; border-radius: 999px; }
     .closeX { width: 40px; height: 40px; flex-basis: 40px; font-size: 1.3rem; }
-    .gGame { padding: 14px !important; }
-    .gGame h2 { font-size: .98rem !important; }
     .btnrow { gap: 8px; margin-top: 12px; }
   }
 
@@ -678,7 +700,8 @@
       <div id="gInfo"></div>
     </section>
     <div class="gGrid" id="gGrid"></div>
-    <p class="rarityKey">Ranks: Bronze, Silver, Gold, Platinum, Diamond. The rarity lines are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
+    <div class="rkLegend"></div>
+    <p class="rarityKey">Open a game to see what each rank needs. Ranks are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
   </section>
   </div>
 
@@ -829,7 +852,17 @@
 
   <div class="panel" id="p-all" role="tabpanel" data-panel="all">
   <section class="card reveal">
-    <div class="card-head"><h2>All games</h2><span class="gMuted">Every game and reaction mode in one place</span></div>
+    <div class="card-head"><h2>All games</h2><span class="gMuted" id="aCount">Every game and reaction mode in one place</span></div>
+    <div class="gTools">
+      <input type="search" id="gSearch" placeholder="Search games" aria-label="Search games" autocomplete="off">
+      <div class="fChips" id="gSkillChips" role="group" aria-label="Filter by skill"></div>
+      <select id="gStatus" aria-label="Filter by progress">
+        <option value="all">Any progress</option><option value="new">Not played yet</option>
+        <option value="played">Played</option><option value="gold">Gold rank or higher</option>
+      </select>
+    </div>
+    <div class="gSummary" id="gSummary"></div>
+    <div class="rkLegend"></div>
     <div id="aGrid"></div>
   </section>
   </div>
@@ -985,6 +1018,27 @@
     { name: 'Average',     max: 260,      rare: 'the middle half',  range: '230–259 ms',   pct: 50 },
     { name: 'Developing',  max: Infinity, rare: 'slower than most', range: '260 ms+',      pct: 25 }
   ];
+  // Rank symbols: one emblem per rank, drawn in SVG so they stay sharp at any size.
+  const RANK_COLOURS = ['#d6893a', '#b8c4d4', '#f5c518', '#22d3ee', '#a78bfa', '#fb7185'];
+  const RANK_SHAPES = [
+    '<circle class="f" cx="12" cy="12" r="9.5"/><circle class="in" cx="12" cy="12" r="5.2"/><circle class="hi" cx="12" cy="12" r="1.7"/>',
+    '<path class="f" d="M12 2.5l8 3v6.2c0 4.5-3.3 8.1-8 9.8-4.7-1.7-8-5.3-8-9.8V5.5z"/><path class="in" d="M8.2 10.2l3.8 3 3.8-3M8.2 13.8l3.8 3 3.8-3"/>',
+    '<path class="f" d="M12 2.4l2.9 6 6.6.9-4.8 4.6 1.2 6.6L12 17.4l-5.9 3.1 1.2-6.6L2.5 9.3l6.6-.9z"/>',
+    '<path class="f" d="M12 2.2l8.2 4.7v9.4L12 21l-8.2-4.7V6.9z"/><path class="in" d="M12 7l4 2.3v4.4L12 16l-4-2.3V9.3z"/>',
+    '<path class="f" d="M7.2 3.5h9.6L22 9.4 12 21 2 9.4z"/><path class="in" d="M2 9.4h20M7.2 3.5l2.3 5.9L12 21l2.5-11.6 2.3-5.9"/>',
+    '<path class="f" d="M2.8 18.8L2.2 6.8l5.1 4.3L12 3.6l4.7 7.5 5.1-4.3-.6 12z"/><rect class="f" x="3" y="19.6" width="18" height="2.4" rx="1"/><circle class="hi" cx="12" cy="13.4" r="1.6"/>'
+  ];
+  function rankIcon(idx, size) {
+    size = size || 18;
+    if (idx == null || idx < 0 || idx > 5) {
+      return '<svg class="rkIcon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true"><circle class="ghostRing" cx="12" cy="12" r="8.5"/></svg>';
+    }
+    return '<svg class="rkIcon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true" style="--rk:' + RANK_COLOURS[idx] + '">' + RANK_SHAPES[idx] + '</svg>';
+  }
+  function rankBadge(idx, name) { return '<span class="rkBadge r' + (idx == null ? -1 : idx) + '">' + rankIcon(idx, 18) + esc(name) + '</span>'; }
+  function rankName(idx, name) { return '<span class="rkName">' + rankIcon(idx, 20) + esc(name) + '</span>'; }
+  // The reaction tiers on the first page have seven steps. They share the six symbols; the lowest step has none.
+  const tierRankIdx = (i) => (i >= 0 && i <= 5 ? 5 - i : -1);
   const BADGES = [
     { id: 'first',   ico: '▶',  name: 'First run',      desc: 'Save your first run',          test: s => s.runs >= 1 },
     { id: 'ten',     ico: '⟳',  name: 'Ten runs',       desc: 'Save 10 runs',                 test: s => s.runs >= 10 },
@@ -1383,7 +1437,7 @@
     }
     $('ladder').innerHTML = TIERS.map((t, i) =>
       '<div class="tier' + (i === cur ? ' current' : '') + '">' +
-        '<div><b>' + esc(t.name) + '</b></div>' +
+        '<div>' + rankName(tierRankIdx(i), t.name) + '</div>' +
         '<div class="range">' + esc(t.range) + '</div>' +
         '<div class="rare">' + esc(t.rare) + '</div>' +
       '</div>'
@@ -1650,6 +1704,24 @@
       const tries = list.flatMap(r => r.tries);
       const m = mean(tries);
       return m == null ? 'Not played yet' : 'Average ' + Math.round(m) + ' ms';
+    },
+    played(mode) { return runs.some(r => (r.mode || 'simple') === mode); },
+    rank(mode) {
+      const m = mean(runs.filter(r => (r.mode || 'simple') === mode).flatMap(r => r.tries));
+      if (m == null) return { idx: -1, name: 'Unranked', pct: 0 };
+      if (mode === 'simple') {
+        const i = tierIndex(m);
+        const top = i > 0 ? TIERS[i - 1].max : 0;
+        const low = TIERS[i].max === Infinity ? 320 : TIERS[i].max;
+        return { idx: tierRankIdx(i), name: TIERS[i].name, pct: i === 0 ? 100 : Math.max(0, Math.min(100, (low - m) / (low - top) * 100)) };
+      }
+      const mr = modeRank(mode, m), cuts = MODE_RANK_CUTS[mode];
+      let pct = 100;
+      if (mr.idx < cuts.length - 1) {
+        const from = mr.idx < 0 ? cuts[0] * 1.5 : cuts[mr.idx], to = cuts[mr.idx + 1];
+        pct = Math.max(0, Math.min(100, (from - m) / (from - to) * 100));
+      }
+      return { idx: mr.idx, name: mr.name, pct };
     },
     showGame(id) { document.body.classList.add('game-open'); openInfo('game:' + id); },
     open(mode) {
@@ -1989,11 +2061,11 @@
       const tries = runs.filter(r => (r.mode || 'simple') === k).flatMap(r => r.tries);
       const best = tries.length ? Math.min(...tries) : null;
       const avg = mean(tries);
-      let rank = 'Unranked';
-      if (k === 'simple' && avg != null) rank = TIERS[tierIndex(avg)].name;
-      else if (k !== 'simple') rank = modeRank(k, avg).name;
+      let rank = 'Unranked', rIdx = -1;
+      if (k === 'simple' && avg != null) { rank = TIERS[tierIndex(avg)].name; rIdx = tierRankIdx(tierIndex(avg)); }
+      else if (k !== 'simple') { const mr = modeRank(k, avg); rank = mr.name; rIdx = mr.idx; }
       rows.push({ name: MODES[k].label + ' reaction', sub: 'Reaction mode', best: best == null ? '—' : best + ' ms',
-        avg: avg == null ? '—' : Math.round(avg) + ' ms', rank: rank });
+        avg: avg == null ? '—' : Math.round(avg) + ' ms', rank: rank, rIdx: rIdx });
     });
     const scores = gameScoresList();
     window.ReactionLabGames.GAMES.forEach(g => {
@@ -2001,13 +2073,13 @@
       const best = vals.length ? (g.higherBetter ? Math.max(...vals) : Math.min(...vals)) : null;
       const r = window.ReactionLabGames.rankInfo(g, best);
       rows.push({ name: g.name, sub: g.cat === 'vision' ? 'Vision test' : 'Brain game',
-        best: best == null ? '—' : best + ' ' + g.unit, avg: '', rank: r.name });
+        best: best == null ? '—' : best + ' ' + g.unit, avg: '', rank: r.name, rIdx: r.idx });
     });
     host.innerHTML = rows.map(r =>
       '<div class="gstatRow"><div><div class="gname">' + esc(r.name) + '</div><div class="gsub">' + esc(r.sub) + '</div></div>' +
       '<div><div class="gsub">Best</div><div class="gnum">' + esc(r.best) + '</div></div>' +
       '<div><div class="gsub">Average</div><div class="gnum">' + esc(r.avg || '—') + '</div></div>' +
-      '<div><div class="gsub">Rank</div><span class="rkBadge">' + esc(r.rank) + '</span></div></div>'
+      '<div><div class="gsub">Rank</div>' + rankBadge(r.rIdx, r.rank) + '</div></div>'
     ).join('');
   }
   function renderProfile() {
@@ -2166,21 +2238,15 @@
     track: 'Follow the centre of the target, not its edge, and keep the cursor close.'
   };
   // a short list of every rank and what score it needs
-  function rankGuide(g) {
+  function rankGuide(g, withTip) {
     const cuts = RANK_CUTS[g.id];
     const rows = RANK_NAMES.map((name, i) => {
       const need = g.higherBetter ? cuts[i] + ' ' + g.unit + ' or more' : 'under ' + cuts[i] + ' ' + g.unit;
-      return '<li><b>' + esc(name) + '</b>: ' + esc(need) + ' <span class="rkNote">(' + esc(RARITY[i]) + ', rough guide)</span></li>';
+      return '<li>' + rankIcon(i, 18) + '<span><b>' + esc(name) + '</b>: ' + esc(need) + ' <span class="rkNote">(' + esc(RARITY[i]) + ', rough guide)</span></span></li>';
     }).join('');
     return '<details class="rkInfo"><summary>How to get each rank</summary>' +
       '<ul>' + rows + '</ul>' +
-      '<p class="rkTip"><b>Tip:</b> ' + esc(TIPS[g.id] || '') + '</p></details>';
-  }
-  function rankHtml(g, best) {
-    const r = rankInfo(g, best);
-    return '<div class="rk"><div class="rkTop"><span class="rkBadge r' + r.idx + '">' + esc(r.name) + '</span><span class="rkNote">' + esc(r.note) + '</span></div>' +
-      '<div class="rkBar"><b style="width:' + r.pct.toFixed(0) + '%"></b></div>' +
-      '<div class="rkNext">' + esc(r.next) + '</div>' + rankGuide(g) + '</div>';
+      (withTip ? '<p class="rkTip"><b>Tip:</b> ' + esc(TIPS[g.id] || '') + '</p>' : '') + '</details>';
   }
   function bestOf(id) {
     const g = GAMES.find(x => x.id === id);
@@ -2188,30 +2254,93 @@
     if (!list.length) return null;
     return g.higherBetter ? Math.max(...list.map(s => s.score)) : Math.min(...list.map(s => s.score));
   }
-  function gameTile(g) {
-    const b = bestOf(g.id);
-    return '<button class="gGame" data-id="' + g.id + '"><div class="preview">' + (PREVIEW[g.id] || '') + '</div>' +
-      '<h2>' + esc(g.name) + '</h2><p>' + esc(g.desc) + '</p>' +
-      '<div class="best">' + (b == null ? 'Not played yet' : 'Best: ' + b + ' ' + esc(g.unit)) + '</div>' + rankHtml(g, b) + '</button>';
+  // How the games are grouped on the All games page, with the skill each one trains.
+  const SKILLS = [
+    { id: 'reaction', label: 'Reaction', blurb: 'How fast you respond to something that appears.' },
+    { id: 'memory', label: 'Memory', blurb: 'Hold patterns, numbers and positions in your head.' },
+    { id: 'focus', label: 'Focus', blurb: 'Stay sharp when rules, colours and distractions fight back.' },
+    { id: 'vision', label: 'Vision', blurb: 'Fun drills for spotting, tracking and edge-of-view awareness. Not a medical test.' },
+    { id: 'precision', label: 'Precision', blurb: 'Timing, aim and steady control.' },
+    { id: 'stamina', label: 'Stamina', blurb: 'Speed you have to keep up for several seconds.' }
+  ];
+  const SKILL_OF = {
+    'r-simple': 'reaction', 'r-audio': 'reaction', 'r-target': 'reaction', 'r-arrows': 'reaction',
+    pop: 'reaction', speedround: 'reaction', dodge: 'reaction', impossible: 'reaction', targetrush: 'reaction',
+    seq: 'memory', num: 'memory', word: 'memory', vis: 'memory', blink: 'memory',
+    colour: 'vision', peri: 'vision', multi: 'vision',
+    colortrap: 'focus', flip: 'focus', dual: 'focus', mirror: 'focus', schulte: 'focus', ord: 'focus',
+    nerve: 'precision', pulse: 'precision', bullseye: 'precision', ghost: 'precision', cascade: 'precision', track: 'precision',
+    type: 'stamina', cps: 'stamina', space: 'stamina', sprint: 'stamina'
+  };
+  const skillLabel = (id) => (SKILLS.find(k => k.id === SKILL_OF[id]) || { label: '' }).label;
+  function gameItem(g) {
+    const b = bestOf(g.id), r = rankInfo(g, b);
+    return { id: g.id, name: g.name, desc: g.desc, preview: PREVIEW[g.id] || '', best: b == null ? 'Not played yet' : 'Best: ' + b + ' ' + g.unit, played: b != null, idx: r.idx, rank: r.name, pct: r.pct };
+  }
+  function modeItem(t) {
+    const br = window.ReactionLabBridge;
+    const r = br.rank(t.mode);
+    return { id: t.id, name: t.name, desc: t.desc, preview: t.preview, best: br.summary(t.mode), played: br.played(t.mode), idx: r.idx, rank: r.name, pct: r.pct };
+  }
+  function tileHtml(it) {
+    return '<button class="gGame" data-id="' + it.id + '"><div class="preview">' + it.preview + '<span class="gTag">' + esc(skillLabel(it.id)) + '</span></div>' +
+      '<h2>' + esc(it.name) + '</h2><p>' + esc(it.desc) + '</p>' +
+      '<div class="gFoot"><div class="gFootRow"><span class="best">' + esc(it.best) + '</span>' + rankBadge(it.idx, it.rank) + '</div>' +
+      '<div class="rkBar"><b style="width:' + it.pct.toFixed(0) + '%"></b></div></div></button>';
+  }
+  const gameTile = (g) => tileHtml(gameItem(g));
+  let fSkill = 'all', fStatus = 'all', fQuery = '';
+  function statusOk(it) {
+    if (fStatus === 'new') return !it.played;
+    if (fStatus === 'played') return it.played;
+    if (fStatus === 'gold') return it.idx >= 2;
+    return true;
+  }
+  function renderLegend() {
+    document.querySelectorAll('.rkLegend').forEach(el => {
+      el.innerHTML = '<em>Rank symbols:</em>' + RANK_NAMES.map((n, i) => '<span>' + rankIcon(i, 18) + esc(n) + '</span>').join('') +
+        '<em>(rough guides, not measured data)</em>';
+    });
+  }
+  function renderAllPage() {
+    const items = REACTION_TILES.map(modeItem).concat(GAMES.map(gameItem));
+    const q = fQuery.trim().toLowerCase();
+    const shown = items.filter(it => (fSkill === 'all' || SKILL_OF[it.id] === fSkill) && statusOk(it) &&
+      (!q || (it.name + ' ' + it.desc + ' ' + skillLabel(it.id)).toLowerCase().includes(q)));
+    $('aCount').textContent = shown.length === items.length ? items.length + ' games and modes' : shown.length + ' of ' + items.length + ' shown';
+    const counts = RANK_NAMES.map((n, i) => items.filter(it => it.idx === i).length);
+    $('gSummary').innerHTML =
+      '<span class="gSumItem">Played <b>' + items.filter(it => it.played).length + ' of ' + items.length + '</b></span>' +
+      counts.map((c, i) => c ? '<span class="gSumItem">' + rankIcon(i, 16) + '<b>' + c + '</b> ' + esc(RANK_NAMES[i]) + '</span>' : '').join('');
+    const groups = SKILLS.map(k => {
+      const list = shown.filter(it => SKILL_OF[it.id] === k.id);
+      if (!list.length) return '';
+      return '<div class="gGroup"><div class="gGroupHead"><h3 class="gGroupTitle">' + esc(k.label) + '</h3><span class="gCount">' + list.length + '</span>' +
+        '<span class="gBlurb">' + esc(k.blurb) + '</span></div><div class="gGrid">' + list.map(tileHtml).join('') + '</div></div>';
+    }).join('');
+    $('aGrid').innerHTML = groups || '<p class="gEmpty">No games match. Try a different word or clear the filters.</p>';
+    $('aGrid').querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
+  }
+  function initToolbar() {
+    const chips = $('gSkillChips');
+    chips.innerHTML = [{ id: 'all', label: 'All' }].concat(SKILLS).map(k => '<button class="fChip" data-skill="' + k.id + '" aria-pressed="' + (k.id === fSkill) + '">' + esc(k.label) + '</button>').join('');
+    chips.addEventListener('click', (e) => {
+      const b = e.target.closest('.fChip'); if (!b) return;
+      fSkill = b.dataset.skill;
+      chips.querySelectorAll('.fChip').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      renderAllPage();
+    });
+    $('gSearch').addEventListener('input', (e) => { fQuery = e.target.value; renderAllPage(); });
+    $('gStatus').addEventListener('change', (e) => { fStatus = e.target.value; renderAllPage(); });
   }
   function renderGrid() {
-    $('gGrid').innerHTML = REACTION_TILES.map(t =>
-      '<button class="gGame" data-id="' + t.id + '"><div class="preview">' + t.preview + '</div>' +
-      '<h2>' + esc(t.name) + '</h2><p>' + esc(t.desc) + '</p>' +
-      '<div class="best">' + esc(window.ReactionLabBridge.summary(t.mode)) + '</div></button>'
-    ).join('') + GAMES.filter(g => (g.cat || 'brain') === 'brain').map(gameTile).join('');
+    const modes = REACTION_TILES.map(modeItem);
+    $('gGrid').innerHTML = modes.map(tileHtml).join('') + GAMES.filter(g => (g.cat || 'brain') === 'brain').map(gameTile).join('');
     $('vGrid').innerHTML = GAMES.filter(g => g.cat === 'vision').map(gameTile).join('');
     $('oGrid').innerHTML = GAMES.filter(g => g.cat === 'originals').map(gameTile).join('');
-    const reactionHtml = REACTION_TILES.map(t =>
-      '<button class="gGame" data-id="' + t.id + '"><div class="preview">' + t.preview + '</div>' +
-      '<h2>' + esc(t.name) + '</h2><p>' + esc(t.desc) + '</p>' +
-      '<div class="best">' + esc(window.ReactionLabBridge.summary(t.mode)) + '</div></button>'
-    ).join('');
-    const group = (title, body) => '<div class="gGroup"><h3 class="gGroupTitle">' + esc(title) + '</h3><div class="gGrid">' + body + '</div></div>';
-    const cat = (c) => GAMES.filter(g => (g.cat || 'brain') === c).map(gameTile).join('');
-    $('aGrid').innerHTML = group('Reaction modes', reactionHtml) + group('Memory and speed', cat('brain')) +
-      group('Vision', cat('vision')) + group('Originals', cat('originals')) + group('Reaction classics', cat('classics'));
     $('cGrid').innerHTML = GAMES.filter(g => g.cat === 'classics').map(gameTile).join('');
+    renderAllPage();
+    renderLegend();
     document.querySelectorAll('.gGame').forEach(b => b.addEventListener('click', () => openGame(b.dataset.id)));
   }
   function renderScores() {
@@ -2263,9 +2392,9 @@
       '<p class="gGateDesc">' + esc(g.desc) + '</p>' +
       (TIPS[g.id] ? '<p class="gGateTip"><b>Tip:</b> ' + esc(TIPS[g.id]) + '</p>' : '') +
       '<div class="gGateStats"><span>Best: <b>' + (bestNow == null ? '—' : esc(bestNow + ' ' + g.unit)) + '</b></span>' +
-      '<span class="rkBadge r' + rk.idx + '">' + esc(rk.name) + '</span></div>' +
+      '' + rankBadge(rk.idx, rk.name) + '</div>' +
       '<button class="btn primary gStartBtn" id="gStart">Start</button>' +
-      '<p class="gGateHint">Press Enter or tap Start</p>';
+      '<p class="gGateHint">Press Enter or tap Start</p>' + rankGuide(g, false);
     stage.appendChild(gate);
     $('gStart').addEventListener('click', () => {
       if (token !== running) return;
@@ -2290,7 +2419,7 @@
       '<div class="gResultLabel">Your score</div>' +
       '<div class="big gResultScore">' + esc(shown) + '</div>' +
       (isBest ? '<div class="gResultBest">New personal best</div>' : '<div class="gResultSub">Personal best: ' + esc(best + ' ' + g.unit) + '</div>') +
-      '<div class="gResultRank"><span class="rkBadge r' + rk.idx + '">' + esc(rk.name) + '</span><span class="rkNote">' + esc(rk.note) + '</span></div>' +
+      '<div class="gResultRank">' + rankBadge(rk.idx, rk.name) + '<span class="rkNote">' + esc(rk.note) + '</span></div>' +
       '<div class="rkBar" style="width:min(320px,80vw)"><b style="width:' + rk.pct.toFixed(0) + '%"></b></div>' +
       '<div class="rkNext">' + esc(rk.next) + '</div>' +
       '<div class="gResultBtns"><button class="btn primary" id="again">Play again</button><button class="btn" id="gShare">Share score</button><button class="btn" id="gBack">Back to games</button></div>' +
@@ -3315,9 +3444,10 @@
     round();
   };
 
+  initToolbar();
   renderGrid();
   renderScores();
-  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY, TIPS, open: openGame,
+  window.ReactionLabGames = { GAMES, rankInfo, RANK_NAMES, RANK_CUTS, RARITY, TIPS, SKILLS, SKILL_OF, RANK_SHAPES, RANK_COLOURS, open: openGame,
     stop() {
       if (!document.getElementById('gScreen').classList.contains('on')) return;
       running++;
@@ -3517,7 +3647,7 @@
       row.className = 'gstatRow';
       row.innerHTML =
         '<div><div class="gname">' + esc(g.name) + '</div><div class="gsub">' + esc(g.unit) + '</div></div>' +
-        '<div><div class="gsub">Rank</div><span class="rkBadge r' + r.idx + '">' + esc(r.name) + '</span></div>' +
+        '<div><div class="gsub">Rank</div>' + rankBadge(r.idx, r.name) + '</div>' +
         '<div><div class="gsub">Best / average</div><div class="gnum">' + (best == null ? '—' : best) + ' / ' + (avg == null ? '—' : avg) + '</div><div class="gsub">' + mine.length + (mine.length === 1 ? ' play' : ' plays') + '</div></div>' +
         '<div><div class="gsub">Next: ' + esc(r.next) + '</div><div class="rkBar"><b style="width:' + r.pct.toFixed(0) + '%"></b></div></div>';
       host.appendChild(row);
@@ -3607,14 +3737,14 @@
     if (key === 'simple') {
       $('exRankNote').textContent = 'Tiers from the Benchmarks research (rough guide)';
       $('exRanks').innerHTML = '<div class="ladder">' + TIERS.map((t, i) =>
-        '<div class="tier' + (avg != null && tierIndex(avg) === i ? ' current' : '') + '"><div><b>' + esc(t.name) + '</b></div><div class="range">' + esc(t.range) + '</div><div class="rare">' + esc(t.rare) + '</div></div>'
+        '<div class="tier' + (avg != null && tierIndex(avg) === i ? ' current' : '') + '"><div>' + rankName(tierRankIdx(i), t.name) + '</div><div class="range">' + esc(t.range) + '</div><div class="rare">' + esc(t.rare) + '</div></div>'
       ).join('') + '</div>';
     } else {
       const cuts = MODE_RANK_CUTS[key];
       const mr = modeRank(key, avg);
       $('exRankNote').textContent = key === 'audio' ? 'Rough guide, near the research range' : 'Rough guide, my own estimate';
       $('exRanks').innerHTML = '<div class="ladder">' + MODE_RANK_NAMES.map((name, i) =>
-        '<div class="tier' + (mr.idx === i ? ' current' : '') + '"><div><b>' + esc(name) + '</b></div><div class="range">under ' + cuts[i] + ' ms</div><div class="rare">' + (mr.idx === i ? 'Your rank' : '') + '</div></div>'
+        '<div class="tier' + (mr.idx === i ? ' current' : '') + '"><div>' + rankName(i, name) + '</div><div class="range">under ' + cuts[i] + ' ms</div><div class="rare">' + (mr.idx === i ? 'Your rank' : '') + '</div></div>'
       ).join('') + '</div>';
     }
     // references
@@ -3648,7 +3778,7 @@
     $('exRanks').innerHTML = '<div class="ladder">' + RANK_NAMES.map((name, i) => {
       const cut = RANK_CUTS[key][i];
       const need = g.higherBetter ? cut + ' ' + g.unit + ' or more' : 'under ' + cut + ' ' + g.unit;
-      return '<div class="tier' + (r.idx === i ? ' current' : '') + '"><div><b>' + esc(name) + '</b></div><div class="range">' + esc(need) + '</div><div class="rare">' + esc(RARITY[i]) + '</div></div>';
+      return '<div class="tier' + (r.idx === i ? ' current' : '') + '"><div>' + rankName(i, name) + '</div><div class="range">' + esc(need) + '</div><div class="rare">' + esc(RARITY[i]) + '</div></div>';
     }).join('') + '</div>';
     $('exRefs').innerHTML = '<p class="muted" style="margin:0">Game ranks are my own estimates. No published norms were found for these games, so treat them as game goals rather than research numbers.</p>';
   }
