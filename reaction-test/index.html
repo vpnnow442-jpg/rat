@@ -2035,7 +2035,7 @@
     { id:'colour', name:'Colour Spot', desc:'Find the one square with a slightly different colour. It gets harder each level.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
     { id:'odd', name:'Odd Letter', desc:'Spot the letter that does not match the others. Look closely.', unit:'levels', higherBetter:true, preview:'', cat:'vision' },
     { id:'peri', name:'Edge Flash', desc:'Keep your eyes on the centre dot and click the targets that flash at the edges.', unit:'hits of 20', higherBetter:true, preview:'', cat:'vision' },
-    { id:'multi', name:'Track Three', desc:'Remember 3 highlighted dots, then track them as they move and pick them out.', unit:'correct of 9', higherBetter:true, preview:'', cat:'vision' },
+    { id:'multi', name:'Track Three', desc:'Remember the highlighted dot, then track it as it moves and pick it out.', unit:'correct of 6', higherBetter:true, preview:'', cat:'vision' },
   ];
 
   const PREVIEW = {
@@ -2052,7 +2052,7 @@
     colour: '<div class="pv"><div class="pv-grid">' + '<i></i>'.repeat(9) + '</div></div>',
     odd: '<div class="pv"><span class="pv-word">b d</span></div>',
     peri: '<div class="pv"><div class="pv-ring"></div></div>',
-    multi: '<div class="pv"><div class="pv-row"><span>●</span><span>●</span><span>●</span></div></div>'
+    multi: '<div class="pv"><div class="pv-dot"></div></div>'
   };
   // Rank cut-offs per game, from Bronze up to Diamond. Each is a score you need to reach.
   const RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'];
@@ -2060,7 +2060,7 @@
     seq: [4, 7, 10, 13, 16], num: [4, 6, 8, 10, 12], word: [10, 14, 17, 19, 20], vis: [3, 6, 9, 12, 15],
     ord: [3500, 2500, 1800, 1400, 1100], pop: [600, 550, 450, 380, 320],
     type: [30, 50, 70, 90, 110], cps: [4, 6, 7.5, 9, 11], space: [25, 35, 45, 55, 65], track: [30, 45, 60, 75, 90],
-    colour: [3, 5, 7, 9, 11], odd: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [3, 4, 5, 6, 8]
+    colour: [3, 5, 7, 9, 11], odd: [3, 5, 7, 9, 11], peri: [6, 9, 12, 15, 18], multi: [2, 3, 4, 5, 6]
   };
   // Rough rarity guide only. These are estimates, not measured data.
   const RARITY = ['Most players reach this', 'Roughly top 30%', 'Roughly top 10%', 'Roughly top 3%', 'Roughly top 1%'];
@@ -2607,8 +2607,8 @@
     async function playRound() {
       if (!api.alive()) return;
       round++;
-      if (round > 3) return api.finish(total);
-      const speed = 90 + round * 35;
+      if (round > 6) return api.finish(total);
+      const speed = 90 + round * 20;
       const W = area.clientWidth, H = area.clientHeight;
       dots.forEach(d => {
         d.x = 30 + Math.random() * (W - 60); d.y = 30 + Math.random() * (H - 60);
@@ -2617,26 +2617,26 @@
         d.target = false; d.el.style.background = 'var(--line)'; d.el.onclick = null; d.el.style.cursor = 'default';
         d.el.style.left = d.x + 'px'; d.el.style.top = d.y + 'px';
       });
-      const picks = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, 3);
+      const picks = [0, 1, 2, 3, 4, 5, 6, 7].sort(() => Math.random() - 0.5).slice(0, 1);
       picks.forEach(i => { dots[i].target = true; dots[i].el.style.background = 'var(--accent2)'; });
-      info.textContent = 'Round ' + round + ' of 3. Remember the 3 highlighted dots.';
+      info.textContent = 'Round ' + round + ' of 6. Remember the highlighted dot.';
       await wait(1500);
       if (!api.alive()) return;
       dots.forEach(d => { d.el.style.background = 'var(--line)'; });
       info.textContent = 'Tracking...';
       if (!(await move(4500))) return;
       const chosen = [];
-      info.textContent = 'Click the 3 dots that were highlighted.';
+      info.textContent = 'Click the dot that was highlighted.';
       dots.forEach((d, i) => {
         d.el.style.cursor = 'pointer';
         d.el.onclick = () => {
-          if (!api.alive() || chosen.includes(i) || chosen.length >= 3) return;
+          if (!api.alive() || chosen.length >= 1) return;
           chosen.push(i);
           d.el.style.background = 'var(--accent3)';
-          if (chosen.length === 3) {
+          if (chosen.length === 1) {
             const correct = chosen.filter(j => dots[j].target).length;
             total += correct;
-            info.textContent = correct + ' of 3 correct';
+            info.textContent = correct ? 'Correct!' : 'Missed it';
             dots.forEach(x => { x.el.onclick = null; });
             setTimeout(playRound, 1000);
           }
