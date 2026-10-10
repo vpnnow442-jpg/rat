@@ -783,16 +783,6 @@
   </div>
 
   <div class="panel" id="p-profile" role="tabpanel" data-panel="profile">
-  <section class="card reveal">
-    <div class="card-head"><h2>Friends board</h2><span class="muted">Ranked by overall average, fastest first</span></div>
-    <div class="addRow">
-      <input type="text" id="friendName" maxlength="24" placeholder="Friend's name" aria-label="Friend's name">
-      <button class="primary" id="friendAddBtn">Add friend backup</button>
-      <input type="file" id="friendFile" accept="application/json,.json" hidden>
-    </div>
-    <div class="tableWrap" id="board"></div>
-    <p class="note">There is no live online leaderboard yet, because that needs a server. Ask a friend to send you their backup file (they press Backup (JSON) in their History tab). Type their name, then add the file here and you will both be ranked. Their file is stored only in your browser.</p>
-  </section>
 
   <section class="card reveal">
     <div class="card-head"><h2>Your profile</h2><span class="muted">Saved only in this browser</span></div>
@@ -831,7 +821,7 @@
     <div class="privacy">
       <h3>What is stored</h3>
       <ul>
-        <li>Your profile name and colour, your runs, your goal, your mode and colour settings, and any friends' backup files you add.</li>
+        <li>Your profile name and colour, your runs, your goal, your mode and colour settings.</li>
       </ul>
       <h3>Where it is stored</h3>
       <ul>
@@ -851,7 +841,7 @@
     </div>
     <div class="dangerBox">
       <b>Delete all my data</b>
-      <p class="muted" style="margin:6px 0 0">Removes your profile, runs, goal, colours, friends and settings from this browser. This cannot be undone.</p>
+      <p class="muted" style="margin:6px 0 0">Removes your profile, runs, goal, colours and settings from this browser. This cannot be undone.</p>
       <div class="formRow">
         <input type="text" id="wipeConfirm" placeholder='Type DELETE' aria-label="Type DELETE to confirm">
         <button class="danger" id="wipeBtn">Delete everything</button>
@@ -1585,124 +1575,10 @@
     renderHist(s.all);
     renderBadges(s);
     renderHistory(animate);
-    renderBoard();
     renderBench();
     renderProfile();
     renderGameStats();
   }
-
-  // ---- compare ----
-  function weekOffsetMean(list, offset) {
-    const target = weekStart(new Date()).getTime() - offset * 7 * 24 * 3600 * 1000;
-    const inWeek = list.filter(r => weekStart(new Date(r.t)).getTime() === target);
-    return { mean: mean(inWeek.map(r => r.mean)), count: inWeek.length };
-  }
-  function renderCompare() {
-    const mr = modeRuns();
-    const thisW = weekOffsetMean(mr, 0), lastW = weekOffsetMean(mr, 1);
-    $('cThis').textContent = thisW.mean == null ? '—' : Math.round(thisW.mean) + ' ms';
-    $('cThisSub').textContent = thisW.count + (thisW.count === 1 ? ' run' : ' runs') + ' so far';
-    $('cLast').textContent = lastW.mean == null ? '—' : Math.round(lastW.mean) + ' ms';
-    $('cLastSub').textContent = lastW.count + (lastW.count === 1 ? ' run' : ' runs');
-    const dEl = $('cDelta');
-    if (thisW.mean == null || lastW.mean == null) { dEl.textContent = '—'; dEl.className = 'val'; }
-    else {
-      const d = Math.round(thisW.mean - lastW.mean);
-      dEl.textContent = (d > 0 ? '+' : '') + d + ' ms';
-      dEl.className = 'val ' + (d < 0 ? 'up' : d > 0 ? 'down' : '');
-    }
-
-    const all = mr.flatMap(r => r.tries);
-    $('pTry').textContent = all.length ? Math.min(...all) + ' ms' : '—';
-    $('pRun').textContent = mr.length ? Math.round(Math.min(...mr.map(r => r.mean))) + ' ms' : '—';
-    const weeks = new Map();
-    mr.forEach(r => {
-      const k = weekStart(new Date(r.t)).getTime();
-      if (!weeks.has(k)) weeks.set(k, []);
-      weeks.get(k).push(r.mean);
-    });
-    const weekAvgs = [...weeks.values()].map(v => mean(v));
-    $('pWeek').textContent = weekAvgs.length ? Math.round(Math.min(...weekAvgs)) + ' ms' : '—';
-
-    renderBoard();
-  }
-
-  function renderBoard() {
-    const host = $('board');
-    const s = derive();
-    const rows = [{ name: 'You', me: true, mean: s.mean, best: s.best, tries: s.tries, runs: s.runs, idx: -1 }];
-    friends.forEach((f, idx) => {
-      const fr = (f.runs || []).filter(r => (r.mode || 'simple') === currentMode);
-      const tries = fr.flatMap(r => r.tries || []);
-      rows.push({
-        name: f.name, me: false,
-        mean: mean(tries), best: tries.length ? Math.min(...tries) : null,
-        tries: tries.length, runs: fr.length, idx
-      });
-    });
-    rows.sort((a, b) => (a.mean == null) - (b.mean == null) || (a.mean - b.mean));
-
-    if (rows.length === 1 && rows[0].mean == null) {
-      host.innerHTML = '<div class="empty">Save a run, or add a friend\'s backup, to see the board.</div>';
-      return;
-    }
-    const table = document.createElement('table');
-    table.className = 'board';
-    table.innerHTML = '<thead><tr><th class="rank">#</th><th>Name</th><th>Average</th><th>Best try</th><th>Runs</th><th></th></tr></thead>';
-    const tb = document.createElement('tbody');
-    rows.forEach((r, i) => {
-      const tr = document.createElement('tr');
-      if (r.me) tr.className = 'me';
-      const cells = [];
-      const td = (text, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = text; cells.push(c); return c; };
-      td(r.mean == null ? '—' : String(i + 1), 'rank' + (i === 0 && r.mean != null ? ' top' : ''));
-      td(r.name);
-      td(fmt(r.mean));
-      td(r.best == null ? '—' : r.best + ' ms');
-      td(String(r.runs));
-      const actions = document.createElement('td');
-      if (!r.me) {
-        const del = document.createElement('button'); del.className = 'ghost'; del.textContent = 'Remove';
-        del.addEventListener('click', () => { friends.splice(r.idx, 1); writeJSON(FRIENDS_KEY, friends); renderBoard(); toast('Friend removed'); });
-        actions.appendChild(del);
-      }
-      cells.push(actions);
-      tr.append(...cells);
-      tb.appendChild(tr);
-    });
-    table.appendChild(tb);
-    host.innerHTML = '';
-    host.appendChild(table);
-  }
-
-  $('friendAddBtn').addEventListener('click', () => {
-    const name = $('friendName').value.trim();
-    if (!name) { toast('Type your friend\'s name first'); $('friendName').focus(); return; }
-    if (friends.length >= 20) { toast('Board is full (20 friends)'); return; }
-    $('friendFile').click();
-  });
-  $('friendFile').addEventListener('change', (e) => {
-    const file = e.target.files && e.target.files[0];
-    const name = $('friendName').value.trim();
-    e.target.value = '';
-    if (!file || !name) return;
-    if (file.size > 2 * 1024 * 1024) { toast('That file is too big to be a backup'); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result);
-        const list = Array.isArray(data.runs) ? data.runs.filter(r => r && Array.isArray(r.tries) && r.tries.length && r.tries.every(n => typeof n === 'number' && n > 0 && n < 5000)) : null;
-        if (!list) throw new Error('bad');
-        friends = friends.filter(f => f.name.toLowerCase() !== name.toLowerCase());
-        friends.push({ name, runs: list.slice(0, 2000) });
-        writeJSON(FRIENDS_KEY, friends);
-        $('friendName').value = '';
-        renderBoard();
-        toast('Added ' + name + ' to the board');
-      } catch (err) { toast('That is not a Reaction Lab backup file.'); }
-    };
-    reader.readAsText(file);
-  });
 
   // ---- export / import / clear ----
   function download(name, type, text) {
