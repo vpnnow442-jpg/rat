@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reaction Lab</title>
-<meta name="description" content="Test your reaction time, save every run, see your means, and find out how elite your reflexes are.">
+<meta name="description" content="Test your reaction time, save every run, track weekly progress, set goals, and see how your speed compares to elite tiers.">
 <style>
   :root {
     --bg: #0c0d10; --panel: #15171c; --line: #262932; --fg: #eef0f4; --muted: #8b90a0;
@@ -43,6 +43,8 @@
   }
   .card h2 { margin: 0 0 12px; font-size: 1.05rem; letter-spacing: -.01em; }
   .muted { color: var(--muted); font-size: .9rem; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
 
   /* test arena */
   #arena {
@@ -50,7 +52,6 @@
     align-items: center; justify-content: center; text-align: center; padding: 16px;
     background: var(--line); color: var(--fg); cursor: pointer; user-select: none;
     transition: background .25s ease, color .25s ease, transform .15s ease;
-    position: relative; overflow: hidden;
   }
   #arena:active { transform: scale(.99); }
   #arena.wait { background: var(--wait); color: #fff; }
@@ -65,13 +66,16 @@
   .dots i.done { background: var(--accent2); transform: scale(1.15); }
 
   .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-  button {
-    font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--line);
-    background: var(--bg); color: var(--fg); cursor: pointer; transition: transform .15s, border-color .2s, background .2s;
+  button, input {
+    font: inherit; font-weight: 600; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--fg);
   }
+  button { cursor: pointer; transition: transform .15s, border-color .2s, background .2s; }
   button:hover { transform: translateY(-1px); border-color: var(--accent); }
   button.primary { background: var(--accent); color: #fff; border-color: transparent; }
   button.danger:hover { border-color: var(--wait); color: var(--wait); }
+  input { font-weight: 500; width: 130px; }
+  input:focus { outline: 2px solid var(--accent); }
 
   /* stat tiles */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -79,14 +83,34 @@
   .tile .label { font-size: .78rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
   .tile .val { font-size: 1.7rem; font-weight: 800; margin-top: 4px; font-variant-numeric: tabular-nums; }
 
-  /* rank ladder */
-  .ladder { display: grid; gap: 8px; }
-  .tier { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 12px;
-          padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: .92rem;
+  /* weekly chart */
+  .chart { display: flex; align-items: flex-end; gap: 10px; height: 180px; padding-top: 10px;
+           border-bottom: 1px solid var(--line); }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+  .col .bar { width: 100%; max-width: 46px; border-radius: 8px 8px 0 0; background: linear-gradient(180deg, var(--accent2), var(--accent));
+              height: 0; transition: height .9s cubic-bezier(.2,.8,.2,1); position: relative; }
+  .col .bar.none { background: var(--line); }
+  .col .val { font-size: .75rem; font-weight: 700; margin-bottom: 6px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .col .lbl { font-size: .72rem; color: var(--muted); margin-top: 6px; white-space: nowrap; }
+
+  /* goal */
+  .goalrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .meter { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; margin-top: 14px; }
+  .meter b { display: block; height: 100%; width: 0; border-radius: 6px;
+             background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s cubic-bezier(.2,.8,.2,1); }
+  .goalMsg { margin-top: 10px; font-weight: 600; }
+  .goalMsg.hit { color: var(--go); }
+
+  /* tier compare */
+  .tierBig { font-size: 1.9rem; font-weight: 800; margin: 0; }
+  .tierSub { margin: 6px 0 0; }
+  .ladder { display: grid; gap: 8px; margin-top: 14px; }
+  .tier { display: grid; grid-template-columns: 110px 1fr auto; align-items: center; gap: 12px;
+          padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); font-size: .9rem;
           transition: transform .3s, border-color .3s, background .3s; }
   .tier.current { border-color: var(--accent2); background: rgba(34,211,238,.1); transform: translateX(4px); }
   .tier .range { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .tier .rare { font-weight: 700; color: var(--accent2); }
+  .tier .rare { font-weight: 700; color: var(--accent2); text-align: right; }
   .note { font-size: .8rem; color: var(--muted); margin-top: 10px; }
 
   /* history */
@@ -95,9 +119,9 @@
   th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
   tr { animation: fadeUp .4s ease both; }
   td.tries { color: var(--muted); font-size: .85rem; }
-  .bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 80px; }
-  .bar b { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
-           width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+  .bar2 { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; min-width: 80px; }
+  .bar2 b { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+            width: 0; transition: width .8s cubic-bezier(.2,.8,.2,1); }
   .empty { padding: 20px; text-align: center; color: var(--muted); }
 
   footer { margin-top: 28px; font-size: .8rem; color: var(--muted); text-align: center; }
@@ -111,8 +135,10 @@
   }
   @media (max-width: 560px) {
     .tier { grid-template-columns: 1fr; gap: 4px; }
+    .tier .rare { text-align: left; }
     #bigNum { font-size: 3rem; }
     #arena { height: 260px; }
+    .col .lbl { font-size: .65rem; }
   }
 </style>
 </head>
@@ -147,13 +173,33 @@
       <div class="tile"><div class="label">Best try</div><div class="val" id="sBest">—</div></div>
       <div class="tile"><div class="label">Total tries</div><div class="val" id="sTries">0</div></div>
     </div>
-    <p class="muted" id="sRank" style="margin:14px 0 0"></p>
   </section>
 
+  <div class="grid2">
+    <section class="card">
+      <h2>Compare to tiers</h2>
+      <p class="tierBig" id="tierName">—</p>
+      <p class="tierSub muted" id="tierSub">Save a run to see your tier.</p>
+      <div class="ladder" id="ladder"></div>
+      <p class="note">Percentile ranges are rough estimates, not measured data.</p>
+    </section>
+
+    <section class="card">
+      <h2>Your goal</h2>
+      <div class="goalrow">
+        <input type="number" id="goalInput" min="100" max="400" placeholder="e.g. 200" aria-label="Goal in milliseconds">
+        <button class="primary" id="goalSave">Set goal</button>
+        <button id="goalClear">Clear</button>
+      </div>
+      <div class="meter"><b id="goalFill"></b></div>
+      <p class="goalMsg" id="goalMsg">Set a target average in ms to track progress.</p>
+    </section>
+  </div>
+
   <section class="card">
-    <h2>How rare is your speed?</h2>
-    <div class="ladder" id="ladder"></div>
-    <p class="note">These percentile ranges are rough estimates from general reaction-time research, not a measured population dataset. Treat them as a guide. Elite athletes and people who train for years can get into the top bands.</p>
+    <h2>Weekly progress</h2>
+    <p class="muted" style="margin-top:0">Average of your run means for each week (lower is faster). Last 8 weeks.</p>
+    <div class="chart" id="chart"></div>
   </section>
 
   <section class="card">
@@ -163,47 +209,46 @@
       <button id="exportBtn">Export CSV</button>
       <button class="danger" id="clearBtn">Clear all history</button>
     </div>
-    <p class="note">History is saved in this browser only. Clearing your browser data will erase it, so export a CSV if you want a backup.</p>
+    <p class="note">History and your goal are saved in this browser only. Clearing your browser data erases them, so export a CSV for a backup.</p>
   </section>
 
   <footer>Built for fun and self-tracking. Stop training if you feel dizzy or get a headache.</footer>
 </div>
 
 <script>
-  const KEY = 'reactionlab-runs-v1';
+  const RUNS_KEY = 'reactionlab-runs-v1';
+  const GOAL_KEY = 'reactionlab-goal-v1';
   const TRIES_PER_RUN = 5;
   const TIERS = [
-    { name: 'Elite',       max: 150,      rare: 'roughly top 0.1%' },
-    { name: 'Exceptional', max: 170,      rare: 'roughly top 1%' },
-    { name: 'Excellent',   max: 190,      rare: 'roughly top 5%' },
-    { name: 'Very good',   max: 210,      rare: 'roughly top 15%' },
-    { name: 'Good',        max: 230,      rare: 'roughly top 35%' },
-    { name: 'Average',     max: 260,      rare: 'the middle half' },
-    { name: 'Developing',  max: Infinity, rare: 'slower than most' }
+    { name: 'Elite',       max: 150,      rare: 'roughly top 0.1%', range: 'under 150 ms' },
+    { name: 'Exceptional', max: 170,      rare: 'roughly top 1%',   range: '150–169 ms' },
+    { name: 'Excellent',   max: 190,      rare: 'roughly top 5%',   range: '170–189 ms' },
+    { name: 'Very good',   max: 210,      rare: 'roughly top 15%',  range: '190–209 ms' },
+    { name: 'Good',        max: 230,      rare: 'roughly top 35%',  range: '210–229 ms' },
+    { name: 'Average',     max: 260,      rare: 'the middle half',  range: '230–259 ms' },
+    { name: 'Developing',  max: Infinity, rare: 'slower than most', range: '260 ms+' }
   ];
-  const TIER_RANGES = ['under 150 ms', '150–169 ms', '170–189 ms', '190–209 ms', '210–229 ms', '230–259 ms', '260 ms+'];
 
   const $ = (id) => document.getElementById(id);
   const arena = $('arena'), arenaTitle = $('arenaTitle'), arenaMsg = $('arenaMsg'), bigNum = $('bigNum');
   const dots = $('dots'), saveRunBtn = $('saveRunBtn'), resetBtn = $('resetBtn');
 
-  let runs = loadRuns();          // [{ id, t, tries: [ms,...], mean }]
-  let current = [];               // tries in the run being played
-  let state = 'idle';             // idle | waiting | ready | done
+  let runs = readJSON(RUNS_KEY, []);      // [{ id, t, tries: [ms,...], mean }]
+  let goal = readJSON(GOAL_KEY, null);    // number or null
+  let current = [];
+  let state = 'idle';                     // idle | waiting | ready | done
   let timer = null, readyAt = 0;
 
-  function loadRuns() {
-    try {
-      const v = JSON.parse(localStorage.getItem(KEY));
-      return Array.isArray(v) ? v : [];
-    } catch (e) { return []; }
+  function readJSON(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; }
+    catch (e) { return fallback; }
   }
-  function persist() {
-    try { localStorage.setItem(KEY, JSON.stringify(runs)); } catch (e) { /* storage blocked, keep working in memory */ }
+  function writeJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked: keep working in memory */ }
   }
   const mean = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
   const fmt = (n) => (n == null ? '—' : Math.round(n) + ' ms');
-  function tierFor(ms) { return TIERS.findIndex(t => ms < t.max); }
+  function tierIndex(ms) { return TIERS.findIndex(t => ms < t.max); }
 
   // ---- test loop ----
   function setArena(cls, title, msg) {
@@ -251,10 +296,9 @@
     }
   }
   function onPress() {
-    if (state === 'idle') { if (current.length === 0) renderDots(); startTry(); }
+    if (state === 'idle') { startTry(); }
     else if (state === 'waiting') tooEarly();
     else if (state === 'ready') gotTry();
-    else if (state === 'done') { /* wait for save or discard */ }
   }
   function discardRun() {
     clearTimeout(timer);
@@ -265,7 +309,7 @@
   }
   function saveRun() {
     runs.unshift({ id: Date.now(), t: new Date().toISOString(), tries: current.slice(), mean: mean(current) });
-    persist();
+    writeJSON(RUNS_KEY, runs);
     discardRun();
     renderAll(true);
     setArena('', 'Saved!', 'Run added to your history. Click to go again.');
@@ -282,10 +326,10 @@
   // ---- stats ----
   function countUp(el, target) {
     if (target == null) { el.textContent = '—'; return; }
-    const start = performance.now(), from = 0, dur = 700;
+    const start = performance.now(), dur = 700;
     function step(now) {
       const p = Math.min(1, (now - start) / dur);
-      el.textContent = Math.round(from + (target - from) * (1 - Math.pow(1 - p, 3))) + ' ms';
+      el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))) + ' ms';
       if (p < 1) requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
@@ -294,40 +338,134 @@
   function renderStats() {
     const all = runs.flatMap(r => r.tries);
     const overall = mean(all);
-    const runMeans = runs.map(r => r.mean);
     countUp($('sMean'), overall);
-    countUp($('sRunMean'), mean(runMeans));
+    countUp($('sRunMean'), mean(runs.map(r => r.mean)));
     $('sBest').textContent = all.length ? Math.min(...all) + ' ms' : '—';
     $('sTries').textContent = all.length;
     $('runCount').textContent = runs.length + (runs.length === 1 ? ' run saved' : ' runs saved');
-    if (overall == null) {
-      $('sRank').textContent = 'Save a run to see where your speed ranks.';
-    } else {
-      const t = TIERS[tierFor(overall)];
-      $('sRank').textContent = 'Your overall mean is ' + Math.round(overall) + ' ms, which is ' + t.name + ' (' + t.rare + ').';
-    }
   }
 
-  function renderLadder() {
-    const all = runs.flatMap(r => r.tries);
-    const overall = mean(all);
-    const cur = overall == null ? -1 : tierFor(overall);
+  // ---- tier compare card ----
+  function renderTier() {
+    const overall = mean(runs.flatMap(r => r.tries));
+    const cur = overall == null ? -1 : tierIndex(overall);
+    if (overall == null) {
+      $('tierName').textContent = '—';
+      $('tierSub').textContent = 'Save a run to see your tier.';
+    } else {
+      const t = TIERS[cur];
+      $('tierName').textContent = t.name;
+      let sub = 'Your overall mean is ' + Math.round(overall) + ' ms, ' + t.rare + '.';
+      if (cur > 0) {
+        const next = TIERS[cur - 1];
+        const gap = Math.ceil(overall - (next.max - 1));
+        sub += ' About ' + gap + ' ms faster gets you to ' + next.name + '.';
+      } else {
+        sub += ' You are in the top tier.';
+      }
+      $('tierSub').textContent = sub;
+    }
     $('ladder').innerHTML = TIERS.map((t, i) =>
       '<div class="tier' + (i === cur ? ' current' : '') + '">' +
         '<div><b>' + t.name + '</b></div>' +
-        '<div class="range">' + TIER_RANGES[i] + '</div>' +
+        '<div class="range">' + t.range + '</div>' +
         '<div class="rare">' + t.rare + '</div>' +
       '</div>'
     ).join('');
   }
 
+  // ---- goal ----
+  function renderGoal() {
+    const overall = mean(runs.flatMap(r => r.tries));
+    const fill = $('goalFill'), msg = $('goalMsg');
+    if (goal == null) {
+      fill.style.width = '0%';
+      msg.className = 'goalMsg';
+      msg.textContent = 'Set a target average in ms to track progress.';
+      return;
+    }
+    if (overall == null) {
+      fill.style.width = '0%';
+      msg.className = 'goalMsg';
+      msg.textContent = 'Goal: under ' + goal + ' ms. Save a run to start tracking.';
+      return;
+    }
+    // progress: 0% at 260 ms (average tier), 100% when you reach the goal
+    const start = 260;
+    const pct = Math.max(0, Math.min(100, ((start - overall) / (start - goal)) * 100));
+    fill.style.width = pct + '%';
+    if (overall <= goal) {
+      msg.className = 'goalMsg hit';
+      msg.textContent = 'Goal reached! Your average ' + Math.round(overall) + ' ms is under ' + goal + ' ms.';
+    } else {
+      msg.className = 'goalMsg';
+      msg.textContent = Math.round(overall - goal) + ' ms to go to hit ' + goal + ' ms (you are at ' + Math.round(overall) + ' ms).';
+    }
+  }
+  $('goalSave').addEventListener('click', () => {
+    const v = Number($('goalInput').value);
+    if (!v || v < 100 || v > 400) { $('goalMsg').textContent = 'Pick a number between 100 and 400 ms.'; return; }
+    goal = Math.round(v);
+    writeJSON(GOAL_KEY, goal);
+    $('goalInput').value = '';
+    renderGoal();
+  });
+  $('goalClear').addEventListener('click', () => { goal = null; writeJSON(GOAL_KEY, null); renderGoal(); });
+
+  // ---- weekly chart: average of run means per week (Monday start), last 8 weeks ----
+  function weekStart(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const day = (x.getDay() + 6) % 7; // Mon = 0
+    x.setDate(x.getDate() - day);
+    return x;
+  }
+  function renderChart() {
+    const chart = $('chart');
+    const now = weekStart(new Date());
+    const weeks = [];
+    for (let i = 7; i >= 0; i--) {
+      const s = new Date(now); s.setDate(now.getDate() - i * 7);
+      weeks.push({ start: s, means: [] });
+    }
+    runs.forEach(r => {
+      const rs = weekStart(new Date(r.t)).getTime();
+      const w = weeks.find(w => w.start.getTime() === rs);
+      if (w) w.means.push(r.mean);
+    });
+    const avgs = weeks.map(w => mean(w.means));
+    const valid = avgs.filter(v => v != null);
+    const slowest = valid.length ? Math.max(...valid, 260) : 260;
+    const fastest = valid.length ? Math.min(...valid) : 0;
+    chart.innerHTML = '';
+    weeks.forEach((w, i) => {
+      const col = document.createElement('div'); col.className = 'col';
+      const v = document.createElement('div'); v.className = 'val';
+      const bar = document.createElement('div'); bar.className = 'bar';
+      const lbl = document.createElement('div'); lbl.className = 'lbl';
+      lbl.textContent = w.start.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      if (avgs[i] == null) {
+        bar.classList.add('none'); v.textContent = '';
+        bar.style.height = '4%';
+      } else {
+        v.textContent = Math.round(avgs[i]) + ' ms';
+        // taller bar = faster week, so the best week always looks tallest
+        const h = 25 + 75 * (slowest - avgs[i]) / Math.max(1, slowest - fastest + 20);
+        bar.style.height = '0%';
+        requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.height = h + '%'; }));
+      }
+      col.append(v, bar, lbl);
+      chart.appendChild(col);
+    });
+  }
+
+  // ---- history ----
   function renderHistory(animate) {
     const host = $('history');
     if (!runs.length) { host.innerHTML = '<div class="empty">No runs yet. Finish a run and hit Save.</div>'; return; }
-    const maxMean = Math.max(...runs.map(r => r.mean));
     const table = document.createElement('table');
     table.innerHTML = '<thead><tr><th>Date</th><th>Tries</th><th>Mean</th><th>Speed</th><th></th></tr></thead>';
     const tb = document.createElement('tbody');
+    const maxMean = Math.max(...runs.map(r => r.mean), 260);
     runs.forEach((r, i) => {
       const tr = document.createElement('tr');
       tr.style.animationDelay = (animate ? i * 0.04 : 0) + 's';
@@ -335,18 +473,17 @@
       const tdTries = document.createElement('td'); tdTries.className = 'tries'; tdTries.textContent = r.tries.join(', ');
       const tdMean = document.createElement('td'); tdMean.textContent = fmt(r.mean);
       const tdBar = document.createElement('td');
-      const bar = document.createElement('div'); bar.className = 'bar';
+      const bar = document.createElement('div'); bar.className = 'bar2';
       const fill = document.createElement('b');
       bar.appendChild(fill); tdBar.appendChild(bar);
       const tdDel = document.createElement('td');
       const del = document.createElement('button'); del.textContent = 'Delete';
-      del.addEventListener('click', () => { runs.splice(i, 1); persist(); renderAll(false); });
+      del.addEventListener('click', () => { runs.splice(i, 1); writeJSON(RUNS_KEY, runs); renderAll(false); });
       tdDel.appendChild(del);
       tr.append(tdDate, tdTries, tdMean, tdBar, tdDel);
       tb.appendChild(tr);
-      // faster run = longer bar, so the bar shows how quick each run was
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        fill.style.width = (100 * (1 - (r.mean - 100) / (maxMean - 100 + 1))) + '%';
+        fill.style.width = Math.max(4, 100 * (1 - (r.mean - 100) / (maxMean - 100))) + '%';
       }));
     });
     table.appendChild(tb);
@@ -356,13 +493,15 @@
 
   function renderAll(animate) {
     renderStats();
-    renderLadder();
+    renderTier();
+    renderGoal();
+    renderChart();
     renderHistory(animate);
   }
 
   $('clearBtn').addEventListener('click', () => {
     if (!runs.length) return;
-    if (confirm('Delete all saved runs? This cannot be undone.')) { runs = []; persist(); renderAll(false); }
+    if (confirm('Delete all saved runs? This cannot be undone.')) { runs = []; writeJSON(RUNS_KEY, runs); renderAll(false); }
   });
 
   $('exportBtn').addEventListener('click', () => {
