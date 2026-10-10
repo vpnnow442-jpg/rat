@@ -467,8 +467,8 @@
 
   <section class="card reveal">
     <div class="card-head"><h2>Fictional showdown</h2><span class="muted">Fun, not science</span></div>
-    <span class="fakeTag">FAN RATING, NOT REAL DATA</span>
-    <p class="muted" style="margin:0 0 14px">No one has measured these characters, so there are no real reaction times. These scores are an opinion, out of 10, based on how each character is shown in their series. Argue with them.</p>
+    <span class="fakeTag">FAN ESTIMATE, NOT MEASURED</span>
+    <p class="muted" style="margin:0 0 14px">No one has measured these characters, so these numbers are invented guesses for fun. They are based on how each character is shown in their series. Do not compare them with the real studies above.</p>
     <div class="fic" id="fic"></div>
   </section>
   </div>
@@ -1085,19 +1085,19 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
 
   // ---- fictional showdown: fan opinion, clearly labelled, not measured data ----
   const FICTIONAL = [
-    { av: '🕶️', name: 'Neo', from: 'The Matrix', score: 9.5, why: 'Dodges bullets in slow motion. The film sells him as faster than the machines.' },
-    { av: '⚔️', name: 'Levi Ackerman', from: 'Attack on Titan', score: 9.2, why: 'Famous for his speed and precise blade work, often shown reacting before others see the threat.' },
-    { av: '🔍', name: 'Kiyotaka Ayanokoji', from: 'Classroom of the Elite', score: 8.8, why: 'Shown reading people and situations very quickly, though the story is about perception more than raw speed.' },
-    { av: '🕸️', name: 'Spider-Man', from: 'Marvel', score: 8.7, why: 'His spider-sense warns him of danger before it happens, which makes him look very quick.' },
-    { av: '🗡️', name: 'Roronoa Zoro', from: 'One Piece', score: 8.1, why: 'Known for lightning-fast sword strikes. Quick, but the show rarely focuses on his reaction speed.' },
-    { av: '🏹', name: 'Katniss Everdeen', from: 'The Hunger Games', score: 7.9, why: 'A skilled archer who reacts to danger fast, shown more through hunting and survival than speed.' }
+    { av: '🕶️', name: 'Neo', from: 'The Matrix', ms: 110, why: 'Dodges bullets in slow motion. The film sells him as faster than the machines.' },
+    { av: '⚔️', name: 'Levi Ackerman', from: 'Attack on Titan', ms: 135, why: 'Famous for his speed and precise blade work, often shown reacting before others see the threat.' },
+    { av: '🔍', name: 'Kiyotaka Ayanokoji', from: 'Classroom of the Elite', ms: 160, why: 'Shown reading people and situations very quickly, though the story is about perception more than raw speed.' },
+    { av: '🕸️', name: 'Spider-Man', from: 'Marvel', ms: 120, why: 'His spider-sense warns him of danger before it happens, which makes him look very quick.' },
+    { av: '🗡️', name: 'Roronoa Zoro', from: 'One Piece', ms: 150, why: 'Known for lightning-fast sword strikes. Quick, but the show rarely focuses on his reaction speed.' },
+    { av: '🏹', name: 'Katniss Everdeen', from: 'The Hunger Games', ms: 175, why: 'A skilled archer who reacts to danger fast, shown more through hunting and survival than speed.' }
   ];
   function renderFictional() {
     const host = $('fic');
     host.innerHTML = FICTIONAL.map(c =>
       '<div class="ficCard">' +
         '<div class="ficTop"><div class="ficAv">' + c.av + '</div><div><div class="ficName">' + esc(c.name) + '</div><div class="ficFrom">' + esc(c.from) + '</div></div></div>' +
-        '<div class="ficScore"><div class="meter2"><b data-w="' + (c.score * 10) + '"></b></div><span>' + c.score.toFixed(1) + '/10</span></div>' +
+        '<div class="ficScore"><div class="meter2"><b data-w="' + Math.round(Math.max(8, Math.min(100, (250 - c.ms) / 150 * 100))) + '"></b></div><span>est. ~' + c.ms + ' ms</span></div>' +
         '<p class="ficWhy">' + esc(c.why) + '</p>' +
       '</div>'
     ).join('');
