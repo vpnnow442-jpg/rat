@@ -538,7 +538,7 @@
 
 
   <section class="card reveal" id="gamesCard">
-    <div class="card-head"><h2>Memory and speed games</h2><span class="gMuted">Tap an icon to play. Scores are tracked in Progress.</span></div>
+    <div class="card-head"><h2>Most popular</h2><span class="gMuted">Tap an icon to play. Scores are tracked in Progress.</span></div>
     <div class="gGrid" id="gGrid"></div>
     <p class="rarityKey">Ranks: Bronze, Silver, Gold, Platinum, Diamond. The rarity lines are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
     <section id="gScreen" aria-live="polite">
@@ -550,7 +550,7 @@
 
   <div class="panel" id="p-stats" role="tabpanel" data-panel="stats">
   <section class="card reveal">
-    <div class="card-head"><h2>Your numbers</h2><span class="muted">Anomalies are left out of the overall average. Raw results are still saved.</span></div>
+    <div class="card-head"><h2>Simple reaction time</h2><span class="muted">These numbers are for Simple mode, the basic reaction test. Anomalies are left out of the average.</span></div>
     <div class="stats">
       <div class="tile"><div class="label">Overall mean</div><div class="val" id="sMean">—</div><div class="sub" id="sMeanSub">all tries</div></div>
       <div class="tile"><div class="label">Last 10 runs</div><div class="val" id="sRoll">—</div><div class="sub" id="sRollSub">rolling mean</div></div>
@@ -2366,7 +2366,7 @@
   // ---- navigation: three categories, each with its own pages ----
   const CATS = [
     { id: 'play', label: 'Brain games', hint: 'Reaction tests and games', tabs: [['test', 'Brain games'], ['fan', 'Fan estimates']] },
-    { id: 'progress', label: 'Progress', hint: 'Stats and history', tabs: [['stats', 'Stats'], ['progress', 'Progress'], ['compare', 'Compare'], ['bench', 'Benchmarks'], ['history', 'History'], ['gscores', 'Game scores'], ['explore', 'Explore']] },
+    { id: 'progress', label: 'Progress', hint: 'Your stats and records', tabs: [['stats', 'Reaction stats'], ['explore', 'Any mode or game'], ['progress', 'Weekly charts'], ['compare', 'Compare weeks'], ['bench', 'Benchmarks'], ['gscores', 'Game scores'], ['history', 'Run history']] },
     { id: 'you', label: 'You', hint: 'Profile and privacy', tabs: [['profile', 'Profile']] }
   ];
   const catBar = $('catBar'), subBar = $('subBar');
