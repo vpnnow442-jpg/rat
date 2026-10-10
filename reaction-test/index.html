@@ -437,6 +437,10 @@
   #gStage #testCard { width: 100%; border: 0; box-shadow: none; background: transparent; padding: 0; }
   #gStage #testCard .card-head { display: none; }
   #gScreen { padding: 26px !important; }
+  #gInfo { margin-top: 18px; }
+  #gInfo #exBlock .card { margin-top: 14px; }
+  #gInfo #exPickCard { display: none; }
+  #gInfo #exBlock { display: grid; gap: 4px; }
 
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
@@ -559,6 +563,7 @@
     <section id="gScreen" aria-live="polite">
       <div class="gHead"><h2 id="gTitle2"></h2><button class="ghost" id="gQuit2">Quit</button></div>
       <div class="stage" id="gStage"></div>
+      <div id="gInfo"></div>
     </section>
     <div class="gGrid" id="gGrid"></div>
     <p class="rarityKey">Ranks: Bronze, Silver, Gold, Platinum, Diamond. The rarity lines are rough guides based on how hard each score is to reach. They are estimates, not measured data.</p>
@@ -739,7 +744,8 @@
   </div>
 
   <div class="panel" id="p-explore" role="tabpanel" data-panel="explore">
-  <section class="card reveal">
+  <div id="exBlock">
+  <section class="card reveal" id="exPickCard">
     <div class="card-head"><h2>Pick a mode or game</h2><span class="muted">See its numbers, ranks, goals and references</span></div>
     <select id="expPick" class="expSelect" aria-label="Choose a mode or game"></select>
   </section>
@@ -748,6 +754,7 @@
   <section class="card reveal"><div class="card-head"><h2>Goal</h2><span class="muted" id="exGoalNote"></span></div><div id="exGoal"></div></section>
   <section class="card reveal"><div class="card-head"><h2>Ranks</h2><span class="muted" id="exRankNote"></span></div><div id="exRanks"></div></section>
   <section class="card reveal"><div class="card-head"><h2>References</h2><span class="muted">Where the numbers come from</span></div><div id="exRefs"></div></section>
+  </div>
   </div>
 
   <div class="panel" id="p-profile" role="tabpanel" data-panel="profile">
@@ -1473,6 +1480,17 @@
     txt.innerHTML = '<b>' + Math.round(s.mean - goal) + ' ms to go.</b><br>Your overall average is ' + Math.round(s.mean) + ' ms. Keep going.';
   }
 
+  // ---- the info block (numbers, goal, ranks, references) moves under the game ----
+  function openInfo(k) {
+    fillExplore();
+    $('expPick').value = k;
+    $('gInfo').appendChild($('exBlock'));
+    renderExplore();
+  }
+  function closeInfo() {
+    const block = $('exBlock');
+    if (block.parentNode !== $('p-explore')) $('p-explore').appendChild(block);
+  }
   // ---- bridge: lets the Brain games grid open the reaction test ----
   let reactionInGames = false;
   const testCard = $('testCard');
@@ -1487,9 +1505,11 @@
       const m = mean(tries);
       return m == null ? 'Not played yet' : 'Average ' + Math.round(m) + ' ms';
     },
+    showGame(id) { openInfo('game:' + id); },
     open(mode) {
       if (currentMode !== mode) { currentMode = mode; writeJSON(MODE_KEY, mode); renderColors(); renderMode(); }
       resetRun();
+      openInfo('mode:' + mode);
       reactionInGames = true;
       $('gTitle2').textContent = MODES[mode].label + ' reaction';
       $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
@@ -1497,6 +1517,7 @@
       $('gStage').appendChild(testCard);
     },
     close() {
+      closeInfo();
       if (!reactionInGames) return;
       reactionInGames = false;
       clearTimeout(timer); clearTimeout(stimTimer); removeTarget();
@@ -2106,7 +2127,7 @@
     $('gScreen').classList.remove('on'); void $('gScreen').offsetWidth; $('gScreen').classList.add('on');
     $('gScreen').scrollIntoView({ behavior: 'smooth', block: 'start' });
     const stage = $('gStage');
-    if (window.ReactionLabBridge) window.ReactionLabBridge.close();
+    if (window.ReactionLabBridge) { window.ReactionLabBridge.close(); window.ReactionLabBridge.showGame(id); }
     stage.innerHTML = '';
     const api = { stage, ask: (fn) => fn(), alive: () => token === running, finish: (score) => { if (token === running) { running++; record(id, score); showResult(g, score); } } };
     // show a start screen first; the game only begins when Start is pressed
@@ -2648,7 +2669,7 @@
     if (name === 'compare') renderCompare();
     if (name === 'profile') renderProfile();
     if (name === 'bench') renderBench();
-    if (name === 'explore') renderExplore();
+    if (name === 'explore') { closeInfo(); renderExplore(); }
     if (name === 'fan') renderFictional();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
