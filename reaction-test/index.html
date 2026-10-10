@@ -102,6 +102,7 @@
   .modeRow button { flex: 1 1 auto; border: 0; background: transparent; color: var(--muted); padding: 9px 12px; }
   .modeRow button[aria-selected="true"] { background: var(--panel-solid); color: var(--fg); box-shadow: 0 1px 0 var(--line); }
   #arena.choice { background: linear-gradient(160deg, #2563eb, #1e3a8a); color: #fff; }
+  #arena.sound { background: linear-gradient(160deg, #a855f7, #6d28d9); color: #fff; }
   #arena.stop { background: linear-gradient(160deg, #475569, #1e293b); color: #fff; }
   .colorRow { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
   .colorRow label { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); font-weight: 600; }
@@ -738,7 +739,7 @@
       setArena('go', 'CLICK!', '');
     } else if (currentMode === 'sound') {
       beep();
-      setArena('go', 'BEEP!', 'Click or press Space now.');
+      setArena('sound', 'BEEP!', 'Click or press Space now.');
     } else if (currentMode === 'choice') {
       setArena('choice', stimulus === 'left' ? '←' : '→', 'Press ' + (stimulus === 'left' ? 'Left' : 'Right') + ' (or tap that side).');
     } else if (currentMode === 'gonogo') {
