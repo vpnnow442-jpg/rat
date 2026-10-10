@@ -210,6 +210,17 @@
   .panel.on { display: block; }
   @media (max-width: 560px) { .tabs button { padding: 9px 12px; font-size: .9rem; } }
 
+  .cmpGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .board { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  .board th, .board td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .board th { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  .board tr.me td { color: var(--accent2); font-weight: 700; }
+  .rank { width: 34px; font-weight: 800; }
+  .rank.top { color: var(--warn); }
+  .addRow { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .addRow input[type="text"] { width: 180px; }
+  .tableWrap.board-wrap { min-width: 0; }
+
   footer { margin-top: 30px; font-size: .8rem; color: var(--muted); text-align: center; line-height: 1.6; }
   .kbd { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .75rem; border: 1px solid var(--line);
          border-bottom-width: 2px; padding: 1px 6px; border-radius: 6px; background: var(--panel-solid); }
@@ -260,6 +271,7 @@
     <button role="tab" aria-selected="true" aria-controls="p-test" data-tab="test">Test</button>
     <button role="tab" aria-selected="false" aria-controls="p-stats" data-tab="stats">Stats</button>
     <button role="tab" aria-selected="false" aria-controls="p-progress" data-tab="progress">Progress</button>
+    <button role="tab" aria-selected="false" aria-controls="p-compare" data-tab="compare">Compare</button>
     <button role="tab" aria-selected="false" aria-controls="p-history" data-tab="history">History</button>
   </nav>
 
@@ -357,7 +369,38 @@
 
   </div>
 
-  <div class="panel" id="p-history" role="tabpanel" data-panel="history">
+  <div class="panel" id="p-compare" role="tabpanel" data-panel="compare">
+  <section class="card reveal">
+    <div class="card-head"><h2>This week vs last week</h2><span class="muted">Average of run means</span></div>
+    <div class="cmpGrid">
+      <div class="tile"><div class="label">This week</div><div class="val" id="cThis">—</div><div class="sub" id="cThisSub">runs so far</div></div>
+      <div class="tile"><div class="label">Last week</div><div class="val" id="cLast">—</div><div class="sub" id="cLastSub">runs</div></div>
+      <div class="tile"><div class="label">Change</div><div class="val" id="cDelta">—</div><div class="sub">negative means faster</div></div>
+    </div>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Personal bests</h2></div>
+    <div class="cmpGrid">
+      <div class="tile"><div class="label">Best single try</div><div class="val" id="pTry">—</div></div>
+      <div class="tile"><div class="label">Best run average</div><div class="val" id="pRun">—</div></div>
+      <div class="tile"><div class="label">Best week</div><div class="val" id="pWeek">—</div></div>
+    </div>
+  </section>
+
+  <section class="card reveal">
+    <div class="card-head"><h2>Friends board</h2><span class="muted">Ranked by overall average, fastest first</span></div>
+    <div class="addRow">
+      <input type="text" id="friendName" maxlength="24" placeholder="Friend's name" aria-label="Friend's name">
+      <button class="primary" id="friendAddBtn">Add friend backup</button>
+      <input type="file" id="friendFile" accept="application/json,.json" hidden>
+    </div>
+    <div class="tableWrap" id="board"></div>
+    <p class="note">There is no live online leaderboard yet, because that needs a server. Ask a friend to send you their backup file (they press Backup (JSON) in their History tab). Type their name, then add the file here and you will both be ranked. Their file is stored only in your browser.</p>
+  </section>
+  </div>
+
+  <div class="panel" id="p-history" role="tabpanel" data-panel="history"> role="tabpanel" data-panel="history">
   <section class="card reveal">
     <div class="card-head"><h2>History</h2><span class="muted">Newest first</span></div>
     <div class="tableWrap" id="history"></div>
@@ -384,6 +427,7 @@
   const RUNS_KEY = 'reactionlab-runs-v1';
   const GOAL_KEY = 'reactionlab-goal-v1';
   const THEME_KEY = 'reactionlab-theme-v1';
+  const FRIENDS_KEY = 'reactionlab-friends-v1';
   const TRIES_PER_RUN = 5;
   const CIRC = 2 * Math.PI * 62; // ring circumference for r=62
   const TIERS = [
@@ -413,6 +457,8 @@
   let runs = readJSON(RUNS_KEY, []);     // [{ id, t, tries: [ms], mean }]
   let goal = readJSON(GOAL_KEY, null);   // ms or null
   if (!Array.isArray(runs)) runs = [];
+  let friends = readJSON(FRIENDS_KEY, []);  // [{ name, runs: [{ t, tries, mean }] }]
+  if (!Array.isArray(friends)) friends = [];
   let current = [];
   let state = 'idle';                    // idle | waiting | ready | done
   let timer = null, readyAt = 0;
@@ -786,7 +832,119 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     renderHist(s.all);
     renderBadges(s);
     renderHistory(animate);
+    renderCompare();
   }
+
+  // ---- compare ----
+  function weekOffsetMean(list, offset) {
+    const target = weekStart(new Date()).getTime() - offset * 7 * 24 * 3600 * 1000;
+    const inWeek = list.filter(r => weekStart(new Date(r.t)).getTime() === target);
+    return { mean: mean(inWeek.map(r => r.mean)), count: inWeek.length };
+  }
+  function renderCompare() {
+    const thisW = weekOffsetMean(runs, 0), lastW = weekOffsetMean(runs, 1);
+    $('cThis').textContent = thisW.mean == null ? '—' : Math.round(thisW.mean) + ' ms';
+    $('cThisSub').textContent = thisW.count + (thisW.count === 1 ? ' run' : ' runs') + ' so far';
+    $('cLast').textContent = lastW.mean == null ? '—' : Math.round(lastW.mean) + ' ms';
+    $('cLastSub').textContent = lastW.count + (lastW.count === 1 ? ' run' : ' runs');
+    const dEl = $('cDelta');
+    if (thisW.mean == null || lastW.mean == null) { dEl.textContent = '—'; dEl.className = 'val'; }
+    else {
+      const d = Math.round(thisW.mean - lastW.mean);
+      dEl.textContent = (d > 0 ? '+' : '') + d + ' ms';
+      dEl.className = 'val ' + (d < 0 ? 'up' : d > 0 ? 'down' : '');
+    }
+
+    const all = runs.flatMap(r => r.tries);
+    $('pTry').textContent = all.length ? Math.min(...all) + ' ms' : '—';
+    $('pRun').textContent = runs.length ? Math.round(Math.min(...runs.map(r => r.mean))) + ' ms' : '—';
+    const weeks = new Map();
+    runs.forEach(r => {
+      const k = weekStart(new Date(r.t)).getTime();
+      if (!weeks.has(k)) weeks.set(k, []);
+      weeks.get(k).push(r.mean);
+    });
+    const weekAvgs = [...weeks.values()].map(v => mean(v));
+    $('pWeek').textContent = weekAvgs.length ? Math.round(Math.min(...weekAvgs)) + ' ms' : '—';
+
+    renderBoard();
+  }
+
+  function renderBoard() {
+    const host = $('board');
+    const s = derive();
+    const rows = [{ name: 'You', me: true, mean: s.mean, best: s.best, tries: s.tries, runs: s.runs, idx: -1 }];
+    friends.forEach((f, idx) => {
+      const tries = (f.runs || []).flatMap(r => r.tries || []);
+      rows.push({
+        name: f.name, me: false,
+        mean: mean(tries), best: tries.length ? Math.min(...tries) : null,
+        tries: tries.length, runs: (f.runs || []).length, idx
+      });
+    });
+    rows.sort((a, b) => (a.mean == null) - (b.mean == null) || (a.mean - b.mean));
+
+    if (rows.length === 1 && rows[0].mean == null) {
+      host.innerHTML = '<div class="empty">Save a run, or add a friend\'s backup, to see the board.</div>';
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'board';
+    table.innerHTML = '<thead><tr><th class="rank">#</th><th>Name</th><th>Average</th><th>Best try</th><th>Runs</th><th></th></tr></thead>';
+    const tb = document.createElement('tbody');
+    rows.forEach((r, i) => {
+      const tr = document.createElement('tr');
+      if (r.me) tr.className = 'me';
+      const cells = [];
+      const td = (text, cls) => { const c = document.createElement('td'); if (cls) c.className = cls; c.textContent = text; cells.push(c); return c; };
+      td(r.mean == null ? '—' : String(i + 1), 'rank' + (i === 0 && r.mean != null ? ' top' : ''));
+      td(r.name);
+      td(fmt(r.mean));
+      td(r.best == null ? '—' : r.best + ' ms');
+      td(String(r.runs));
+      const actions = document.createElement('td');
+      if (!r.me) {
+        const del = document.createElement('button'); del.className = 'ghost'; del.textContent = 'Remove';
+        del.addEventListener('click', () => { friends.splice(r.idx, 1); writeJSON(FRIENDS_KEY, friends); renderBoard(); toast('Friend removed'); });
+        actions.appendChild(del);
+      }
+      cells.push(actions);
+      tr.append(...cells);
+      tb.appendChild(tr);
+    });
+    table.appendChild(tb);
+    host.innerHTML = '';
+    host.appendChild(table);
+  }
+
+  $('friendAddBtn').addEventListener('click', () => {
+    const name = $('friendName').value.trim();
+    if (!name) { toast('Type your friend\'s name first'); $('friendName').focus(); return; }
+    if (friends.length >= 20) { toast('Board is full (20 friends)'); return; }
+    $('friendFile').click();
+  });
+  $('friendFile').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    const name = $('friendName').value.trim();
+    e.target.value = '';
+    if (!file || !name) return;
+    if (file.size > 2 * 1024 * 1024) { toast('That file is too big to be a backup'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const list = Array.isArray(data.runs) ? data.runs.filter(r => r && Array.isArray(r.tries) && r.tries.length && r.tries.every(n => typeof n === 'number' && n > 0 && n < 5000)) : null;
+        if (!list) throw new Error('bad');
+        friends = friends.filter(f => f.name.toLowerCase() !== name.toLowerCase());
+        friends.push({ name, runs: list.slice(0, 2000) });
+        writeJSON(FRIENDS_KEY, friends);
+        $('friendName').value = '';
+        renderCompare();
+        toast('Added ' + name + ' to the board');
+      } catch (err) { toast('That is not a Reaction Lab backup file.'); }
+    };
+    reader.readAsText(file);
+  });
 
   // ---- export / import / clear ----
   function download(name, type, text) {
@@ -852,6 +1010,7 @@ arena.addEventListener('pointerdown', (e) => { if (e.button === 0) onPress(); })
     // charts were drawn while hidden, so redraw them now that they are visible
     if (name === 'progress' || name === 'stats') renderAll(false);
     if (name === 'history') renderAll(true);
+    if (name === 'compare') renderCompare();
     window.scrollTo({ top: 0, behavior: 'auto' });
   }
   tabButtons.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
